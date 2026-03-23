@@ -5,6 +5,9 @@
 
 <mapper namespace="location_mapper">
 	<insert id="saveLocation" parameterType="LocationDTO">
+		<selectKey keyProperty="locationId" resultType="int" order="BEFORE">
+			SELECT SEQ_LQ_LOCATION_PK.NEXTVAL FROM DUAL
+		</selectKey>
 		INSERT INTO LQ_LOCATION (
 		location_id,
 		business_id,
@@ -18,7 +21,7 @@
 		description,
 		created_at
 		) VALUES (
-		SEQ_LQ_LOCATION_PK.nextval,
+		#{locationId},
 		#{businessId},
 		#{name},
 		#{zipCode},
@@ -30,4 +33,17 @@
 		#{description},
 		sysdate )
 	</insert>
+
+	<delete id="deleteUnusedLocationsByIds" parameterType="list">
+		DELETE FROM LQ_LOCATION l
+		WHERE l.LOCATION_ID IN
+		<foreach collection="list" item="locationId" open="(" separator="," close=")">
+			#{locationId}
+		</foreach>
+		AND NOT EXISTS (
+			SELECT 1
+			FROM LQ_QUEST_LOCATION ql
+			WHERE ql.LOCATION_ID = l.LOCATION_ID
+		)
+	</delete>
 </mapper>

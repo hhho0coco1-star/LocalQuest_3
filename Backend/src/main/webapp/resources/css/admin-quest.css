@@ -110,6 +110,30 @@
 
 .exp-icon { color: #0095ff; }
 .point-icon { color: #ffa800; }
+.time-icon { color: #50cd89; }
+
+.reward-item.is-urgent .quest-timer-icon,
+.reward-item.is-urgent .quest-timer-text {
+    color: #f1416c;
+}
+
+.reward-item.is-urgent .quest-timer-icon {
+    animation: adm-q-hourglass-shake 0.8s ease-in-out infinite;
+}
+
+.reward-item.is-expired .quest-timer-icon,
+.reward-item.is-expired .quest-timer-text {
+    color: #f1416c;
+}
+
+@keyframes adm-q-hourglass-shake {
+    0% { transform: rotate(0deg); }
+    20% { transform: rotate(-10deg); }
+    40% { transform: rotate(10deg); }
+    60% { transform: rotate(-8deg); }
+    80% { transform: rotate(8deg); }
+    100% { transform: rotate(0deg); }
+}
 
 /* 카드 하단 버튼 영역 */
 .adm-q-card-footer {
@@ -151,6 +175,8 @@
     z-index: 1000;
     left: 0; top: 0;
     width: 100%; height: 100%;
+    padding: 24px;
+    box-sizing: border-box;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px); /* 배경 블러 처리 */
 }
@@ -158,13 +184,17 @@
 /* 모달 컨텐츠 */
 .adm-q-modal-content {
     background-color: #252537;
-    margin: 10% auto;
+    margin: 3vh auto;
     padding: 0;
     border: 1px solid #323248;
-    width: 500px;
+    width: min(760px, 100%);
+    max-height: 88vh;
     border-radius: 12px;
     box-shadow: 0 15px 30px rgba(0,0,0,0.5);
     color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .adm-q-modal-header {
@@ -181,7 +211,11 @@
     color: #9292af;
 }
 
-.modal-body { padding: 20px; }
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
 
 .input-group { margin-bottom: 15px; }
 .input-group label { display: block; margin-bottom: 5px; color: #9292af; font-size: 13px; }
@@ -196,15 +230,299 @@
     box-sizing: border-box;
 }
 
+.adm-q-inline-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.adm-q-inline-label > label:first-child {
+    margin-bottom: 0;
+}
+
+.adm-q-check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.adm-q-check-label input[type="checkbox"] {
+    width: auto;
+}
+
+.adm-q-time-limit-group {
+    padding: 14px;
+    border: 1px solid #323248;
+    border-radius: 10px;
+    background: rgba(30, 30, 45, 0.85);
+}
+
+.adm-q-time-limit-group input[type="number"] {
+    margin-bottom: 8px;
+}
+
+.adm-q-help-text {
+    display: block;
+    color: #9292af;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.adm-q-place-group {
+    padding: 18px;
+    border: 1px solid #323248;
+    border-radius: 10px;
+    background: #151521;
+}
+
+.adm-q-help-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(114, 57, 234, 0.35);
+    background: rgba(114, 57, 234, 0.12);
+    color: #c6b6ff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.adm-q-place-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.adm-q-place-search input {
+    flex: 1 1 auto;
+    background: #1e1e2d;
+    border: 1px solid #323248;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.adm-q-place-search button {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #7239ea;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.adm-q-place-search button:hover {
+    background: #5d29d6;
+}
+
+.adm-q-place-status {
+    min-height: 20px;
+    margin-bottom: 10px;
+    color: #a1a5b7;
+    font-size: 12px;
+}
+
+.adm-q-place-status.is-visible {
+    display: block;
+}
+
+.adm-q-place-status.is-error {
+    color: #f1416c;
+}
+
+.adm-q-place-map {
+    width: 100%;
+    height: 300px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #323248;
+    margin-bottom: 14px;
+    background: #10101a;
+}
+
+.adm-q-place-panels {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.adm-q-place-panel {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #323248;
+    border-radius: 10px;
+    background: #1e1e2d;
+}
+
+.adm-q-place-panel-title {
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.adm-q-place-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 92px;
+    max-height: 190px;
+    padding-right: 4px;
+    overflow-y: auto;
+}
+
+.adm-q-place-empty {
+    padding: 14px;
+    border: 1px dashed #44445e;
+    border-radius: 10px;
+    color: #9292af;
+    font-size: 13px;
+    text-align: center;
+}
+
+.adm-q-place-result,
+.adm-q-place-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #323248;
+    border-radius: 8px;
+    background: #151521;
+    transition: 0.2s ease;
+}
+
+.adm-q-place-result {
+    cursor: pointer;
+}
+
+.adm-q-place-result:hover,
+.adm-q-place-chip:hover {
+    background: rgba(114, 57, 234, 0.08);
+}
+
+.adm-q-place-result.is-focused {
+    border-color: #7239ea;
+    background: rgba(114, 57, 234, 0.12);
+}
+
+.adm-q-place-result-text,
+.adm-q-place-chip-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.adm-q-place-result-text strong,
+.adm-q-place-chip-text strong {
+    color: #fff;
+    font-size: 13px;
+}
+
+.adm-q-place-result-text span,
+.adm-q-place-chip-text span {
+    color: #9292af;
+    font-size: 12px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.adm-q-place-result-meta {
+    color: #7239ea;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.adm-q-place-pick,
+.adm-q-place-chip-actions button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #2b2b40;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.adm-q-place-pick {
+    background: rgba(114, 57, 234, 0.18);
+    color: #d6c8ff;
+    border: 1px solid rgba(114, 57, 234, 0.28);
+}
+
+.adm-q-place-pick:hover,
+.adm-q-place-chip-actions button:hover:not(:disabled) {
+    background: #4a4a68;
+}
+
+.adm-q-place-pick:hover {
+    background: rgba(114, 57, 234, 0.28);
+}
+
+.adm-q-place-chip-order {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(114, 57, 234, 0.16);
+    color: #d6c8ff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.adm-q-place-chip-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.adm-q-place-chip-actions button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.adm-q-place-chip-actions button.is-danger {
+    background: rgba(241, 65, 108, 0.18);
+    color: #ffb7c8;
+}
+
+.adm-q-place-chip-actions button.is-danger:hover:not(:disabled) {
+    background: rgba(241, 65, 108, 0.32);
+}
+
 .modal-footer {
     padding: 20px;
     border-top: 1px solid #323248;
     display: flex;
     gap: 10px;
+    background: #252537;
+    flex-shrink: 0;
 }
 
 .btn-submit { background: #7239ea; color: white; flex: 2; border: none; padding: 12px; border-radius: 6px; cursor: pointer; }
 .btn-cancel { background: #323248; color: #9292af; flex: 1; border: none; padding: 12px; border-radius: 6px; cursor: pointer; }
+
+#questForm {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+}
 
 /* 새 퀘스트 등록 버튼 스타일 */
 .adm-q-btn-add {
@@ -302,4 +620,10 @@
 
 .adm-q-card.SOLD_OUT .adm-q-status-badge {
     background: #ef5350;
+}
+
+@media (max-width: 1024px) {
+    .adm-q-place-panels {
+        grid-template-columns: 1fr;
+    }
 }

@@ -10,6 +10,8 @@ import com.app.dto.quest.QuestLocationInfoDTO;
 public interface QuestDAO {
     List<QuestDTO> selectAllQuests();
 
+    List<String> selectQuestCategories();
+
     List<QuestMapDTO> selectQuestMapList();
 
     QuestDTO selectQuestById(int questId);
@@ -21,6 +23,10 @@ public interface QuestDAO {
     int updateQuest(QuestDTO quest);
 
     int updateQuestStatus(Map<String, Object> params);
+
+    int updateExpiredQuestsToInactive();
+
+    int resetQuestTimerAndActivate(int questId);
     
     // 퀘스트 검색/필터
     public List<QuestDTO> selectSearchQuests(Map<String, Object> params);

@@ -26,6 +26,11 @@ public class QuestDAOImpl implements QuestDAO {
     }
 
     @Override
+    public List<String> selectQuestCategories() {
+        return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestCategories");
+    }
+
+    @Override
     public List<QuestMapDTO> selectQuestMapList() {
         return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestMapList");
     }
@@ -53,6 +58,16 @@ public class QuestDAOImpl implements QuestDAO {
     @Override
     public int updateQuestStatus(Map<String, Object> params) {
         return sqlSessionTemplate.update(NAMESPACE + ".updateQuestStatus", params);
+    }
+
+    @Override
+    public int updateExpiredQuestsToInactive() {
+        return sqlSessionTemplate.update(NAMESPACE + ".updateExpiredQuestsToInactive");
+    }
+
+    @Override
+    public int resetQuestTimerAndActivate(int questId) {
+        return sqlSessionTemplate.update(NAMESPACE + ".resetQuestTimerAndActivate", questId);
     }
     
     @Override

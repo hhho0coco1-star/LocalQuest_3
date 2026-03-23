@@ -18,4 +18,9 @@ public class QuestLocationDAOImpl implements QuestLocationDAO {
         int result = sqlSessionTemplate.insert("questlocation_mapper.saveQuestLocation", questLocation);
         return result;
     }
+
+    @Override
+    public int deleteQuestLocationsByQuestId(int questId) {
+        return sqlSessionTemplate.delete("questlocation_mapper.deleteQuestLocationsByQuestId", questId);
+    }
 }

@@ -1,5 +1,6 @@
 package com.app.controller.api;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,15 +29,39 @@ public class QuestAPIController {
 
     @GetMapping("/map")
     public ResponseEntity<List<QuestMapDTO>> getQuestMapList() {
-        return ResponseEntity.ok(questService.getQuestMapList());
+        try {
+            return ResponseEntity.ok(questService.getQuestMapList());
+        } catch (Exception e) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
     }
 
     @GetMapping("/{questId}")
     public ResponseEntity<?> getQuestDetail(@PathVariable int questId) {
-        QuestDetailDTO quest = questService.getQuestDetailById(questId);
-        if (quest == null) {
-            return ResponseEntity.notFound().build();
+        try {
+            QuestDetailDTO quest = questService.getQuestDetailById(questId);
+            if (quest == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(quest);
+        } catch (Exception e) {
+            QuestDTO quest = questService.getQuestById(questId);
+            if (quest == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            QuestDetailDTO fallback = new QuestDetailDTO();
+            fallback.setQuestId(quest.getQuestId());
+            fallback.setTitle(quest.getTitle());
+            fallback.setDescription(quest.getDescription());
+            fallback.setCategory(quest.getCategory());
+            fallback.setRewardExp(quest.getRewardExp());
+            fallback.setRewardPoint(quest.getRewardPoint());
+            fallback.setTimeLimit(quest.getTimeLimit());
+            fallback.setStatus(quest.getStatus());
+            fallback.setCreatedAt(quest.getCreatedAt());
+            fallback.setLocations(Collections.emptyList());
+            return ResponseEntity.ok(fallback);
         }
-        return ResponseEntity.ok(quest);
     }
 }
