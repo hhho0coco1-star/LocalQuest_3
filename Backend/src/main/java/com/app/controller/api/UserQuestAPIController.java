@@ -25,6 +25,16 @@ public class UserQuestAPIController {
     @Autowired
     private UserQuestService userQuestService;
 
+    @PostMapping("/accept")
+    public ResponseEntity<?> acceptQuest(HttpSession session, @RequestParam int questId) {
+        if (session == null || session.getAttribute(SessionAuthKeys.USER_ID) == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login required");
+        }
+
+        int userId = ((Number) session.getAttribute(SessionAuthKeys.USER_ID)).intValue();
+        return ResponseEntity.ok(userQuestService.acceptQuest(userId, questId));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getMyQuestOverview(HttpSession session) {
         if (session == null || session.getAttribute(SessionAuthKeys.USER_ID) == null) {
@@ -48,6 +58,36 @@ public class UserQuestAPIController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User quest not found");
         }
         return ResponseEntity.ok(detail);
+    }
+
+    @PostMapping("/me/{userQuestId}/complete")
+    public ResponseEntity<?> completeQuest(HttpSession session, @PathVariable int userQuestId) {
+        if (session == null || session.getAttribute(SessionAuthKeys.USER_ID) == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login required");
+        }
+
+        int userId = ((Number) session.getAttribute(SessionAuthKeys.USER_ID)).intValue();
+        try {
+            return ResponseEntity.ok(userQuestService.completeQuest(userId, userQuestId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/me/{userQuestId}/cancel")
+    public ResponseEntity<?> cancelQuest(HttpSession session, @PathVariable int userQuestId) {
+        if (session == null || session.getAttribute(SessionAuthKeys.USER_ID) == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login required");
+        }
+
+        int userId = ((Number) session.getAttribute(SessionAuthKeys.USER_ID)).intValue();
+        try {
+            return ResponseEntity.ok(userQuestService.cancelQuest(userId, userQuestId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
     }
 
     @PostMapping(

@@ -24,11 +24,24 @@ public class UserQuestProgressDAOImpl implements UserQuestProgressDAO {
     }
 
     @Override
+    public int initializeProgressByQuestId(int userQuestId, int questId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userQuestId", userQuestId);
+        params.put("questId", questId);
+        return sqlSessionTemplate.insert("userquestprogress_mapper.initializeProgressByQuestId", params);
+    }
+
+    @Override
     public int upsertCompletedProgress(int userQuestId, int questLocationId, Date completedAt) {
         Map<String, Object> params = new HashMap<>();
         params.put("userQuestId", userQuestId);
         params.put("questLocationId", questLocationId);
         params.put("completedAt", completedAt);
         return sqlSessionTemplate.update("userquestprogress_mapper.upsertCompletedProgress", params);
+    }
+
+    @Override
+    public int deleteProgressByUserQuestId(int userQuestId) {
+        return sqlSessionTemplate.delete("userquestprogress_mapper.deleteProgressByUserQuestId", userQuestId);
     }
 }

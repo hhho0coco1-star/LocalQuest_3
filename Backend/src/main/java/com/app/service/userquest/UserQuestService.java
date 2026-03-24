@@ -13,11 +13,17 @@ import com.app.dto.userquest.UserQuestSummaryDTO;
 public interface UserQuestService {
     public int saveUserQuest(UserQuestDTO userQuest);
 
+    public Map<String, Object> acceptQuest(int userId, int questId);
+
     public List<UserQuestSummaryDTO> getUserQuestSummaries(int userId);
 
     public UserQuestOverviewDTO getUserQuestOverview(int userId);
 
     public UserQuestDetailDTO getUserQuestDetail(int userId, int userQuestId);
+
+    public Map<String, Object> completeQuest(int userId, int userQuestId);
+
+    public Map<String, Object> cancelQuest(int userId, int userQuestId);
 
     public Map<String, Object> verifyReceiptAndCompleteLocation(
         int userId,

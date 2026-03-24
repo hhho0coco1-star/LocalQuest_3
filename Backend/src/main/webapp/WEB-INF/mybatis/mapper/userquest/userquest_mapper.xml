@@ -5,23 +5,56 @@
 
 <mapper namespace="userquest_mapper">
 	<insert id="saveUserQuest" parameterType="UserQuestDTO">
+		<selectKey keyProperty="userQuestId" resultType="int" order="BEFORE">
+			SELECT SEQ_LQ_USER_QUEST_PK.nextval FROM dual
+		</selectKey>
 		INSERT INTO LQ_USER_QUEST (
 		user_quest_id,
 		user_id,
 		quest_id,
 		status,
 		started_at,
+		due_at,
 		completed_at,
 		created_at
 		) VALUES (
-		SEQ_LQ_USER_QUEST_PK.nextval,
+		#{userQuestId},
 		#{userId},
 		#{questId},
 		#{status},
 		#{startedAt},
+		#{dueAt},
 		#{completedAt},
 		sysdate )
 	</insert>
+
+	<select id="findLatestUserQuestByUserIdAndQuestId" parameterType="map" resultType="UserQuestDTO">
+		SELECT
+			USER_QUEST_ID,
+			USER_ID,
+			QUEST_ID,
+			STATUS,
+			STARTED_AT,
+			DUE_AT,
+			COMPLETED_AT,
+			CREATED_AT
+		FROM (
+			SELECT
+				USER_QUEST_ID,
+				USER_ID,
+				QUEST_ID,
+				STATUS,
+				STARTED_AT,
+				DUE_AT,
+				COMPLETED_AT,
+				CREATED_AT
+			FROM LQ_USER_QUEST
+			WHERE USER_ID = #{userId}
+			  AND QUEST_ID = #{questId}
+			ORDER BY USER_QUEST_ID DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
 
 	<select id="findUserQuestSummariesByUserId" parameterType="int" resultType="UserQuestSummaryDTO">
 		SELECT
@@ -30,6 +63,7 @@
 			uq.QUEST_ID,
 			uq.STATUS AS questStatus,
 			uq.STARTED_AT,
+			uq.DUE_AT,
 			uq.COMPLETED_AT,
 			uq.CREATED_AT,
 			q.TITLE,
@@ -70,6 +104,7 @@
 		INNER JOIN LQ_QUEST q
 			ON uq.QUEST_ID = q.QUEST_ID
 		WHERE uq.USER_ID = #{userId}
+		  AND uq.STATUS != 'ABANDONED'
 		ORDER BY
 			CASE
 				WHEN uq.STATUS = 'IN_PROGRESS' THEN 1
@@ -88,6 +123,7 @@
 			uq.QUEST_ID,
 			uq.STATUS AS questStatus,
 			uq.STARTED_AT,
+			uq.DUE_AT,
 			uq.COMPLETED_AT,
 			uq.CREATED_AT,
 			q.TITLE,
@@ -181,4 +217,18 @@
 			COMPLETED_AT = #{completedAt}
 		WHERE USER_QUEST_ID = #{userQuestId}
 	</update>
+
+	<update id="updateUserQuestLifecycle" parameterType="map">
+		UPDATE LQ_USER_QUEST
+		SET STATUS = #{status},
+			STARTED_AT = #{startedAt},
+			DUE_AT = #{dueAt},
+			COMPLETED_AT = #{completedAt}
+		WHERE USER_QUEST_ID = #{userQuestId}
+	</update>
+
+	<delete id="deleteUserQuest" parameterType="int">
+		DELETE FROM LQ_USER_QUEST
+		WHERE USER_QUEST_ID = #{userQuestId}
+	</delete>
 </mapper>

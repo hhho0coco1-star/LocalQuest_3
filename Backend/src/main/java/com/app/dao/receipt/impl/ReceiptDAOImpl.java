@@ -17,4 +17,9 @@ public class ReceiptDAOImpl implements ReceiptDAO {
     public int saveReceipt(ReceiptDTO receipt) {
         return sqlSessionTemplate.insert("receipt_mapper.saveReceipt", receipt);
     }
+
+    @Override
+    public int deleteReceiptsByUserQuestId(int userQuestId) {
+        return sqlSessionTemplate.delete("receipt_mapper.deleteReceiptsByUserQuestId", userQuestId);
+    }
 }

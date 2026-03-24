@@ -4,8 +4,11 @@ export const questApi = {
   getQuestList: () => api.get('/api/quests'),
   getQuestMapList: () => api.get('/api/quests/map'),
   getQuestDetail: (questId) => api.get(`/api/quests/${questId}`),
+  acceptQuest: (questId) => api.post('/api/user-quests/accept', null, { params: { questId } }),
   getMyQuestOverview: () => api.get('/api/user-quests/me'),
   getMyQuestDetail: (userQuestId) => api.get(`/api/user-quests/me/${userQuestId}`),
+  completeMyQuest: (userQuestId) => api.post(`/api/user-quests/me/${userQuestId}/complete`),
+  cancelMyQuest: (userQuestId) => api.post(`/api/user-quests/me/${userQuestId}/cancel`),
   verifyQuestReceipt: (userQuestId, questLocationId, formData) =>
     api.post(
       `/api/user-quests/me/${userQuestId}/locations/${questLocationId}/receipt-verification`,

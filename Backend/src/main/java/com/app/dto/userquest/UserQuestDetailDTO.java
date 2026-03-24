@@ -12,6 +12,7 @@ public class UserQuestDetailDTO {
     private int questId;
     private String questStatus;
     private Date startedAt;
+    private Date dueAt;
     private Date completedAt;
     private Date createdAt;
 

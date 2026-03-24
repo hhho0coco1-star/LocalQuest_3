@@ -4,4 +4,6 @@ import com.app.dto.receipt.ReceiptDTO;
 
 public interface ReceiptDAO {
     public int saveReceipt(ReceiptDTO receipt);
+
+    public int deleteReceiptsByUserQuestId(int userQuestId);
 }
