@@ -42,6 +42,10 @@
 		<typeAlias type="com.app.dto.reward.RewardWeeklyStats" alias="RewardWeeklyStats"/>
 		<typeAlias type="com.app.dto.reward.RewardWalletCoupon" alias="RewardWalletCoupon"/>
 		<typeAlias type="com.app.dto.reward.RewardItemDTO" alias="RewardItem"/>
+		<typeAlias type="com.app.dto.push.UserNotificationSettingDTO" alias="UserNotificationSettingDTO"/>
+		<typeAlias type="com.app.dto.push.PushSubscriptionDTO" alias="PushSubscriptionDTO"/>
+		<typeAlias type="com.app.dto.push.PushDispatchTargetDTO" alias="PushDispatchTargetDTO"/>
+		<typeAlias type="com.app.dto.push.NotificationLogDTO" alias="NotificationLogDTO"/>
     </typeAliases>
 
 </configuration>

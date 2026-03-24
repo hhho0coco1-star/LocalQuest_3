@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { clearAuth } from '../../store/authSlice';
+import { pushApi } from '../../api/PushApi';
+import { getServiceWorkerRegistration } from '../../push/serviceWorkerRegistration';
+import { toSubscriptionPayload, urlBase64ToUint8Array } from '../../push/pushSubscription';
 import LocalQuestLogo from './LocalQuestLogo';
 import './Header.css';
 
@@ -15,17 +18,155 @@ const Header = () => {
   const displayName =
     user?.nickname ?? user?.name ?? user?.userLoginId ?? user?.userId ?? '사용자';
 
+  const isPushSupported = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return (
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window
+    );
+  }, []);
+
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [isPushBusy, setIsPushBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncPushStatus = async () => {
+      if (!isAuthenticated || !isPushSupported) {
+        if (!cancelled) {
+          setIsPushEnabled(false);
+        }
+        return;
+      }
+
+      try {
+        const registration = await getServiceWorkerRegistration();
+        const subscription = await registration?.pushManager?.getSubscription();
+        const enabled = Boolean(subscription) && window.Notification.permission === 'granted';
+
+        if (!cancelled) {
+          setIsPushEnabled(enabled);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setIsPushEnabled(false);
+        }
+      }
+    };
+
+    syncPushStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isPushSupported]);
+
   const handleLogout = () => {
     dispatch(clearAuth());
     navigate('/main', { replace: true });
   };
 
+  const handleEnablePush = async () => {
+    if (!isAuthenticated || !isPushSupported || isPushBusy) {
+      return;
+    }
+
+    setIsPushBusy(true);
+
+    try {
+      const configResponse = await pushApi.getConfig();
+      const config = configResponse?.data || {};
+
+      if (!config.enabled || !config.publicKey) {
+        alert('푸시 기능이 서버에서 아직 설정되지 않았습니다.');
+        return;
+      }
+
+      const registration = await getServiceWorkerRegistration();
+      if (!registration) {
+        alert('서비스워커를 등록하지 못했습니다.');
+        return;
+      }
+
+      let permission = window.Notification.permission;
+      if (permission !== 'granted') {
+        permission = await window.Notification.requestPermission();
+      }
+
+      if (permission !== 'granted') {
+        alert('알림 권한이 허용되지 않아 푸시를 켤 수 없습니다.');
+        setIsPushEnabled(false);
+        return;
+      }
+
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(config.publicKey),
+        });
+      }
+
+      await pushApi.saveSubscription(toSubscriptionPayload(subscription));
+      await pushApi.saveSettings({
+        pushAgree: true,
+        marketingAgree: false,
+        lunchPushAgree: true,
+        dinnerPushAgree: true,
+        weekendPushAgree: true,
+      });
+
+      setIsPushEnabled(true);
+      alert('푸시 알림이 활성화되었습니다.');
+    } catch (error) {
+      const message = error?.response?.data?.message || '푸시 알림 활성화 중 오류가 발생했습니다.';
+      alert(message);
+    } finally {
+      setIsPushBusy(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    if (!isAuthenticated || !isPushSupported || isPushBusy) {
+      return;
+    }
+
+    setIsPushBusy(true);
+
+    try {
+      const registration = await getServiceWorkerRegistration();
+      const subscription = await registration?.pushManager?.getSubscription();
+      const endpoint = subscription?.endpoint;
+
+      if (subscription) {
+        await subscription.unsubscribe();
+      }
+
+      if (endpoint) {
+        await pushApi.deactivateSubscription(endpoint);
+      }
+
+      await pushApi.saveSettings({ pushAgree: false });
+      setIsPushEnabled(false);
+      alert('푸시 알림이 해제되었습니다.');
+    } catch (error) {
+      const message = error?.response?.data?.message || '푸시 알림 해제 중 오류가 발생했습니다.';
+      alert(message);
+    } finally {
+      setIsPushBusy(false);
+    }
+  };
+
   return (
     <div>
       <header className="header-main-container">
-        {/* 상단 섹션: 로고 & 유틸 버튼 */}
         <div className="header-top-section">
-          <div className="header-inner"> {/* 중앙 정렬을 위한 이너 박스 추가 */}
+          <div className="header-inner">
             <Link to="/" className="header-logo-link">
               <LocalQuestLogo />
             </Link>
@@ -39,6 +180,16 @@ const Header = () => {
               ) : (
                 <>
                   <span className="header-user-info">{displayName}님</span>
+                  {isPushSupported && (
+                    <button
+                      type="button"
+                      className="header-push-btn"
+                      onClick={isPushEnabled ? handleDisablePush : handleEnablePush}
+                      disabled={isPushBusy}
+                    >
+                      {isPushBusy ? '처리 중...' : isPushEnabled ? '알림 해제' : '알림 켜기'}
+                    </button>
+                  )}
                   <button className="header-auth-btn" onClick={handleLogout}>로그아웃</button>
                 </>
               )}
@@ -46,9 +197,8 @@ const Header = () => {
           </div>
         </div>
 
-        {/* 하단 섹션: 네비게이션 바 */}
         <nav className="header-nav-bar">
-          <div className="header-inner"> {/* 중앙 정렬을 위한 이너 박스 추가 */}
+          <div className="header-inner">
             <ul className="header-nav-list">
               <li className="header-nav-item">
                 <Link to="/explore" className="header-nav-link">퀘스트 목록</Link>
@@ -57,7 +207,7 @@ const Header = () => {
                 <Link to="/quest" className="header-nav-link">내 퀘스트</Link>
               </li>
               <li className="header-nav-item">
-                <Link to="/reward" className="header-nav-link">성장 및 보상</Link>
+                <Link to="/reward" className="header-nav-link">상점 및 보상</Link>
               </li>
 
               {userRole === 'BUSINESS' && (
@@ -81,8 +231,7 @@ const Header = () => {
           </div>
         </nav>
       </header>
-      <div className="header-relative-space"> </div>
-
+      <div className="header-relative-space" />
     </div>
   );
 };

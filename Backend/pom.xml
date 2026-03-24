@@ -206,6 +206,13 @@
 			<artifactId>javax.mail</artifactId>
 			<version>1.6.2</version>
 		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/nl.martijndwars/web-push -->
+		<dependency>
+			<groupId>nl.martijndwars</groupId>
+			<artifactId>web-push</artifactId>
+			<version>5.1.1</version>
+		</dependency>
 	</dependencies>
 
 

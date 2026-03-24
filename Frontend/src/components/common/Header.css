@@ -46,6 +46,22 @@
   cursor: pointer;
 }
 
+.header-push-btn {
+  border: 1px solid #0f766e;
+  background: #ecfeff;
+  color: #0f766e;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.header-push-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .header-signup-btn {
   background-color: #0f172a;
   color: white;
