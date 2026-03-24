@@ -17,6 +17,11 @@ public class LocationServiceImpl implements LocationService {
     private LocationDAO dao;
 
     @Override
+    public List<LocationDTO> searchLocations(String keyword) {
+        return dao.searchLocations(keyword);
+    }
+
+    @Override
     @Transactional
     public int saveLocation(LocationDTO location) {
         return dao.saveLocation(location);

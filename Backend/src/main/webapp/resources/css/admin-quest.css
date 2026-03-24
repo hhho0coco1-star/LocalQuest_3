@@ -339,14 +339,23 @@
     color: #f1416c;
 }
 
-.adm-q-place-map {
+.adm-q-place-guide {
     width: 100%;
-    height: 300px;
+    min-height: 72px;
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 16px;
+    box-sizing: border-box;
     border-radius: 10px;
-    overflow: hidden;
     border: 1px solid #323248;
     margin-bottom: 14px;
-    background: #10101a;
+    background: rgba(16, 16, 26, 0.9);
+    color: #a1a5b7;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
 }
 
 .adm-q-place-panels {
@@ -503,6 +512,176 @@
 
 .adm-q-place-chip-actions button.is-danger:hover:not(:disabled) {
     background: rgba(241, 65, 108, 0.32);
+}
+
+.adm-q-review-group {
+    padding: 18px;
+    border: 1px solid #323248;
+    border-radius: 10px;
+    background: #151521;
+}
+
+.adm-q-review-status {
+    min-height: 20px;
+    margin-bottom: 10px;
+    color: #a1a5b7;
+    font-size: 12px;
+}
+
+.adm-q-review-status.is-visible {
+    display: block;
+}
+
+.adm-q-review-status.is-error {
+    color: #f1416c;
+}
+
+.adm-q-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.adm-q-review-empty {
+    padding: 14px;
+    border: 1px dashed #44445e;
+    border-radius: 10px;
+    color: #9292af;
+    font-size: 13px;
+    text-align: center;
+    background: rgba(30, 30, 45, 0.55);
+}
+
+.adm-q-review-card {
+    padding: 14px;
+    border: 1px solid #323248;
+    border-radius: 10px;
+    background: #1e1e2d;
+}
+
+.adm-q-review-card.is-editing {
+    border-color: rgba(114, 57, 234, 0.7);
+    box-shadow: 0 0 0 1px rgba(114, 57, 234, 0.25);
+}
+
+.adm-q-review-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.adm-q-review-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.adm-q-review-meta strong {
+    color: #ffffff;
+    font-size: 13px;
+}
+
+.adm-q-review-meta span {
+    color: #9292af;
+    font-size: 12px;
+}
+
+.adm-q-review-side {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.adm-q-review-rating {
+    color: #ffd66b;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.adm-q-review-content {
+    margin: 0;
+    color: #d7d7ea;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.adm-q-review-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.adm-q-review-actions button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(114, 57, 234, 0.14);
+    color: #d7c5ff;
+}
+
+.adm-q-review-actions button:hover {
+    background: rgba(114, 57, 234, 0.28);
+}
+
+.adm-q-review-actions button.is-danger {
+    background: rgba(241, 65, 108, 0.18);
+    color: #ffb7c8;
+}
+
+.adm-q-review-actions button.is-danger:hover {
+    background: rgba(241, 65, 108, 0.32);
+}
+
+.adm-q-review-actions button.is-secondary {
+    background: rgba(50, 50, 72, 0.9);
+    color: #c9c9dd;
+}
+
+.adm-q-review-actions button.is-secondary:hover {
+    background: rgba(68, 68, 94, 0.95);
+}
+
+.adm-q-review-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.adm-q-review-edit-row label {
+    margin: 0;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.adm-q-review-edit-row select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #323248;
+    background: #151521;
+    color: #ffffff;
+}
+
+.adm-q-review-card textarea {
+    width: 100%;
+    min-height: 96px;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #323248;
+    background: #151521;
+    color: #ffffff;
+    resize: vertical;
+    box-sizing: border-box;
 }
 
 .modal-footer {

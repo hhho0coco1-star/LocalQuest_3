@@ -9,19 +9,17 @@
     <script>
         // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
         const ctx = "${pageContext.request.contextPath}";
-        const ADMIN_QUEST_KAKAO_MAP_KEY = "0ee4eff9fa2ac60452126f417cc94a0c";
-        const ADMIN_QUEST_CHEONAN_CENTER = {
-            lat: 36.81511,
-            lng: 127.11389
-        };
         let questCountdownTimer = null;
-        let adminQuestMap = null;
-        let adminQuestSearchMarker = null;
-        let adminQuestSelectedMarkers = [];
         let adminQuestSelectedLocations = [];
         let adminQuestSearchResults = [];
-        let adminQuestPlacesService = null;
         let adminQuestFocusedSearchIndex = -1;
+        let adminQuestReviews = [];
+        let adminQuestReviewLoading = false;
+        let adminQuestEditingReviewId = 0;
+        let adminQuestReviewDraft = {
+            rating: 5,
+            content: ''
+        };
 
         /**
          * 肄섑뀗痢?濡쒕뜑
@@ -54,13 +52,16 @@
         }
 
         function initializeAdminView(url) {
-            if ($('#questLocationMap').length === 0) {
-                clearQuestLocationMapObjects();
-                adminQuestMap = null;
-                adminQuestPlacesService = null;
+            if ($('#questLocationSearchResults').length === 0) {
                 adminQuestSelectedLocations = [];
                 adminQuestSearchResults = [];
                 adminQuestFocusedSearchIndex = -1;
+            }
+            if ($('#questReviewList').length === 0) {
+                adminQuestReviews = [];
+                adminQuestReviewLoading = false;
+                adminQuestEditingReviewId = 0;
+                adminQuestReviewDraft = { rating: 5, content: '' };
             }
             initializeQuestCountdowns();
         }
@@ -76,105 +77,25 @@
                 return;
             }
 
-            const tick = function() {
-                $timerCards.each(function() {
-                    updateQuestCountdown($(this));
-                });
-            };
-
-            tick();
-            questCountdownTimer = setInterval(tick, 1000);
+            $timerCards.each(function() {
+                updateQuestCountdown($(this));
+            });
         }
 
         function updateQuestCountdown($cardBody) {
             const timeLimit = Number($cardBody.data('time-limit'));
-            const createdAt = ($cardBody.data('created-at') || '').toString();
-            const currentStatus = ($cardBody.data('status') || '').toString();
             const $card = $cardBody.closest('.adm-q-card');
             const $timerItem = $card.find('.quest-timer-icon').closest('.reward-item');
             const $timerText = $card.find('.quest-timer-text');
 
-            if (!timeLimit || !createdAt || currentStatus !== 'ACTIVE') {
-                return;
-            }
-
-            const createdDate = parseQuestCreatedAt(createdAt);
-            if (!createdDate) {
-                $timerText.text(timeLimit + '분 제한');
-                return;
-            }
-
-            const expireAt = createdDate.getTime() + (timeLimit * 60 * 1000);
-            const remainingMs = expireAt - Date.now();
-
             $timerItem.removeClass('is-urgent is-expired');
 
-            if (remainingMs <= 0) {
-                $timerItem.addClass('is-expired');
-                $timerText.text('시간 만료');
-                expireQuestSilently($card, $cardBody);
+            if (!timeLimit) {
+                $timerText.text('제한 없음');
                 return;
             }
 
-            if (remainingMs < 60000) {
-                $timerItem.addClass('is-urgent');
-            }
-
-            $timerText.text(formatQuestRemainingTime(remainingMs));
-        }
-
-        function parseQuestCreatedAt(createdAtText) {
-            const normalized = createdAtText.replace(' ', 'T');
-            const parsed = new Date(normalized);
-            if (Number.isNaN(parsed.getTime())) {
-                return null;
-            }
-            return parsed;
-        }
-
-        function formatQuestRemainingTime(remainingMs) {
-            const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            return minutes + '분 ' + String(seconds).padStart(2, '0') + '초 남음';
-        }
-
-        function expireQuestSilently($card, $cardBody) {
-            if ($card.data('expireSubmitting')) {
-                return;
-            }
-
-            $card.data('expireSubmitting', true);
-
-            $.ajax({
-                url: ctx + "/admin/quests/updateStatus",
-                type: "POST",
-                data: { questId: $cardBody.data('id'), status: 'INACTIVE' },
-                success: function(res) {
-                    if (res && res.trim() === 'success') {
-                        applyQuestInactiveState($card, $cardBody);
-                    } else {
-                        $card.data('expireSubmitting', false);
-                    }
-                },
-                error: function() {
-                    $card.data('expireSubmitting', false);
-                }
-            });
-        }
-
-        function applyQuestInactiveState($card, $cardBody) {
-            $card.removeClass('ACTIVE').addClass('INACTIVE');
-            $card.find('.adm-q-status-badge').text('INACTIVE');
-            $card.find('.btn-q-stop')
-                .removeClass('btn-q-stop')
-                .addClass('btn-q-start')
-                .attr('onclick', "updateQuestStatus(" + $cardBody.data('id') + ", 'ACTIVE')")
-                .text('활성화');
-            $card.find('.reward-item').has('.quest-timer-icon').removeClass('is-urgent').addClass('is-expired');
-            $card.find('.quest-timer-text').text('시간 만료');
-            $cardBody.data('status', 'INACTIVE');
-            $card.data('expireSubmitting', false);
+            $timerText.text(timeLimit + '분 제한');
         }
 
         function escapeAdminHtml(value) {
@@ -186,131 +107,6 @@
                 .replace(/'/g, '&#39;');
         }
 
-        function clearQuestLocationMapObjects() {
-            if (adminQuestSearchMarker && typeof adminQuestSearchMarker.setMap === 'function') {
-                adminQuestSearchMarker.setMap(null);
-            }
-            adminQuestSearchMarker = null;
-
-            adminQuestSelectedMarkers.forEach(function(marker) {
-                if (marker && typeof marker.setMap === 'function') {
-                    marker.setMap(null);
-                }
-            });
-            adminQuestSelectedMarkers = [];
-        }
-
-        function loadAdminQuestMapSdk(onReady) {
-            if (!ADMIN_QUEST_KAKAO_MAP_KEY) {
-                showQuestLocationStatus('카카오 지도 키를 찾을 수 없습니다.', true);
-                return;
-            }
-
-            const handleSdkReady = function() {
-                if (window.kakao?.maps?.load) {
-                    window.kakao.maps.load(function() {
-                        if (window.kakao?.maps?.LatLng && window.kakao?.maps?.services?.Places) {
-                            onReady();
-                            return;
-                        }
-                        showQuestLocationStatus('카카오 지도 서비스를 초기화하지 못했습니다.', true);
-                    });
-                    return;
-                }
-
-                if (window.kakao?.maps?.LatLng && window.kakao?.maps?.services?.Places) {
-                    onReady();
-                    return;
-                }
-
-                showQuestLocationStatus('카카오 지도 라이브러리를 불러오지 못했습니다.', true);
-            };
-
-            const handleScriptError = function() {
-                showQuestLocationStatus('카카오 지도 스크립트를 불러오지 못했습니다.', true);
-            };
-
-            const existingScript = document.querySelector('script[data-kakao-admin-map-sdk="true"]');
-            if (existingScript) {
-                if (existingScript.getAttribute('data-loaded') === 'true') {
-                    handleSdkReady();
-                    return;
-                }
-
-                existingScript.addEventListener('load', handleSdkReady, { once: true });
-                existingScript.addEventListener('error', handleScriptError, { once: true });
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey='
-                + ADMIN_QUEST_KAKAO_MAP_KEY
-                + '&autoload=false&libraries=services';
-            script.async = true;
-            script.setAttribute('data-kakao-admin-map-sdk', 'true');
-            script.addEventListener('load', function() {
-                script.setAttribute('data-loaded', 'true');
-                handleSdkReady();
-            }, { once: true });
-            script.addEventListener('error', handleScriptError, { once: true });
-            document.head.appendChild(script);
-        }
-
-        function ensureQuestMap(onReady) {
-            const mapElement = document.getElementById('questLocationMap');
-            if (!mapElement) {
-                return null;
-            }
-
-            const finalizeQuestMap = function() {
-                if (!adminQuestMap) {
-                    return;
-                }
-
-                setTimeout(function() {
-                    if (typeof adminQuestMap.relayout === 'function') {
-                        adminQuestMap.relayout();
-                    }
-                    fitQuestMapToSelectedLocations();
-                    if (typeof onReady === 'function') {
-                        onReady(adminQuestMap);
-                    }
-                }, 80);
-            };
-
-            const initializeMap = function() {
-                const currentMapElement = document.getElementById('questLocationMap');
-                if (!currentMapElement || !window.kakao?.maps?.LatLng) {
-                    return;
-                }
-
-                if (!adminQuestMap || adminQuestMap.__container !== currentMapElement) {
-                    clearQuestLocationMapObjects();
-                    currentMapElement.innerHTML = '';
-                    adminQuestMap = new window.kakao.maps.Map(currentMapElement, {
-                        center: new window.kakao.maps.LatLng(
-                            ADMIN_QUEST_CHEONAN_CENTER.lat,
-                            ADMIN_QUEST_CHEONAN_CENTER.lng
-                        ),
-                        level: 6
-                    });
-                    adminQuestMap.__container = currentMapElement;
-                    adminQuestPlacesService = new window.kakao.maps.services.Places(adminQuestMap);
-                }
-
-                finalizeQuestMap();
-            };
-
-            if (window.kakao?.maps?.LatLng && window.kakao?.maps?.services?.Places) {
-                initializeMap();
-                return adminQuestMap;
-            }
-
-            showQuestLocationStatus('천안 기준 카카오 지도를 불러오는 중입니다.', false);
-            loadAdminQuestMapSdk(initializeMap);
-            return null;
-        }
-
         function resetQuestLocationState() {
             adminQuestSearchResults = [];
             adminQuestSelectedLocations = [];
@@ -318,57 +114,6 @@
             syncQuestLocationsInput();
             renderQuestSearchResults();
             renderQuestSelectedLocations();
-            clearQuestSearchMarker();
-        }
-
-        function clearQuestSearchMarker() {
-            if (adminQuestSearchMarker && typeof adminQuestSearchMarker.setMap === 'function') {
-                adminQuestSearchMarker.setMap(null);
-            }
-            adminQuestSearchMarker = null;
-        }
-
-        function fitQuestMapToSelectedLocations() {
-            if (!adminQuestMap || !window.kakao?.maps?.LatLng) {
-                return;
-            }
-
-            const validLocations = adminQuestSelectedLocations.filter(function(location) {
-                return Number.isFinite(Number(location.latitude)) && Number.isFinite(Number(location.longitude));
-            });
-
-            if (validLocations.length === 0) {
-                adminQuestMap.setCenter(
-                    new window.kakao.maps.LatLng(
-                        ADMIN_QUEST_CHEONAN_CENTER.lat,
-                        ADMIN_QUEST_CHEONAN_CENTER.lng
-                    )
-                );
-                adminQuestMap.setLevel(6);
-                return;
-            }
-
-            if (validLocations.length === 1) {
-                adminQuestMap.setCenter(
-                    new window.kakao.maps.LatLng(
-                        Number(validLocations[0].latitude),
-                        Number(validLocations[0].longitude)
-                    )
-                );
-                adminQuestMap.setLevel(4);
-                return;
-            }
-
-            const bounds = new window.kakao.maps.LatLngBounds();
-            validLocations.forEach(function(location) {
-                bounds.extend(
-                    new window.kakao.maps.LatLng(
-                        Number(location.latitude),
-                        Number(location.longitude)
-                    )
-                );
-            });
-            adminQuestMap.setBounds(bounds);
         }
 
         function showQuestLocationStatus(message, isError) {
@@ -391,6 +136,7 @@
         function syncQuestLocationsInput() {
             const payload = adminQuestSelectedLocations.map(function(location, index) {
                 return {
+                    locationId: Number(location.locationId) || 0,
                     visitOrder: index + 1,
                     name: location.name,
                     zipCode: location.zipCode || '',
@@ -440,7 +186,6 @@
             }
 
             syncQuestLocationsInput();
-            renderQuestLocationMarkers();
 
             if (adminQuestSelectedLocations.length === 0) {
                 $list.html('<div class="adm-q-place-empty">선택된 장소가 없습니다.</div>');
@@ -466,141 +211,74 @@
             $list.html(html);
         }
 
-        function renderQuestLocationMarkers() {
-            if (!adminQuestMap || !window.kakao?.maps?.LatLng) {
-                return;
-            }
-
-            adminQuestSelectedMarkers.forEach(function(marker) {
-                marker.setMap(null);
-            });
-            adminQuestSelectedMarkers = [];
-
-            adminQuestSelectedLocations.forEach(function(location, index) {
-                if (!Number.isFinite(Number(location.latitude)) || !Number.isFinite(Number(location.longitude))) {
-                    return;
-                }
-
-                const marker = new window.kakao.maps.Marker({
-                    map: adminQuestMap,
-                    position: new window.kakao.maps.LatLng(
-                        Number(location.latitude),
-                        Number(location.longitude)
-                    ),
-                    title: (index + 1) + '. ' + location.name
-                });
-                adminQuestSelectedMarkers.push(marker);
-            });
-
-            fitQuestMapToSelectedLocations();
-        }
-
         function searchQuestLocations() {
             const keyword = ($('#questLocationKeyword').val() || '').trim();
-            if (!keyword) {
-                showQuestLocationStatus('장소명을 입력해 주세요.', true);
-                $('#questLocationKeyword').focus();
-                return;
-            }
+            showQuestLocationStatus(
+                keyword
+                    ? '등록된 장소 목록을 검색 중입니다.'
+                    : '최근 등록된 장소 목록을 불러오는 중입니다.',
+                false
+            );
 
-            showQuestLocationStatus('천안 기준으로 장소를 검색 중입니다.', false);
+            $.ajax({
+                url: ctx + '/admin/locations/search',
+                type: 'GET',
+                dataType: 'json',
+                data: { keyword: keyword },
+                success: function(res) {
+                    adminQuestSearchResults = Array.isArray(res) ? res.map(function(result) {
+                        return {
+                            locationId: Number(result.locationId) || 0,
+                            name: result.name || '',
+                            zipCode: result.zipCode || '',
+                            address: result.address || '',
+                            addressDetail: result.addressDetail || '',
+                            latitude: Number(result.latitude),
+                            longitude: Number(result.longitude),
+                            locationType: result.locationType || 'QUEST_SPOT',
+                            description: result.description || '',
+                            categoryText: result.locationType || '등록 장소'
+                        };
+                    }).filter(function(result) {
+                        return result.locationId > 0
+                            && result.name
+                            && result.address
+                            && Number.isFinite(result.latitude)
+                            && Number.isFinite(result.longitude);
+                    }) : [];
 
-            ensureQuestMap(function() {
-                if (!window.kakao?.maps?.services?.Places) {
-                    showQuestLocationStatus('카카오 장소 검색 서비스를 불러오지 못했습니다.', true);
-                    return;
-                }
+                    adminQuestFocusedSearchIndex = adminQuestSearchResults.length > 0 ? 0 : -1;
+                    renderQuestSearchResults();
 
-                if (!adminQuestPlacesService) {
-                    adminQuestPlacesService = new window.kakao.maps.services.Places(adminQuestMap);
-                }
-
-                const searchOptions = {
-                    x: ADMIN_QUEST_CHEONAN_CENTER.lng,
-                    y: ADMIN_QUEST_CHEONAN_CENTER.lat,
-                    radius: 20000,
-                    size: 8,
-                    sort: window.kakao.maps.services.SortBy.DISTANCE
-                };
-
-                adminQuestPlacesService.keywordSearch(keyword, function(data, status) {
-                    if (status === window.kakao.maps.services.Status.OK) {
-                        adminQuestSearchResults = (data || []).map(function(result) {
-                            const address = result.road_address_name || result.address_name || '';
-                            return {
-                                name: result.place_name || keyword,
-                                address: address,
-                                addressDetail: result.address_name && result.road_address_name
-                                    ? result.address_name
-                                    : '',
-                                zipCode: '',
-                                latitude: Number(result.y),
-                                longitude: Number(result.x),
-                                locationType: 'QUEST_SPOT',
-                                description: result.category_name || result.place_url || '',
-                                categoryText: result.category_name || '천안 장소',
-                                distanceText: result.distance ? (result.distance + 'm') : ''
-                            };
-                        }).filter(function(result) {
-                            return Number.isFinite(result.latitude)
-                                && Number.isFinite(result.longitude)
-                                && result.address;
-                        });
-
-                        renderQuestSearchResults();
-
-                        if (adminQuestSearchResults.length > 0) {
-                            focusQuestSearchResult(0);
-                            showQuestLocationStatus('천안 기준 검색 결과입니다. 목록에서 장소를 선택해 주세요.', false);
-                            return;
-                        }
-
-                        clearQuestSearchMarker();
-                        adminQuestFocusedSearchIndex = -1;
-                        showQuestLocationStatus('검색 결과가 없습니다. 다른 키워드로 다시 시도해 주세요.', true);
+                    if (adminQuestSearchResults.length === 0) {
+                        showQuestLocationStatus('조건에 맞는 등록 장소가 없습니다.', true);
                         return;
                     }
 
+                    showQuestLocationStatus(
+                        keyword
+                            ? '검색된 장소 목록입니다. 퀘스트 경로에 추가할 장소를 선택해 주세요.'
+                            : '최근 등록 장소 목록입니다. 퀘스트 경로에 추가할 장소를 선택해 주세요.',
+                        false
+                    );
+                },
+                error: function() {
                     adminQuestSearchResults = [];
                     adminQuestFocusedSearchIndex = -1;
                     renderQuestSearchResults();
-                    clearQuestSearchMarker();
-                    if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
-                        showQuestLocationStatus('검색 결과가 없습니다. 다른 키워드로 다시 시도해 주세요.', true);
-                    } else {
-                        showQuestLocationStatus('장소 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.', true);
-                    }
-                });
+                    showQuestLocationStatus('장소 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
+                }
             });
         }
 
         function focusQuestSearchResult(index) {
             const result = adminQuestSearchResults[index];
-            if (!result || !Number.isFinite(Number(result.latitude)) || !Number.isFinite(Number(result.longitude))) {
+            if (!result) {
                 return;
             }
 
             adminQuestFocusedSearchIndex = index;
             renderQuestSearchResults();
-
-            ensureQuestMap(function(map) {
-                clearQuestSearchMarker();
-                adminQuestSearchMarker = new window.kakao.maps.Marker({
-                    map: map,
-                    position: new window.kakao.maps.LatLng(
-                        Number(result.latitude),
-                        Number(result.longitude)
-                    ),
-                    title: result.name
-                });
-                map.panTo(
-                    new window.kakao.maps.LatLng(
-                        Number(result.latitude),
-                        Number(result.longitude)
-                    )
-                );
-                map.setLevel(4);
-            });
         }
 
         function addQuestLocation(index) {
@@ -610,6 +288,10 @@
             }
 
             const isDuplicated = adminQuestSelectedLocations.some(function(location) {
+                if (Number(location.locationId) > 0 && Number(result.locationId) > 0) {
+                    return Number(location.locationId) === Number(result.locationId);
+                }
+
                 return location.name === result.name
                     && Number(location.latitude) === Number(result.latitude)
                     && Number(location.longitude) === Number(result.longitude);
@@ -621,6 +303,7 @@
             }
 
             adminQuestSelectedLocations.push({
+                locationId: Number(result.locationId) || 0,
                 name: result.name,
                 zipCode: result.zipCode || '',
                 address: result.address || '',
@@ -667,6 +350,7 @@
                 success: function(res) {
                     adminQuestSelectedLocations = Array.isArray(res.locations) ? res.locations.map(function(location) {
                         return {
+                            locationId: Number(location.locationId) || 0,
                             name: location.name || '',
                             zipCode: location.zipCode || '',
                             address: location.address || '',
@@ -695,6 +379,277 @@
                     adminQuestSelectedLocations = [];
                     renderQuestSelectedLocations();
                     showQuestLocationStatus('기존 장소 정보를 불러오지 못했습니다. 새로 다시 선택해 주세요.', true);
+                }
+            });
+        }
+
+        function resetQuestReviewState() {
+            adminQuestReviews = [];
+            adminQuestReviewLoading = false;
+            adminQuestEditingReviewId = 0;
+            adminQuestReviewDraft = { rating: 5, content: '' };
+            renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
+            showQuestReviewStatus('새 퀘스트는 등록 후 리뷰를 관리할 수 있습니다.', false);
+        }
+
+        function showQuestReviewStatus(message, isError) {
+            const $status = $('#questReviewStatus');
+            if ($status.length === 0) {
+                return;
+            }
+
+            if (!message) {
+                $status.removeClass('is-error is-visible').text('');
+                return;
+            }
+
+            $status
+                .toggleClass('is-error', !!isError)
+                .addClass('is-visible')
+                .text(message);
+        }
+
+        function formatAdminReviewDate(value) {
+            if (!value) {
+                return '';
+            }
+
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) {
+                return escapeAdminHtml(value);
+            }
+
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            const hours = String(parsed.getHours()).padStart(2, '0');
+            const minutes = String(parsed.getMinutes()).padStart(2, '0');
+            return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes;
+        }
+
+        function renderQuestReviewRating(rating) {
+            const normalized = Math.max(1, Math.min(5, Number(rating) || 0));
+            return '★'.repeat(normalized) + '☆'.repeat(5 - normalized);
+        }
+
+        function renderQuestReviewList(questId) {
+            const $list = $('#questReviewList');
+            if ($list.length === 0) {
+                return;
+            }
+
+            if (!(questId > 0)) {
+                $list.html('<div class="adm-q-review-empty">새 퀘스트는 등록 후 리뷰를 관리할 수 있습니다.</div>');
+                return;
+            }
+
+            if (adminQuestReviewLoading) {
+                $list.html('<div class="adm-q-review-empty">리뷰를 불러오는 중입니다.</div>');
+                return;
+            }
+
+            if (adminQuestReviews.length === 0) {
+                $list.html('<div class="adm-q-review-empty">등록된 리뷰가 없습니다.</div>');
+                return;
+            }
+
+            const html = adminQuestReviews.map(function(review) {
+                if (adminQuestEditingReviewId === Number(review.reviewId)) {
+                    const options = [1, 2, 3, 4, 5].map(function(score) {
+                        return '<option value="' + score + '"'
+                            + (Number(adminQuestReviewDraft.rating) === score ? ' selected' : '')
+                            + '>' + score + '점</option>';
+                    }).join('');
+
+                    return ''
+                        + '<div class="adm-q-review-card is-editing">'
+                        + '  <div class="adm-q-review-head">'
+                        + '    <div class="adm-q-review-meta">'
+                        + '      <strong>' + escapeAdminHtml(review.authorName || ('USER #' + review.userId)) + '</strong>'
+                        + '      <span>' + formatAdminReviewDate(review.createdAt) + '</span>'
+                        + '    </div>'
+                        + '  </div>'
+                        + '  <div class="adm-q-review-edit-row">'
+                        + '    <label for="adminQuestReviewRating">별점</label>'
+                        + '    <select id="adminQuestReviewRating" onchange="setAdminQuestReviewRating(this.value)">'
+                        + options
+                        + '    </select>'
+                        + '  </div>'
+                        + '  <textarea id="adminQuestReviewContent" oninput="setAdminQuestReviewContent(this.value)">'
+                        + escapeAdminHtml(adminQuestReviewDraft.content || '')
+                        + '</textarea>'
+                        + '  <div class="adm-q-review-actions">'
+                        + '    <button type="button" onclick="submitAdminQuestReviewEdit()">저장</button>'
+                        + '    <button type="button" class="is-secondary" onclick="cancelAdminQuestReviewEdit()">취소</button>'
+                        + '  </div>'
+                        + '</div>';
+                }
+
+                return ''
+                    + '<div class="adm-q-review-card">'
+                    + '  <div class="adm-q-review-head">'
+                    + '    <div class="adm-q-review-meta">'
+                    + '      <strong>' + escapeAdminHtml(review.authorName || ('USER #' + review.userId)) + '</strong>'
+                    + '      <span>' + formatAdminReviewDate(review.createdAt) + '</span>'
+                    + '    </div>'
+                    + '    <div class="adm-q-review-side">'
+                    + '      <span class="adm-q-review-rating">' + renderQuestReviewRating(review.rating) + '</span>'
+                    + '      <div class="adm-q-review-actions">'
+                    + '        <button type="button" onclick="startAdminQuestReviewEdit(' + review.reviewId + ')">수정</button>'
+                    + '        <button type="button" class="is-danger" onclick="deleteAdminQuestReview(' + review.reviewId + ')">삭제</button>'
+                    + '      </div>'
+                    + '    </div>'
+                    + '  </div>'
+                    + '  <p class="adm-q-review-content">' + escapeAdminHtml(review.content || '') + '</p>'
+                    + '</div>';
+            }).join('');
+
+            $list.html(html);
+        }
+
+        function loadQuestReviewsForEdit(questId) {
+            if (!(questId > 0)) {
+                resetQuestReviewState();
+                return;
+            }
+
+            adminQuestReviewLoading = true;
+            adminQuestEditingReviewId = 0;
+            renderQuestReviewList(questId);
+            showQuestReviewStatus('리뷰를 불러오는 중입니다.', false);
+
+            $.ajax({
+                url: ctx + '/api/quests/' + questId + '/reviews',
+                type: 'GET',
+                dataType: 'json',
+                success: function(res) {
+                    adminQuestReviews = Array.isArray(res) ? res : [];
+                    adminQuestReviewLoading = false;
+                    renderQuestReviewList(questId);
+                    showQuestReviewStatus(
+                        adminQuestReviews.length > 0
+                            ? '등록된 리뷰를 불러왔습니다.'
+                            : '등록된 리뷰가 없습니다.',
+                        false
+                    );
+                },
+                error: function() {
+                    adminQuestReviews = [];
+                    adminQuestReviewLoading = false;
+                    renderQuestReviewList(questId);
+                    showQuestReviewStatus('리뷰를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
+                }
+            });
+        }
+
+        function startAdminQuestReviewEdit(reviewId) {
+            const review = adminQuestReviews.find(function(item) {
+                return Number(item.reviewId) === Number(reviewId);
+            });
+
+            if (!review) {
+                return;
+            }
+
+            adminQuestEditingReviewId = Number(reviewId);
+            adminQuestReviewDraft = {
+                rating: Number(review.rating) || 5,
+                content: review.content || ''
+            };
+            renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
+            showQuestReviewStatus('리뷰 수정 내용을 편집할 수 있습니다.', false);
+        }
+
+        function cancelAdminQuestReviewEdit() {
+            adminQuestEditingReviewId = 0;
+            adminQuestReviewDraft = { rating: 5, content: '' };
+            renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
+            showQuestReviewStatus('리뷰 수정이 취소되었습니다.', false);
+        }
+
+        function setAdminQuestReviewRating(value) {
+            adminQuestReviewDraft.rating = Number(value) || 1;
+        }
+
+        function setAdminQuestReviewContent(value) {
+            adminQuestReviewDraft.content = value;
+        }
+
+        function submitAdminQuestReviewEdit() {
+            const questId = Number($('#modalQuestId').val()) || 0;
+            const reviewId = Number(adminQuestEditingReviewId) || 0;
+            const rating = Number(adminQuestReviewDraft.rating) || 0;
+            const content = (adminQuestReviewDraft.content || '').trim();
+
+            if (!(questId > 0) || !(reviewId > 0)) {
+                return;
+            }
+
+            if (rating < 1 || rating > 5) {
+                showQuestReviewStatus('별점은 1점부터 5점까지 입력해 주세요.', true);
+                return;
+            }
+
+            if (!content) {
+                showQuestReviewStatus('리뷰 내용을 입력해 주세요.', true);
+                return;
+            }
+
+            $.ajax({
+                url: ctx + '/api/quests/' + questId + '/reviews/' + reviewId,
+                type: 'PUT',
+                contentType: 'application/json; charset=UTF-8',
+                data: JSON.stringify({
+                    rating: rating,
+                    content: content
+                }),
+                success: function(res) {
+                    adminQuestEditingReviewId = 0;
+                    adminQuestReviewDraft = { rating: 5, content: '' };
+                    loadQuestReviewsForEdit(questId);
+                    showQuestReviewStatus(
+                        res && res.message ? res.message : '리뷰가 수정되었습니다.',
+                        false
+                    );
+                },
+                error: function(xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message
+                        ? xhr.responseJSON.message
+                        : '리뷰 수정에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+                    showQuestReviewStatus(message, true);
+                }
+            });
+        }
+
+        function deleteAdminQuestReview(reviewId) {
+            const questId = Number($('#modalQuestId').val()) || 0;
+            if (!(questId > 0) || !(Number(reviewId) > 0)) {
+                return;
+            }
+
+            if (!confirm('이 리뷰를 삭제하시겠습니까?')) {
+                return;
+            }
+
+            $.ajax({
+                url: ctx + '/api/quests/' + questId + '/reviews/' + reviewId,
+                type: 'DELETE',
+                success: function(res) {
+                    if (Number(adminQuestEditingReviewId) === Number(reviewId)) {
+                        adminQuestEditingReviewId = 0;
+                        adminQuestReviewDraft = { rating: 5, content: '' };
+                    }
+                    loadQuestReviewsForEdit(questId);
+                    showQuestReviewStatus(
+                        res && res.message ? res.message : '리뷰가 삭제되었습니다.',
+                        false
+                    );
+                },
+                error: function(xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message
+                        ? xhr.responseJSON.message
+                        : '리뷰 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+                    showQuestReviewStatus(message, true);
                 }
             });
         }
@@ -892,7 +847,11 @@
                         } else if (res.trim() === "fail:location_coordinate_empty") {
                             alert("선택한 장소 좌표 정보가 비어 있습니다.");
                         } else if (res.trim() === "fail:location_tables_missing") {
-                            alert("퀘스트 장소 테이블을 찾을 수 없습니다. LQ_LOCATION, LQ_QUEST_LOCATION 테이블을 먼저 확인해 주세요.");
+                            alert("퀘스트 장소 저장에 필요한 테이블 또는 시퀀스를 찾지 못했습니다. LQ_LOCATION, LQ_QUEST_LOCATION, SEQ_LQ_LOCATION_PK, SEQ_LQ_QUEST_LOCATION_PK를 확인해 주세요.");
+                        } else if (res.trim() === "fail:location_reference_missing") {
+                            alert("선택한 장소가 현재 DB에 없어 저장할 수 없습니다. 장소를 다시 선택해 주세요.");
+                        } else if (res.trim() === "fail:location_conflict") {
+                            alert("선택한 장소 목록에 중복되거나 순서가 충돌하는 항목이 있습니다. 장소 목록을 다시 확인해 주세요.");
                         } else {
                             alert("저장에 실패했습니다: " + res.trim());
                         }
@@ -920,9 +879,10 @@
             $('#modalTitleText').html('<i class="fas fa-plus-circle"></i> 새 퀘스트 등록');
             $('#modalSubmitBtn').text('등록하기');
             resetQuestLocationState();
-            showQuestLocationStatus('검색으로 퀘스트 장소를 추가할 수 있습니다.', false);
+            resetQuestReviewState();
+            showQuestLocationStatus('등록된 장소 목록을 불러올 준비가 되었습니다.', false);
             $('#questModal').fadeIn(200, function() {
-                ensureQuestMap();
+                searchQuestLocations();
             });
         }
 
@@ -948,9 +908,11 @@
             }
             $('#questLocationKeyword').val('');
             resetQuestLocationState();
+            resetQuestReviewState();
             $('#questModal').fadeIn(200, function() {
-                ensureQuestMap();
+                searchQuestLocations();
                 loadQuestLocationsForEdit(data.id);
+                loadQuestReviewsForEdit(data.id);
             });
         }
 
@@ -992,7 +954,9 @@
                 $('#m_time_limit').val('').prop('disabled', true);
                 $('#questLocationKeyword').val('');
                 resetQuestLocationState();
+                resetQuestReviewState();
                 showQuestLocationStatus('', false);
+                showQuestReviewStatus('', false);
                 $('#modalTitleText').html('<i class="fas fa-plus-circle"></i> 새 퀘스트 등록');
                 $('#modalSubmitBtn').text('등록하기');
             }, 200);

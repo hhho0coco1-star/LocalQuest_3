@@ -4,7 +4,7 @@
 
 <c:set var="path" value="${pageContext.request.contextPath}" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<link rel="stylesheet" href="${path}/css/admin-quest.css?v=20260323-2315">
+<link rel="stylesheet" href="${path}/css/admin-quest.css?v=20260324-2000">
 <style>
     #questModal.adm-q-modal {
         padding: 24px;
@@ -82,8 +82,8 @@
         line-height: 1.4;
     }
 
-    #questModal .adm-q-place-map {
-        height: 300px;
+    #questModal .adm-q-place-guide {
+        min-height: 72px;
     }
 </style>
 
@@ -114,6 +114,10 @@
         </div>
     </div>
 
+    <c:if test="${not empty questLoadError}">
+        <div class="adm-q-empty">${questLoadError}</div>
+    </c:if>
+
     <div class="adm-q-grid">
         <c:choose>
             <c:when test="${not empty questList}">
@@ -129,7 +133,6 @@
                             data-exp="${quest.rewardExp}"
                             data-point="${quest.rewardPoint}"
                             data-time-limit="${quest.timeLimit}"
-                            data-created-at="<fmt:formatDate value='${quest.createdAt}' pattern='yyyy-MM-dd HH:mm:ss'/>"
                             data-status="${quest.status}"
                             onclick="openQuestEditFromCard(this)"
                             style="cursor:pointer;"
@@ -228,23 +231,25 @@
                         </label>
                     </div>
                     <input type="number" id="m_time_limit" name="timeLimit" value="" min="1" placeholder="제한 시간을 분 단위로 입력하세요." disabled>
-                    <small class="adm-q-help-text">설정한 분이 지나면 퀘스트가 자동으로 비활성화됩니다. 만료 후 시간을 수정하면 다시 활성화되며 카운트다운이 재시작됩니다.</small>
+                    <small class="adm-q-help-text">관리자 화면에서는 제한시간이 흐르지 않습니다. 제한시간은 사용자가 퀘스트를 수락한 시점부터 사용자별로 적용됩니다.</small>
                 </div>
                 <div class="input-group adm-q-place-group">
                     <div class="adm-q-inline-label">
                         <label for="questLocationKeyword">퀘스트 장소 검색</label>
-                        <span class="adm-q-help-chip">천안 / 카카오지도</span>
+                        <span class="adm-q-help-chip">LQ_LOCATION</span>
                     </div>
                     <div class="adm-q-place-search">
-                        <input type="text" id="questLocationKeyword" placeholder="장소명 또는 주소를 검색하세요."
+                        <input type="text" id="questLocationKeyword" placeholder="장소명 또는 주소로 목록을 검색하세요."
                             onkeypress="if(event.keyCode==13){ event.preventDefault(); searchQuestLocations(); }">
                         <button type="button" onclick="searchQuestLocations()">검색</button>
                     </div>
                     <div id="questLocationStatus" class="adm-q-place-status"></div>
-                    <div id="questLocationMap" class="adm-q-place-map"></div>
+                    <div class="adm-q-place-guide">
+                        등록된 장소 목록에서 퀘스트 경로에 사용할 장소를 선택하세요. 검색어 없이 조회하면 최근 등록 장소가 먼저 표시됩니다.
+                    </div>
                     <div class="adm-q-place-panels">
                         <div class="adm-q-place-panel">
-                            <div class="adm-q-place-panel-title">검색 결과</div>
+                            <div class="adm-q-place-panel-title">장소 목록</div>
                             <div id="questLocationSearchResults" class="adm-q-place-list">
                                 <div class="adm-q-place-empty">검색 결과가 없습니다.</div>
                             </div>
@@ -255,6 +260,16 @@
                                 <div class="adm-q-place-empty">선택된 장소가 없습니다.</div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="input-group adm-q-review-group">
+                    <div class="adm-q-inline-label">
+                        <label for="questReviewList">퀘스트 리뷰 관리</label>
+                        <span class="adm-q-help-chip">ADMIN</span>
+                    </div>
+                    <div id="questReviewStatus" class="adm-q-review-status"></div>
+                    <div id="questReviewList" class="adm-q-review-list">
+                        <div class="adm-q-review-empty">새 퀘스트는 등록 후 리뷰를 관리할 수 있습니다.</div>
                     </div>
                 </div>
             </div>

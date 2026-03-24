@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,17 +34,13 @@ public class QuestServiceImpl implements QuestService {
     @Autowired
     private QuestLocationDAO questLocationDAO;
 
-    private void expireTimedOutQuestsQuietly() {
-        try {
-            questDAO.updateExpiredQuestsToInactive();
-        } catch (Exception e) {
-            // DB 준비 전 단계에서도 조회 자체는 최대한 유지한다.
-        }
+    @Override
+    public List<QuestDTO> getAdminQuestList() {
+        return questDAO.selectAdminAllQuests();
     }
 
     @Override
     public List<QuestDTO> getAllQuests() {
-        expireTimedOutQuestsQuietly();
         return questDAO.selectAllQuests();
     }
 
@@ -56,19 +51,16 @@ public class QuestServiceImpl implements QuestService {
 
     @Override
     public List<QuestMapDTO> getQuestMapList() {
-        expireTimedOutQuestsQuietly();
         return questDAO.selectQuestMapList();
     }
 
     @Override
     public QuestDTO getQuestById(int questId) {
-        expireTimedOutQuestsQuietly();
         return questDAO.selectQuestById(questId);
     }
 
     @Override
     public QuestDetailDTO getQuestDetailById(int questId) {
-        expireTimedOutQuestsQuietly();
         QuestDTO quest = questDAO.selectQuestById(questId);
         if (quest == null) {
             return null;
@@ -103,17 +95,6 @@ public class QuestServiceImpl implements QuestService {
     @Override
     @Transactional
     public boolean changeQuestStatus(int questId, String status) {
-        if ("ACTIVE".equalsIgnoreCase(status)) {
-            QuestDTO quest = questDAO.selectQuestById(questId);
-            if (quest == null) {
-                return false;
-            }
-
-            if (normalizeTimeLimit(quest.getTimeLimit()) != null) {
-                return questDAO.resetQuestTimerAndActivate(questId) == 1;
-            }
-        }
-
         Map<String, Object> params = new HashMap<>();
         params.put("questId", questId);
         params.put("status", status);
@@ -123,12 +104,9 @@ public class QuestServiceImpl implements QuestService {
     @Override
     @Transactional
     public boolean updateQuest(QuestDTO quest, List<QuestLocationInfoDTO> locations) {
-        QuestDTO currentQuest = questDAO.selectQuestById(quest.getQuestId());
-        if (currentQuest == null) {
+        if (questDAO.selectQuestById(quest.getQuestId()) == null) {
             return false;
         }
-
-        boolean shouldReactivate = shouldReactivateQuest(currentQuest, quest);
 
         if (questDAO.updateQuest(quest) <= 0) {
             return false;
@@ -136,48 +114,17 @@ public class QuestServiceImpl implements QuestService {
 
         replaceQuestLocations(quest.getQuestId(), locations);
 
-        if (shouldReactivate) {
-            questDAO.resetQuestTimerAndActivate(quest.getQuestId());
-        }
-
         return true;
     }
 
     @Override
     public void expireTimedOutQuests() {
-        questDAO.updateExpiredQuestsToInactive();
+        // 전역 퀘스트 제한시간 만료는 더 이상 사용하지 않는다.
     }
     
     @Override
     public List<QuestDTO> getSearchQuests(Map<String, Object> params) {
-        expireTimedOutQuestsQuietly();
         return questDAO.selectSearchQuests(params);
-    }
-
-    private boolean shouldReactivateQuest(QuestDTO currentQuest, QuestDTO updatedQuest) {
-        if (!"INACTIVE".equalsIgnoreCase(currentQuest.getStatus())) {
-            return false;
-        }
-
-        Integer updatedTimeLimit = normalizeTimeLimit(updatedQuest.getTimeLimit());
-        if (updatedTimeLimit == null) {
-            return false;
-        }
-
-        Integer currentTimeLimit = normalizeTimeLimit(currentQuest.getTimeLimit());
-        if (currentTimeLimit == null || currentQuest.getCreatedAt() == null) {
-            return false;
-        }
-
-        long expireAt = currentQuest.getCreatedAt().getTime() + (currentTimeLimit * 60L * 1000L);
-        return expireAt <= System.currentTimeMillis();
-    }
-
-    private Integer normalizeTimeLimit(Integer timeLimit) {
-        if (timeLimit == null || timeLimit <= 0) {
-            return null;
-        }
-        return timeLimit;
     }
 
     private List<QuestLocationInfoDTO> loadQuestLocationsOrEmpty(int questId) {
@@ -217,52 +164,41 @@ public class QuestServiceImpl implements QuestService {
             throw new IllegalStateException(QUEST_LOCATION_STORAGE_UNAVAILABLE, e);
         }
 
-        if (existingLocations != null && !existingLocations.isEmpty()) {
-            List<Integer> oldLocationIds = existingLocations.stream()
-                .map(QuestLocationInfoDTO::getLocationId)
-                .filter(locationId -> locationId > 0)
-                .distinct()
-                .collect(Collectors.toList());
-            try {
-                locationDAO.deleteUnusedLocationsByIds(oldLocationIds);
-            } catch (Exception e) {
-                if (isLocationPayloadEmpty(locations)) {
-                    return;
-                }
-                throw new IllegalStateException(QUEST_LOCATION_STORAGE_UNAVAILABLE, e);
-            }
-        }
-
         if (locations == null || locations.isEmpty()) {
             return;
         }
 
         int visitOrder = 1;
         for (QuestLocationInfoDTO locationInfo : locations) {
-            LocationDTO location = new LocationDTO();
-            location.setBusinessId(null);
-            location.setName(locationInfo.getName());
-            location.setZipCode(locationInfo.getZipCode());
-            location.setAddress(locationInfo.getAddress());
-            location.setAddressDetail(locationInfo.getAddressDetail());
-            location.setLatitude(locationInfo.getLatitude() == null ? 0D : locationInfo.getLatitude());
-            location.setLongitude(locationInfo.getLongitude() == null ? 0D : locationInfo.getLongitude());
-            location.setLocationType(locationInfo.getLocationType());
-            location.setDescription(locationInfo.getDescription());
+            int locationId = locationInfo.getLocationId();
+            if (locationId <= 0) {
+                LocationDTO location = new LocationDTO();
+                location.setBusinessId(null);
+                location.setName(locationInfo.getName());
+                location.setZipCode(locationInfo.getZipCode());
+                location.setAddress(locationInfo.getAddress());
+                location.setAddressDetail(locationInfo.getAddressDetail());
+                location.setLatitude(locationInfo.getLatitude() == null ? 0D : locationInfo.getLatitude());
+                location.setLongitude(locationInfo.getLongitude() == null ? 0D : locationInfo.getLongitude());
+                location.setLocationType(locationInfo.getLocationType());
+                location.setDescription(locationInfo.getDescription());
 
-            try {
-                if (locationDAO.saveLocation(location) != 1) {
-                    throw new IllegalStateException("Failed to save quest location");
+                try {
+                    if (locationDAO.saveLocation(location) != 1) {
+                        throw new IllegalStateException("Failed to save quest location");
+                    }
+                } catch (IllegalStateException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IllegalStateException(QUEST_LOCATION_STORAGE_UNAVAILABLE, e);
                 }
-            } catch (IllegalStateException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new IllegalStateException(QUEST_LOCATION_STORAGE_UNAVAILABLE, e);
+
+                locationId = location.getLocationId();
             }
 
             QuestLocationDTO questLocation = new QuestLocationDTO();
             questLocation.setQuestId(questId);
-            questLocation.setLocationId(location.getLocationId());
+            questLocation.setLocationId(locationId);
             questLocation.setVisitOrder(locationInfo.getVisitOrder() > 0 ? locationInfo.getVisitOrder() : visitOrder);
 
             try {

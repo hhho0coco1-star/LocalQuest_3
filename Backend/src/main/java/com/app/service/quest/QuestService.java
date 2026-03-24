@@ -9,6 +9,8 @@ import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 
 public interface QuestService {
+    List<QuestDTO> getAdminQuestList();
+
     List<QuestDTO> getAllQuests();
 
     List<String> getQuestCategories();

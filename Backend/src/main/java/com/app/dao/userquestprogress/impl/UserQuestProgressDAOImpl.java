@@ -18,4 +18,9 @@ public class UserQuestProgressDAOImpl implements UserQuestProgressDAO {
         int result = sqlSessionTemplate.insert("userquestprogress_mapper.saveUserQuestProgress", userQuestProgress);
         return result;
     }
+
+    @Override
+    public int deleteUserQuestProgressByUserQuestId(int userQuestId) {
+        return sqlSessionTemplate.delete("userquestprogress_mapper.deleteUserQuestProgressByUserQuestId", userQuestId);
+    }
 }

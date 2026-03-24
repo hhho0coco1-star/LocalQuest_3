@@ -5,6 +5,9 @@
 
 <mapper namespace="userquest_mapper">
 	<insert id="saveUserQuest" parameterType="UserQuestDTO">
+		<selectKey keyProperty="userQuestId" resultType="int" order="BEFORE">
+			SELECT SEQ_LQ_USER_QUEST_PK.nextval FROM DUAL
+		</selectKey>
 		INSERT INTO LQ_USER_QUEST (
 		user_quest_id,
 		user_id,
@@ -14,7 +17,7 @@
 		completed_at,
 		created_at
 		) VALUES (
-		SEQ_LQ_USER_QUEST_PK.nextval,
+		#{userQuestId},
 		#{userId},
 		#{questId},
 		#{status},
@@ -22,4 +25,48 @@
 		#{completedAt},
 		sysdate )
 	</insert>
+
+	<select id="findUserQuestByUserIdAndQuestId" parameterType="UserQuestDTO" resultType="UserQuestDTO">
+		SELECT
+			USER_QUEST_ID,
+			USER_ID,
+			QUEST_ID,
+			STATUS,
+			STARTED_AT,
+			COMPLETED_AT,
+			CREATED_AT
+		FROM LQ_USER_QUEST
+		WHERE USER_ID = #{userId}
+		  AND QUEST_ID = #{questId}
+	</select>
+
+	<select id="findUserQuestSummariesByUserId" parameterType="int" resultType="UserQuestSummaryDTO">
+		SELECT
+			uq.USER_QUEST_ID as userQuestId,
+			uq.QUEST_ID as questId,
+			uq.STATUS as status,
+			uq.STARTED_AT as startedAt,
+			uq.COMPLETED_AT as completedAt,
+			q.STATUS as questStatus,
+			q.TITLE as title,
+			q.DESCRIPTION as description,
+			q.CATEGORY as category,
+			q.REWARD_EXP as rewardExp,
+			q.REWARD_POINT as rewardPoint,
+			q.TIME_LIMIT as timeLimit
+		FROM LQ_USER_QUEST uq
+		INNER JOIN LQ_QUEST q
+			ON q.QUEST_ID = uq.QUEST_ID
+		WHERE uq.USER_ID = #{_parameter}
+		  AND q.STATUS != 'DELETED'
+		ORDER BY NVL(uq.STARTED_AT, uq.CREATED_AT) DESC, uq.USER_QUEST_ID DESC
+	</select>
+
+	<update id="updateUserQuestForAccept" parameterType="UserQuestDTO">
+		UPDATE LQ_USER_QUEST
+		SET STATUS = #{status},
+			STARTED_AT = #{startedAt},
+			COMPLETED_AT = #{completedAt}
+		WHERE USER_QUEST_ID = #{userQuestId}
+	</update>
 </mapper>

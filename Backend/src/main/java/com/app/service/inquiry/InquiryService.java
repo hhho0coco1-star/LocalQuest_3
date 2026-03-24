@@ -1,7 +1,13 @@
 package com.app.service.inquiry;
 
+import java.util.List;
+
 import com.app.dto.inquiry.InquiryDTO;
 
 public interface InquiryService {
-    public int saveInquiry(InquiryDTO inquiry);
+    int registerInquiry(InquiryDTO inquiry);        // 등록
+    List<InquiryDTO> findInquiryList(int userId);    // 목록 조회
+    InquiryDTO findInquiryById(int inquiryId);       // 상세 조회
+    int modifyInquiry(InquiryDTO inquiry);          // 수정
+    int removeInquiry(int inquiryId);                // 삭제
 }

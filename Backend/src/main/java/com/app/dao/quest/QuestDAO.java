@@ -8,6 +8,8 @@ import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 
 public interface QuestDAO {
+    List<QuestDTO> selectAdminAllQuests();
+
     List<QuestDTO> selectAllQuests();
 
     List<String> selectQuestCategories();

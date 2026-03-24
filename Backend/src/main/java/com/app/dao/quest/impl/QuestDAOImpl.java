@@ -1,7 +1,9 @@
 package com.app.dao.quest.impl;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +23,20 @@ public class QuestDAOImpl implements QuestDAO {
     private static final String NAMESPACE = "quest_mapper";
 
     @Override
+    public List<QuestDTO> selectAdminAllQuests() {
+        return sqlSessionTemplate.selectList(NAMESPACE + ".selectAdminAllQuests");
+    }
+
+    @Override
     public List<QuestDTO> selectAllQuests() {
-        return sqlSessionTemplate.selectList(NAMESPACE + ".selectAllQuests");
+        try {
+            return sqlSessionTemplate.selectList(NAMESPACE + ".selectAllQuests");
+        } catch (Exception e) {
+            if (isQuestReviewStatsUnavailable(e)) {
+                return sqlSessionTemplate.selectList(NAMESPACE + ".selectAllQuestsBasic");
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -37,12 +51,23 @@ public class QuestDAOImpl implements QuestDAO {
 
     @Override
     public QuestDTO selectQuestById(int questId) {
-        return sqlSessionTemplate.selectOne(NAMESPACE + ".selectQuestById", questId);
+        try {
+            return sqlSessionTemplate.selectOne(NAMESPACE + ".selectQuestById", questId);
+        } catch (Exception e) {
+            if (isQuestReviewStatsUnavailable(e)) {
+                return sqlSessionTemplate.selectOne(NAMESPACE + ".selectQuestByIdBasic", questId);
+            }
+            throw e;
+        }
     }
 
     @Override
     public List<QuestLocationInfoDTO> selectQuestLocationsByQuestId(int questId) {
-        return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestLocationsByQuestId", questId);
+        try {
+            return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestLocationsByQuestId", questId);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -72,6 +97,51 @@ public class QuestDAOImpl implements QuestDAO {
     
     @Override
     public List<QuestDTO> selectSearchQuests(Map<String, Object> params) {
-        return sqlSessionTemplate.selectList(NAMESPACE + ".selectSearchQuests", params);
+        try {
+            return sqlSessionTemplate.selectList(NAMESPACE + ".selectSearchQuests", params);
+        } catch (Exception e) {
+            if (isQuestReviewStatsUnavailable(e)) {
+                return sqlSessionTemplate.selectList(NAMESPACE + ".selectSearchQuestsBasic", params);
+            }
+            throw e;
+        }
+    }
+
+    private boolean isQuestReviewStatsUnavailable(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String upperMessage = message.toUpperCase(Locale.ROOT);
+                if (upperMessage.contains("LQ_QUEST_REVIEW")
+                    || upperMessage.contains("ORA-00942")
+                    || upperMessage.contains("ORA-00904")
+                    || upperMessage.contains("AVERAGE_RATING")
+                    || upperMessage.contains("REVIEW_COUNT")
+                    || upperMessage.contains("RATING")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private boolean isQuestLocationStorageUnavailable(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String upperMessage = message.toUpperCase(Locale.ROOT);
+                if (upperMessage.contains("LQ_QUEST_LOCATION")
+                    || upperMessage.contains("LQ_LOCATION")
+                    || upperMessage.contains("ORA-00942")
+                    || upperMessage.contains("TABLE OR VIEW DOES NOT EXIST")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

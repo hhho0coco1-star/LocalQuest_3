@@ -13,7 +13,7 @@
         <typeAlias type="com.app.dto.badge.BadgeDTO" alias="BadgeDTO"/>
         <typeAlias type="com.app.dto.business.BusinessDTO" alias="BusinessDTO"/>
         <typeAlias type="com.app.dto.businessinquiry.BusinessInquiryDTO" alias="BusinessInquiryDTO"/>
-        <typeAlias type="com.app.dto.faq.FAQDTO" alias="FAQDTO"/>
+        <typeAlias type="com.app.dto.faq.FaqDTO" alias="FaqDTO"/>
         <typeAlias type="com.app.dto.graderange.GradeRangeDTO" alias="GradeRangeDTO"/>
         <typeAlias type="com.app.dto.inquiry.InquiryDTO" alias="InquiryDTO"/>
         <typeAlias type="com.app.dto.levelrange.LevelRangeDTO" alias="LevelRangeDTO"/>
@@ -29,6 +29,7 @@
         <typeAlias type="com.app.dto.user.User" alias="User"/>
         <typeAlias type="com.app.dto.userbadge.UserBadgeDTO" alias="UserBadgeDTO"/>
         <typeAlias type="com.app.dto.userquest.UserQuestDTO" alias="UserQuestDTO"/>
+        <typeAlias type="com.app.dto.userquest.UserQuestSummaryDTO" alias="UserQuestSummaryDTO"/>
         <typeAlias type="com.app.dto.userquestprogress.UserQuestProgressDTO" alias="UserQuestProgressDTO"/>
         <typeAlias type="com.app.dto.userrank.UserRankDTO" alias="UserRankDTO"/>
         <typeAlias type="com.app.dto.quest.QuestDTO" alias="Quest"/>

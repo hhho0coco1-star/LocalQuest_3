@@ -4,9 +4,69 @@
 		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="location_mapper">
+	<select id="searchLocations" parameterType="string" resultType="LocationDTO">
+		SELECT *
+		FROM (
+			SELECT
+				LOCATION_ID as locationId,
+				BUSINESS_ID as businessId,
+				NAME as name,
+				ZIP_CODE as zipCode,
+				ADDRESS as address,
+				ADDRESS_DETAIL as addressDetail,
+				LATITUDE as latitude,
+				LONGITUDE as longitude,
+				LOCATION_TYPE as locationType,
+				DESCRIPTION as description,
+				CREATED_AT as createdAt
+			FROM LQ_LOCATION
+			WHERE LATITUDE IS NOT NULL
+			  AND LONGITUDE IS NOT NULL
+			<if test="_parameter != null and _parameter.trim() != ''">
+			  AND (
+					UPPER(NAME) LIKE '%' || UPPER(#{_parameter}) || '%'
+				 OR UPPER(ADDRESS) LIKE '%' || UPPER(#{_parameter}) || '%'
+				 OR UPPER(NVL(ADDRESS_DETAIL, '')) LIKE '%' || UPPER(#{_parameter}) || '%'
+			  )
+			</if>
+			ORDER BY CREATED_AT DESC, LOCATION_ID DESC
+		)
+		WHERE ROWNUM &lt;= 50
+	</select>
+
 	<insert id="saveLocation" parameterType="LocationDTO">
 		<selectKey keyProperty="locationId" resultType="int" order="BEFORE">
 			SELECT SEQ_LQ_LOCATION_PK.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO LQ_LOCATION (
+		location_id,
+		business_id,
+		name,
+		zip_code,
+		address,
+		address_detail,
+		latitude,
+		longitude,
+		location_type,
+		description,
+		created_at
+		) VALUES (
+		#{locationId},
+		#{businessId},
+		#{name},
+		#{zipCode},
+		#{address},
+		#{addressDetail},
+		#{latitude},
+		#{longitude},
+		#{locationType},
+		#{description},
+		sysdate )
+	</insert>
+
+	<insert id="saveLocationWithoutSequence" parameterType="LocationDTO">
+		<selectKey keyProperty="locationId" resultType="int" order="BEFORE">
+			SELECT NVL(MAX(LOCATION_ID), 0) + 1 FROM LQ_LOCATION
 		</selectKey>
 		INSERT INTO LQ_LOCATION (
 		location_id,

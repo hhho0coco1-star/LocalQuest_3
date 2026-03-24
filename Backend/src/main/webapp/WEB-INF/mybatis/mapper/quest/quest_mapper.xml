@@ -11,19 +11,61 @@
         ORDER BY QUEST_CATEGORY_ID ASC
     </select>
 
-    <select id="selectAllQuests" resultType="Quest">
+    <select id="selectAdminAllQuests" resultType="Quest">
         SELECT
             QUEST_ID as questId,
-            TITLE,
-            DESCRIPTION,
-            CATEGORY,
+            TITLE as title,
+            DESCRIPTION as description,
+            CATEGORY as category,
             REWARD_EXP as rewardExp,
             REWARD_POINT as rewardPoint,
             TIME_LIMIT as timeLimit,
-            STATUS,
+            NVL(STATUS, 'ACTIVE') as status,
             CREATED_AT as createdAt
         FROM LQ_QUEST
-        WHERE STATUS != 'DELETED'
+        ORDER BY QUEST_ID DESC
+    </select>
+
+    <select id="selectAllQuests" resultType="Quest">
+        SELECT
+            q.QUEST_ID as questId,
+            q.TITLE as title,
+            q.DESCRIPTION as description,
+            q.CATEGORY as category,
+            q.REWARD_EXP as rewardExp,
+            q.REWARD_POINT as rewardPoint,
+            NVL(qr.AVERAGE_RATING, 0) as averageRating,
+            NVL(qr.REVIEW_COUNT, 0) as reviewCount,
+            q.TIME_LIMIT as timeLimit,
+            NVL(q.STATUS, 'ACTIVE') as status,
+            q.CREATED_AT as createdAt
+        FROM LQ_QUEST q
+        LEFT JOIN (
+            SELECT
+                QUEST_ID,
+                ROUND(AVG(RATING), 1) as AVERAGE_RATING,
+                COUNT(*) as REVIEW_COUNT
+            FROM LQ_QUEST_REVIEW
+            GROUP BY QUEST_ID
+        ) qr
+            ON q.QUEST_ID = qr.QUEST_ID
+        WHERE NVL(q.STATUS, 'ACTIVE') != 'DELETED'
+        ORDER BY q.QUEST_ID DESC
+    </select>
+
+    <select id="selectAllQuestsBasic" resultType="Quest">
+        SELECT
+            QUEST_ID as questId,
+            TITLE as title,
+            DESCRIPTION as description,
+            CATEGORY as category,
+            REWARD_EXP as rewardExp,
+            REWARD_POINT as rewardPoint,
+            TIME_LIMIT as timeLimit,
+            NVL(STATUS, 'ACTIVE') as status,
+            CREATED_AT as createdAt
+        FROM LQ_QUEST
+        WHERE NVL(STATUS, 'ACTIVE') != 'DELETED'
         ORDER BY QUEST_ID DESC
     </select>
 
@@ -51,7 +93,7 @@
             ON q.QUEST_ID = ql.QUEST_ID
         INNER JOIN LQ_LOCATION l
             ON ql.LOCATION_ID = l.LOCATION_ID
-        WHERE q.STATUS = 'ACTIVE'
+        WHERE NVL(q.STATUS, 'ACTIVE') = 'ACTIVE'
           AND ql.VISIT_ORDER = (
               SELECT MIN(ql2.VISIT_ORDER)
               FROM LQ_QUEST_LOCATION ql2
@@ -64,14 +106,40 @@
 
     <select id="selectQuestById" parameterType="int" resultType="Quest">
         SELECT
+            q.QUEST_ID as questId,
+            q.TITLE as title,
+            q.DESCRIPTION as description,
+            q.CATEGORY as category,
+            q.REWARD_EXP as rewardExp,
+            q.REWARD_POINT as rewardPoint,
+            NVL(qr.AVERAGE_RATING, 0) as averageRating,
+            NVL(qr.REVIEW_COUNT, 0) as reviewCount,
+            q.TIME_LIMIT as timeLimit,
+            NVL(q.STATUS, 'ACTIVE') as status,
+            q.CREATED_AT as createdAt
+        FROM LQ_QUEST q
+        LEFT JOIN (
+            SELECT
+                QUEST_ID,
+                ROUND(AVG(RATING), 1) as AVERAGE_RATING,
+                COUNT(*) as REVIEW_COUNT
+            FROM LQ_QUEST_REVIEW
+            GROUP BY QUEST_ID
+        ) qr
+            ON q.QUEST_ID = qr.QUEST_ID
+        WHERE q.QUEST_ID = #{questId}
+    </select>
+
+    <select id="selectQuestByIdBasic" parameterType="int" resultType="Quest">
+        SELECT
             QUEST_ID as questId,
-            TITLE,
-            DESCRIPTION,
-            CATEGORY,
+            TITLE as title,
+            DESCRIPTION as description,
+            CATEGORY as category,
             REWARD_EXP as rewardExp,
             REWARD_POINT as rewardPoint,
             TIME_LIMIT as timeLimit,
-            STATUS,
+            NVL(STATUS, 'ACTIVE') as status,
             CREATED_AT as createdAt
         FROM LQ_QUEST
         WHERE QUEST_ID = #{questId}
@@ -146,13 +214,53 @@
 	<select id="selectSearchQuests" parameterType="map"
 		resultType="Quest">
 		SELECT
-		QUEST_ID as questId, TITLE, DESCRIPTION, CATEGORY,
-		REWARD_EXP as rewardExp, REWARD_POINT as rewardPoint,
-		TIME_LIMIT as timeLimit, STATUS, CREATED_AT as createdAt
-		FROM LQ_QUEST
-		WHERE STATUS != 'DELETED'
+		q.QUEST_ID as questId,
+		q.TITLE as title,
+		q.DESCRIPTION as description,
+		q.CATEGORY as category,
+		q.REWARD_EXP as rewardExp,
+		q.REWARD_POINT as rewardPoint,
+		NVL(qr.AVERAGE_RATING, 0) as averageRating,
+		NVL(qr.REVIEW_COUNT, 0) as reviewCount,
+		q.TIME_LIMIT as timeLimit,
+		NVL(q.STATUS, 'ACTIVE') as status,
+		q.CREATED_AT as createdAt
+		FROM LQ_QUEST q
+		LEFT JOIN (
+			SELECT
+				QUEST_ID,
+				ROUND(AVG(RATING), 1) as AVERAGE_RATING,
+				COUNT(*) as REVIEW_COUNT
+			FROM LQ_QUEST_REVIEW
+			GROUP BY QUEST_ID
+		) qr
+			ON q.QUEST_ID = qr.QUEST_ID
+		WHERE NVL(q.STATUS, 'ACTIVE') != 'DELETED'
 		<if test="status != null and status != ''">
-			AND STATUS = #{status}
+			AND NVL(q.STATUS, 'ACTIVE') = #{status}
+		</if>
+		<if test="keyword != null and keyword != ''">
+			AND q.TITLE LIKE '%' || #{keyword} || '%'
+		</if>
+		ORDER BY q.QUEST_ID DESC
+	</select>
+
+	<select id="selectSearchQuestsBasic" parameterType="map"
+		resultType="Quest">
+		SELECT
+		QUEST_ID as questId,
+		TITLE as title,
+		DESCRIPTION as description,
+		CATEGORY as category,
+		REWARD_EXP as rewardExp,
+		REWARD_POINT as rewardPoint,
+		TIME_LIMIT as timeLimit,
+		NVL(STATUS, 'ACTIVE') as status,
+		CREATED_AT as createdAt
+		FROM LQ_QUEST
+		WHERE NVL(STATUS, 'ACTIVE') != 'DELETED'
+		<if test="status != null and status != ''">
+			AND NVL(STATUS, 'ACTIVE') = #{status}
 		</if>
 		<if test="keyword != null and keyword != ''">
 			AND TITLE LIKE '%' || #{keyword} || '%'

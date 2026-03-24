@@ -18,4 +18,9 @@
 		#{isCompleted},
 		#{completedAt} )
 	</insert>
+
+	<delete id="deleteUserQuestProgressByUserQuestId" parameterType="int">
+		DELETE FROM LQ_USER_QUEST_PROGRESS
+		WHERE USER_QUEST_ID = #{_parameter}
+	</delete>
 </mapper>

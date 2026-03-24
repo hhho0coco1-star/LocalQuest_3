@@ -1,6 +1,7 @@
 package com.app.dao.location.impl;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +17,20 @@ public class LocationDAOImpl implements LocationDAO {
     private SqlSessionTemplate sqlSessionTemplate;
 
     @Override
+    public List<LocationDTO> searchLocations(String keyword) {
+        return sqlSessionTemplate.selectList("location_mapper.searchLocations", keyword);
+    }
+
+    @Override
     public int saveLocation(LocationDTO location) {
-        int result = sqlSessionTemplate.insert("location_mapper.saveLocation", location);
-        return result;
+        try {
+            return sqlSessionTemplate.insert("location_mapper.saveLocation", location);
+        } catch (Exception e) {
+            if (isLocationSequenceUnavailable(e)) {
+                return sqlSessionTemplate.insert("location_mapper.saveLocationWithoutSequence", location);
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -27,5 +39,21 @@ public class LocationDAOImpl implements LocationDAO {
             return 0;
         }
         return sqlSessionTemplate.delete("location_mapper.deleteUnusedLocationsByIds", locationIds);
+    }
+
+    private boolean isLocationSequenceUnavailable(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String upperMessage = message.toUpperCase(Locale.ROOT);
+                if (upperMessage.contains("ORA-02289")
+                    || upperMessage.contains("SEQ_LQ_LOCATION_PK")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

@@ -22,6 +22,24 @@
 		sysdate )
 	</insert>
 
+	<insert id="saveQuestLocationWithoutSequence" parameterType="QuestLocationDTO">
+		<selectKey keyProperty="questLocationId" resultType="int" order="BEFORE">
+			SELECT NVL(MAX(QUEST_LOCATION_ID), 0) + 1 FROM LQ_QUEST_LOCATION
+		</selectKey>
+		INSERT INTO LQ_QUEST_LOCATION (
+		quest_location_id,
+		quest_id,
+		location_id,
+		visit_order,
+		created_at
+		) VALUES (
+		#{questLocationId},
+		#{questId},
+		#{locationId},
+		#{visitOrder},
+		sysdate )
+	</insert>
+
 	<delete id="deleteQuestLocationsByQuestId" parameterType="int">
 		DELETE FROM LQ_QUEST_LOCATION
 		WHERE QUEST_ID = #{_parameter}
