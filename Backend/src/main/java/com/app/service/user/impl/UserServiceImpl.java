@@ -37,7 +37,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.mindrot.jbcrypt.BCrypt;
 
+import com.app.dao.push.PushDAO;
 import com.app.dao.user.UserDAO;
+import com.app.dto.push.UserNotificationSettingDTO;
 import com.app.dto.user.FindPasswordRequest;
 import com.app.dto.user.FindUserIdRequest;
 import com.app.dto.user.LoginRequest;
@@ -71,6 +73,9 @@ public class UserServiceImpl implements UserService{
 
 	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
+
+	@Autowired
+	private PushDAO pushDAO;
 
 
 
@@ -122,7 +127,39 @@ public class UserServiceImpl implements UserService{
 		user.setExp(0);
 		user.setPoint(0);
 
-		return userDAO.saveUser(user);
+		int saveResult = userDAO.saveUser(user);
+		if (saveResult != 1) {
+			throw new IllegalStateException("회원가입 처리 중 오류가 발생했습니다.");
+		}
+
+		User savedUser = userDAO.findByUserLoginId(user.getUserLoginId());
+		if (savedUser == null || savedUser.getUserId() <= 0) {
+			throw new IllegalStateException("회원가입 후 사용자 정보를 조회하지 못했습니다.");
+		}
+
+		saveInitialNotificationSetting(savedUser.getUserId(), Boolean.TRUE.equals(request.getMarketingAgree()));
+		return saveResult;
+	}
+
+	private void saveInitialNotificationSetting(int userId, boolean marketingAgree) {
+		if (userId <= 0) {
+			return;
+		}
+
+		UserNotificationSettingDTO existingSetting = pushDAO.findNotificationSettingByUserId(userId);
+		if (existingSetting != null) {
+			return;
+		}
+
+		UserNotificationSettingDTO newSetting = new UserNotificationSettingDTO();
+		newSetting.setUserId(userId);
+		newSetting.setPushAgree("N");
+		newSetting.setMarketingAgree(marketingAgree ? "Y" : "N");
+		newSetting.setLunchPushAgree("N");
+		newSetting.setDinnerPushAgree("N");
+		newSetting.setWeekendPushAgree("N");
+		newSetting.setPreferredTimezone("Asia/Seoul");
+		pushDAO.insertNotificationSetting(newSetting);
 	}
 
 	@Override

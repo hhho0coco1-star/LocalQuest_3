@@ -38,7 +38,7 @@ function Terms() {
 
     const handleNext = () => {
         if (checks.term1 && checks.term2) {
-            navigate('/signup'); // 다음 단계인 정보 입력 페이지로 이동
+            navigate('/signup', { state: { marketingAgree: checks.term3 } }); // 다음 단계인 정보 입력 페이지로 이동
         } else {
             alert("필수 약관에 동의해주세요.");
         }
