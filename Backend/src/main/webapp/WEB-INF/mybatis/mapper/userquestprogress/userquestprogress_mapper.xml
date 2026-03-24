@@ -1,26 +1,84 @@
-<?xml version="1.0" encoding="UTF-8"?> 
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC
-		   "-//mybatis.org//DTD Mapper 3.0//EN" 
-		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+           "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="userquestprogress_mapper">
-	<insert id="saveUserQuestProgress" parameterType="UserQuestProgressDTO">
-		INSERT INTO LQ_USER_QUEST_PROGRESS (
-		user_quest_progress_id,
-		user_quest_id,
-		quest_location_id,
-		is_completed,
-		completed_at
-		) VALUES (
-		SEQ_LQ_USER_QUEST_PROGRESS_PK.nextval,
-		#{userQuestId},
-		#{questLocationId},
-		#{isCompleted},
-		#{completedAt} )
-	</insert>
+    <insert id="saveUserQuestProgress" parameterType="UserQuestProgressDTO">
+        INSERT INTO LQ_USER_QUEST_PROGRESS (
+            USER_QUEST_PROGRESS_ID,
+            USER_QUEST_ID,
+            QUEST_LOCATION_ID,
+            IS_COMPLETED,
+            COMPLETED_AT
+        ) VALUES (
+            SEQ_LQ_USER_QUEST_PROGRESS_PK.NEXTVAL,
+            #{userQuestId},
+            #{questLocationId},
+            #{isCompleted},
+            #{completedAt}
+        )
+    </insert>
 
-	<delete id="deleteUserQuestProgressByUserQuestId" parameterType="int">
-		DELETE FROM LQ_USER_QUEST_PROGRESS
-		WHERE USER_QUEST_ID = #{_parameter}
-	</delete>
+    <insert id="initializeProgressByQuestId" parameterType="map">
+        INSERT INTO LQ_USER_QUEST_PROGRESS (
+            USER_QUEST_PROGRESS_ID,
+            USER_QUEST_ID,
+            QUEST_LOCATION_ID,
+            IS_COMPLETED,
+            COMPLETED_AT
+        )
+        SELECT
+            SEQ_LQ_USER_QUEST_PROGRESS_PK.NEXTVAL,
+            #{userQuestId},
+            ql.QUEST_LOCATION_ID,
+            0,
+            NULL
+        FROM LQ_QUEST_LOCATION ql
+        WHERE ql.QUEST_ID = #{questId}
+    </insert>
+
+    <update id="upsertCompletedProgress" parameterType="map">
+        MERGE INTO LQ_USER_QUEST_PROGRESS target
+        USING (
+            SELECT
+                #{userQuestId} AS USER_QUEST_ID,
+                #{questLocationId} AS QUEST_LOCATION_ID,
+                #{completedAt} AS COMPLETED_AT
+            FROM DUAL
+        ) source
+        ON (
+            target.USER_QUEST_ID = source.USER_QUEST_ID
+            AND target.QUEST_LOCATION_ID = source.QUEST_LOCATION_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.IS_COMPLETED = 1,
+                target.COMPLETED_AT = source.COMPLETED_AT
+        WHEN NOT MATCHED THEN
+            INSERT (
+                USER_QUEST_PROGRESS_ID,
+                USER_QUEST_ID,
+                QUEST_LOCATION_ID,
+                IS_COMPLETED,
+                COMPLETED_AT
+            )
+            VALUES (
+                SEQ_LQ_USER_QUEST_PROGRESS_PK.NEXTVAL,
+                source.USER_QUEST_ID,
+                source.QUEST_LOCATION_ID,
+                1,
+                source.COMPLETED_AT
+            )
+    </update>
+
+    <delete id="deleteProgressByUserQuestId" parameterType="int">
+        DELETE FROM LQ_USER_QUEST_PROGRESS
+        WHERE USER_QUEST_ID = #{_parameter}
+    </delete>
+
+    <delete id="deleteUserQuestProgressByUserQuestId" parameterType="int">
+        DELETE FROM LQ_USER_QUEST_PROGRESS
+        WHERE USER_QUEST_ID = #{_parameter}
+    </delete>
 </mapper>

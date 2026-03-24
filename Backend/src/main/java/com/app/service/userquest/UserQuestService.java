@@ -29,7 +29,7 @@ public interface UserQuestService {
         int questLocationId,
         MultipartFile receiptImage
     );
-    UserQuestSummaryDTO acceptQuest(int userId, int questId);
+    Map<String, Object> acceptQuest(int userId, int questId);
 
     UserQuestSummaryDTO getUserQuestSummary(int userId, int questId);
 

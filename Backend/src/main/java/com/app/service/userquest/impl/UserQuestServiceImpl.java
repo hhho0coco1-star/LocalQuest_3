@@ -36,6 +36,7 @@ import com.app.dto.userquest.UserQuestDetailLocationDTO;
 import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestOverviewDTO;
 import com.app.dto.userquest.UserQuestSummaryDTO;
+import com.app.dto.userquestprogress.UserQuestProgressDTO;
 import com.app.service.pointhistory.PointHistoryService;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.service.userquest.UserQuestService;
@@ -65,12 +66,6 @@ public class UserQuestServiceImpl implements UserQuestService {
     private ReceiptDAO receiptDAO;
 
     @Autowired
-    private UserQuestProgressDAO userQuestProgressDAO;
-
-    @Autowired
-    private QuestDAO questDAO;
-
-    @Autowired
     private UserDAO userDAO;
 
     @Autowired
@@ -86,46 +81,44 @@ public class UserQuestServiceImpl implements UserQuestService {
 
     @Override
     @Transactional
-    public UserQuestSummaryDTO acceptQuest(int userId, int questId) {
-        QuestDTO quest = getAcceptableQuestOrThrow(questId);
-        UserQuestDTO existingUserQuest = findUserQuest(userId, questId);
-        LocalDateTime now = LocalDateTime.now();
+    public Map<String, Object> acceptQuest(int userId, int questId) {
+        UserQuestDTO existingQuest = userQuestDAO.findLatestUserQuestByUserIdAndQuestId(userId, questId);
+        QuestDTO quest = questDAO.selectQuestById(questId);
 
-        if (existingUserQuest == null) {
-            UserQuestDTO newUserQuest = new UserQuestDTO();
-            newUserQuest.setUserId(userId);
-            newUserQuest.setQuestId(questId);
-            newUserQuest.setStatus(USER_QUEST_STATUS_IN_PROGRESS);
-            newUserQuest.setStartedAt(now);
-            newUserQuest.setCompletedAt(null);
-
-            userQuestDAO.saveUserQuest(newUserQuest);
-            resetUserQuestProgress(newUserQuest.getUserQuestId(), questId);
-
-            return buildSummary(quest, newUserQuest);
+        if (quest == null) {
+            throw new IllegalArgumentException("존재하지 않는 퀘스트입니다.");
         }
 
-        if (USER_QUEST_STATUS_COMPLETED.equalsIgnoreCase(existingUserQuest.getStatus())) {
-            throw new IllegalStateException("\uC774\uBBF8\u0020\uC644\uB8CC\uD55C\u0020\uD018\uC2A4\uD2B8\uB294\u0020\uB2E4\uC2DC\u0020\uC218\uB77D\uD560\u0020\uC218\u0020\uC5C6\uC2B5\uB2C8\uB2E4\u002E");
+        if (existingQuest != null
+            && !"ABANDONED".equalsIgnoreCase(existingQuest.getStatus())
+            && !"COMPLETED".equalsIgnoreCase(existingQuest.getStatus())) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("accepted", false);
+            response.put("alreadyAccepted", true);
+            response.put("userQuestId", existingQuest.getUserQuestId());
+            response.put("status", existingQuest.getStatus());
+            response.put("message", "이미 수락한 퀘스트입니다.");
+            return response;
         }
 
-        boolean expired = isExpired(existingUserQuest, quest);
-        boolean canRestart = expired
-            || USER_QUEST_STATUS_SAVED.equalsIgnoreCase(existingUserQuest.getStatus())
-            || USER_QUEST_STATUS_ABANDONED.equalsIgnoreCase(existingUserQuest.getStatus());
+        UserQuestDTO userQuest = new UserQuestDTO();
+        LocalDateTime startedAt = LocalDateTime.now();
+        userQuest.setUserId(userId);
+        userQuest.setQuestId(questId);
+        userQuest.setStatus("IN_PROGRESS");
+        userQuest.setStartedAt(startedAt);
+        userQuest.setDueAt(resolveDueAt(startedAt, quest.getTimeLimit()));
 
-        if (!canRestart) {
-            throw new IllegalStateException("\uC774\uBBF8\u0020\uC9C4\uD589\u0020\uC911\uC778\u0020\uD018\uC2A4\uD2B8\uC785\uB2C8\uB2E4\u002E");
-        }
+        saveUserQuest(userQuest);
+        userQuestProgressDAO.initializeProgressByQuestId(userQuest.getUserQuestId(), questId);
 
-        existingUserQuest.setStatus(USER_QUEST_STATUS_IN_PROGRESS);
-        existingUserQuest.setStartedAt(now);
-        existingUserQuest.setCompletedAt(null);
-
-        userQuestDAO.updateUserQuestForAccept(existingUserQuest);
-        resetUserQuestProgress(existingUserQuest.getUserQuestId(), questId);
-
-        return buildSummary(quest, existingUserQuest);
+        Map<String, Object> response = new HashMap<>();
+        response.put("accepted", true);
+        response.put("alreadyAccepted", false);
+        response.put("userQuestId", userQuest.getUserQuestId());
+        response.put("status", userQuest.getStatus());
+        response.put("message", "퀘스트를 수락했습니다.");
+        return response;
     }
 
     @Override
@@ -285,53 +278,6 @@ public class UserQuestServiceImpl implements UserQuestService {
         return Math.max(0L, Duration.between(LocalDateTime.now(), expiresAt).getSeconds());
     }
 
-    @Override
-    @Transactional
-    public Map<String, Object> acceptQuest(int userId, int questId) {
-        UserQuestDTO existingQuest = dao.findLatestUserQuestByUserIdAndQuestId(userId, questId);
-        QuestDTO quest = questDAO.selectQuestById(questId);
-
-        if (quest == null) {
-            throw new IllegalArgumentException("존재하지 않는 퀘스트입니다.");
-        }
-
-        if (existingQuest != null
-            && !"ABANDONED".equalsIgnoreCase(existingQuest.getStatus())
-            && !"COMPLETED".equalsIgnoreCase(existingQuest.getStatus())) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("accepted", false);
-            response.put("alreadyAccepted", true);
-            response.put("userQuestId", existingQuest.getUserQuestId());
-            response.put("status", existingQuest.getStatus());
-            response.put("message", "이미 수락한 퀘스트입니다.");
-            return response;
-        }
-
-        UserQuestDTO userQuest = new UserQuestDTO();
-        LocalDateTime startedAt = LocalDateTime.now();
-        userQuest.setUserId(userId);
-        userQuest.setQuestId(questId);
-        userQuest.setStatus("IN_PROGRESS");
-        userQuest.setStartedAt(startedAt);
-        userQuest.setDueAt(resolveDueAt(startedAt, quest.getTimeLimit()));
-
-        saveUserQuest(userQuest);
-        userQuestProgressDAO.initializeProgressByQuestId(userQuest.getUserQuestId(), questId);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("accepted", true);
-        response.put("alreadyAccepted", false);
-        response.put("userQuestId", userQuest.getUserQuestId());
-        response.put("status", userQuest.getStatus());
-        response.put("message", "퀘스트를 수락했습니다.");
-        return response;
-    }
-
-    @Override
-    public List<UserQuestSummaryDTO> getUserQuestSummaries(int userId) {
-        return dao.findUserQuestSummariesByUserId(userId);
-    }
-
     private LocalDateTime resolveDueAt(LocalDateTime startedAt, Integer timeLimit) {
         if (startedAt == null || timeLimit == null || timeLimit <= 0) {
             return null;
@@ -370,12 +316,12 @@ public class UserQuestServiceImpl implements UserQuestService {
 
     @Override
     public UserQuestDetailDTO getUserQuestDetail(int userId, int userQuestId) {
-        UserQuestDetailDTO detail = dao.findUserQuestDetailByUserQuestId(userQuestId);
+        UserQuestDetailDTO detail = userQuestDAO.findUserQuestDetailByUserQuestId(userQuestId);
         if (detail == null || detail.getUserId() != userId) {
             return null;
         }
 
-        detail.setLocations(dao.findUserQuestDetailLocationsByUserQuestId(userQuestId));
+        detail.setLocations(userQuestDAO.findUserQuestDetailLocationsByUserQuestId(userQuestId));
         return detail;
     }
 
@@ -409,7 +355,7 @@ public class UserQuestServiceImpl implements UserQuestService {
         applyQuestReward(detail);
 
         Date completedAt = new Date();
-        dao.updateUserQuestStatusAndCompletedAt(userQuestId, "COMPLETED", completedAt);
+        userQuestDAO.updateUserQuestStatusAndCompletedAt(userQuestId, "COMPLETED", completedAt);
 
         Map<String, Object> response = new HashMap<>();
         response.put("completed", true);
@@ -439,7 +385,7 @@ public class UserQuestServiceImpl implements UserQuestService {
             return response;
         }
 
-        dao.updateUserQuestLifecycle(userQuestId, "ABANDONED", null, null, null);
+        userQuestDAO.updateUserQuestLifecycle(userQuestId, "ABANDONED", null, null, null);
 
         Map<String, Object> response = new HashMap<>();
         response.put("canceled", true);
@@ -517,7 +463,7 @@ public class UserQuestServiceImpl implements UserQuestService {
 
         Date completedAt = new Date();
         userQuestProgressDAO.upsertCompletedProgress(userQuestId, questLocationId, completedAt);
-        dao.updateUserQuestStatusAndCompletedAt(userQuestId, "IN_PROGRESS", null);
+        userQuestDAO.updateUserQuestStatusAndCompletedAt(userQuestId, "IN_PROGRESS", null);
 
         response.put("message", "영수증 인증이 완료되었습니다.");
         response.put("detail", getUserQuestDetail(userId, userQuestId));
