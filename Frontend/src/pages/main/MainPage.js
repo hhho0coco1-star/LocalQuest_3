@@ -62,6 +62,14 @@ function MainPage() {
   const overlayRefs = useRef([]);
   const consentRef = useRef(false);
   const topQuestTrackRef = useRef(null);
+  const topQuestDragRef = useRef({
+    isPointerDown: false,
+    pointerId: null,
+    startX: 0,
+    startScrollLeft: 0,
+    hasDragged: false,
+  });
+  const topQuestSuppressClickUntilRef = useRef(0);
 
   const [hasLocationConsent, setHasLocationConsent] = useState(() => {
     if (typeof window === 'undefined') {
@@ -90,6 +98,7 @@ function MainPage() {
   const [topQuestScrollValue, setTopQuestScrollValue] = useState(0);
   const [canScrollTopQuestPrev, setCanScrollTopQuestPrev] = useState(false);
   const [canScrollTopQuestNext, setCanScrollTopQuestNext] = useState(false);
+  const [isTopQuestDragging, setIsTopQuestDragging] = useState(false);
 
   const kakaoMapKey = process.env.REACT_APP_KAKAO_MAP_KEY;
 
@@ -392,6 +401,101 @@ function MainPage() {
     [updateTopQuestScrollState]
   );
 
+  const handleTopQuestPointerDown = useCallback((event) => {
+    const track = topQuestTrackRef.current;
+    if (!track) {
+      return;
+    }
+
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    topQuestDragRef.current = {
+      isPointerDown: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: track.scrollLeft,
+      hasDragged: false,
+    };
+
+    setIsTopQuestDragging(false);
+    track.setPointerCapture?.(event.pointerId);
+  }, []);
+
+  const handleTopQuestPointerMove = useCallback(
+    (event) => {
+      const track = topQuestTrackRef.current;
+      const dragState = topQuestDragRef.current;
+
+      if (!track || !dragState.isPointerDown) {
+        return;
+      }
+
+      const deltaX = event.clientX - dragState.startX;
+      if (!dragState.hasDragged && Math.abs(deltaX) < 6) {
+        return;
+      }
+
+      if (!dragState.hasDragged) {
+        dragState.hasDragged = true;
+        setIsTopQuestDragging(true);
+      }
+
+      track.scrollLeft = dragState.startScrollLeft - deltaX;
+      updateTopQuestScrollState();
+      event.preventDefault();
+    },
+    [updateTopQuestScrollState]
+  );
+
+  const finishTopQuestDrag = useCallback(() => {
+    const track = topQuestTrackRef.current;
+    const dragState = topQuestDragRef.current;
+
+    if (!dragState.isPointerDown) {
+      return;
+    }
+
+    const didDrag = dragState.hasDragged;
+
+    if (track && dragState.pointerId !== null) {
+      try {
+        if (track.hasPointerCapture?.(dragState.pointerId)) {
+          track.releasePointerCapture(dragState.pointerId);
+        }
+      } catch (error) {
+        // Ignore capture release failures.
+      }
+    }
+
+    topQuestDragRef.current = {
+      isPointerDown: false,
+      pointerId: null,
+      startX: 0,
+      startScrollLeft: 0,
+      hasDragged: false,
+    };
+
+    setIsTopQuestDragging(false);
+    updateTopQuestScrollState();
+
+    if (didDrag) {
+      topQuestSuppressClickUntilRef.current = Date.now() + 180;
+    }
+  }, [updateTopQuestScrollState]);
+
+  const handleTopQuestCardClick = useCallback(
+    (quest) => {
+      if (isTopQuestDragging || topQuestSuppressClickUntilRef.current > Date.now()) {
+        return;
+      }
+
+      handleQuestSelect(quest);
+    },
+    [handleQuestSelect, isTopQuestDragging]
+  );
+
   // 마커와 오버레이는 퀘스트 목록/선택 상태가 바뀔 때마다 다시 그린다.
   useEffect(() => {
     if (mapStatus !== 'ready' || !mapInstanceRef.current || !window.kakao?.maps) {
@@ -643,15 +747,19 @@ function MainPage() {
                   </button>
                 <div
                   ref={topQuestTrackRef}
-                  className="hot-quest-track"
+                  className={`hot-quest-track${isTopQuestDragging ? ' is-dragging' : ''}`}
                   onScroll={updateTopQuestScrollState}
+                  onPointerDown={handleTopQuestPointerDown}
+                  onPointerMove={handleTopQuestPointerMove}
+                  onPointerUp={finishTopQuestDrag}
+                  onPointerCancel={finishTopQuestDrag}
                 >
                   {topRatedQuests.map((quest, index) => (
                     <button
                       key={quest.questId}
                       type="button"
                       className="hot-quest-card"
-                      onClick={() => handleQuestSelect(quest)}
+                      onClick={() => handleTopQuestCardClick(quest)}
                     >
                       <div className="hot-quest-card-top">
                         <span className="hot-quest-rank">TOP {index + 1}</span>
