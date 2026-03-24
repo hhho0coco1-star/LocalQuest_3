@@ -11,6 +11,7 @@ import com.app.dao.quest.QuestDAO;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 
 @Repository
 public class QuestDAOImpl implements QuestDAO {
@@ -28,6 +29,11 @@ public class QuestDAOImpl implements QuestDAO {
     @Override
     public List<QuestMapDTO> selectQuestMapList() {
         return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestMapList");
+    }
+
+    @Override
+    public List<QuestTopRatedDTO> selectTopRatedQuests(int limit) {
+        return sqlSessionTemplate.selectList(NAMESPACE + ".selectTopRatedQuests", limit);
     }
 
     @Override

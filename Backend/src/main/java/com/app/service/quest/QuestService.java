@@ -6,11 +6,14 @@ import java.util.Map;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestDetailDTO;
 import com.app.dto.quest.QuestMapDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 
 public interface QuestService {
     List<QuestDTO> getAllQuests();
 
     List<QuestMapDTO> getQuestMapList();
+
+    List<QuestTopRatedDTO> getTopRatedQuests(int limit);
 
     QuestDTO getQuestById(int questId);
 

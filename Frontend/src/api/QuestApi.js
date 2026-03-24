@@ -3,6 +3,7 @@ import api from './AxiosInstance';
 export const questApi = {
   getQuestList: () => api.get('/api/quests'),
   getQuestMapList: () => api.get('/api/quests/map'),
+  getTopRatedQuests: () => api.get('/api/quests/top-rated'),
   getQuestDetail: (questId) => api.get(`/api/quests/${questId}`),
   getMyQuestOverview: () => api.get('/api/user-quests/me'),
   getMyQuestDetail: (userQuestId) => api.get(`/api/user-quests/me/${userQuestId}`),

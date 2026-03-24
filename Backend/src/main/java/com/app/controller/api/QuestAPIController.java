@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestDetailDTO;
 import com.app.dto.quest.QuestMapDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 import com.app.service.quest.QuestService;
 
 @RestController
@@ -31,7 +32,12 @@ public class QuestAPIController {
         return ResponseEntity.ok(questService.getQuestMapList());
     }
 
-    @GetMapping("/{questId}")
+    @GetMapping("/top-rated")
+    public ResponseEntity<List<QuestTopRatedDTO>> getTopRatedQuests() {
+        return ResponseEntity.ok(questService.getTopRatedQuests(10));
+    }
+
+    @GetMapping("/{questId:\\d+}")
     public ResponseEntity<?> getQuestDetail(@PathVariable int questId) {
         QuestDetailDTO quest = questService.getQuestDetailById(questId);
         if (quest == null) {
