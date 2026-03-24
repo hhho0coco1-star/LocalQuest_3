@@ -105,7 +105,7 @@
 					FLOOR(NVL(U.EXP, 0) / 500) + 1
 				) AS CURRENT_LEVEL
 			FROM LQ_USER U
-			WHERE U.STATUS = 'ACTIVE'
+			WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
 			<if test="_parameter != null and _parameter != ''">
 				AND U.NICKNAME = #{_parameter}
 			</if>
@@ -188,12 +188,17 @@
 					FROM (
 						SELECT
 							X.RN AS MY_RANK,
-							(SELECT COUNT(*) FROM LQ_USER_RANK) AS TOTAL_COUNT
+							(
+								SELECT COUNT(*)
+								FROM LQ_USER RU
+								WHERE UPPER(NVL(RU.STATUS, 'ACTIVE')) = 'ACTIVE'
+							) AS TOTAL_COUNT
 						FROM (
 							SELECT
-								UR.USER_ID,
-								ROW_NUMBER() OVER (ORDER BY UR.TOTAL_EXP DESC, UR.RANK_ID ASC) AS RN
-							FROM LQ_USER_RANK UR
+								UR.NICKNAME,
+								ROW_NUMBER() OVER (ORDER BY NVL(UR.EXP, 0) DESC, UR.USER_ID ASC) AS RN
+							FROM LQ_USER UR
+							WHERE UPPER(NVL(UR.STATUS, 'ACTIVE')) = 'ACTIVE'
 						) X
 						WHERE X.USER_ID = U.USER_ID
 					) R
@@ -202,7 +207,7 @@
 			) AS TOP_PERCENT,
 			0 AS WEEKLY_PROGRESS
 		FROM LQ_USER U
-		WHERE U.STATUS = 'ACTIVE'
+		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
 		  AND U.NICKNAME = #{_parameter}
 		  AND ROWNUM = 1
 	</select>
@@ -223,12 +228,211 @@
 			ON U.USER_ID = RE.USER_ID
 		INNER JOIN LQ_REWARD_ITEM RI
 			ON RI.REWARD_ITEM_ID = RE.REWARD_ITEM_ID
-		WHERE U.STATUS = 'ACTIVE'
+		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
 		<if test="_parameter != null and _parameter != ''">
 			AND U.NICKNAME = #{_parameter}
 		</if>
 		AND (RE.STATUS IS NULL OR UPPER(RE.STATUS) NOT IN ('USED', 'EXPIRED'))
 		AND (RE.EXPIRED_AT IS NULL OR <![CDATA[ TRUNC(RE.EXPIRED_AT) >= TRUNC(SYSDATE) ]]>)
 		ORDER BY NVL(RE.EXPIRED_AT, TO_DATE('2999-12-31', 'YYYY-MM-DD')) ASC, RE.EXCHANGED_AT DESC
+	</select>
+
+	<select id="findActiveUserByUserId" parameterType="int" resultType="User">
+		SELECT
+			USER_ID,
+			USER_LOGIN_ID,
+			NAME,
+			EMAIL,
+			PASSWORD,
+			NICKNAME,
+			BIRTH,
+			GENDER,
+			ROLE,
+			EXP,
+			POINT,
+			STATUS
+		FROM LQ_USER
+		WHERE USER_ID = #{value}
+		  AND UPPER(NVL(STATUS, 'ACTIVE')) = 'ACTIVE'
+	</select>
+
+	<select id="findRewardShopItemById" parameterType="long" resultType="RewardShopItem">
+		SELECT
+			REWARD_ITEM_ID,
+			NAME,
+			DESCRIPTION,
+			PRICE_POINT,
+			STOCK,
+			STATUS,
+			CREATED_AT
+		FROM LQ_REWARD_ITEM
+		WHERE REWARD_ITEM_ID = #{value}
+	</select>
+
+	<update id="deductUserPoint" parameterType="map">
+		UPDATE LQ_USER
+		SET POINT = NVL(POINT, 0) - #{usedPoint}
+		WHERE USER_ID = #{userId}
+		  AND UPPER(NVL(STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND NVL(POINT, 0) >= #{usedPoint}
+	</update>
+
+	<update id="decreaseRewardItemStock" parameterType="map">
+		UPDATE LQ_REWARD_ITEM
+		SET STOCK = STOCK - 1,
+			STATUS = CASE
+				WHEN STOCK - 1 &lt;= 0 THEN 'SOLD_OUT'
+				ELSE 'ON_SALE'
+			END
+		WHERE REWARD_ITEM_ID = #{rewardItemId}
+		  AND STATUS = 'ON_SALE'
+		  AND STOCK > 0
+	</update>
+
+	<insert id="insertRewardExchange" parameterType="map">
+		<selectKey keyProperty="exchangeId" resultType="long" order="BEFORE">
+			SELECT SEQ_LQ_REWARD_EXCHANGE_PK.NEXTVAL
+			FROM DUAL
+		</selectKey>
+		INSERT INTO LQ_REWARD_EXCHANGE (
+			EXCHANGE_ID,
+			USER_ID,
+			REWARD_ITEM_ID,
+			USED_POINT,
+			STATUS,
+			EXPIRED_AT,
+			USED_AT,
+			EXCHANGED_AT
+		) VALUES (
+			#{exchangeId},
+			#{userId},
+			#{rewardItemId},
+			#{usedPoint},
+			'EXCHANGED',
+			SYSDATE + 7,
+			NULL,
+			SYSDATE
+		)
+	</insert>
+
+	<insert id="insertPointHistory" parameterType="map">
+		INSERT INTO LQ_POINT_HISTORY (
+			POINT_HISTORY_ID,
+			USER_ID,
+			POINT_AMOUNT,
+			CATEGORY,
+			DESCRIPTION,
+			CREATED_AT
+		) VALUES (
+			SEQ_LQ_POINT_HISTORY_PK.NEXTVAL,
+			#{userId},
+			#{pointAmount},
+			#{category},
+			#{description},
+			SYSDATE
+		)
+	</insert>
+
+	<select id="countUserRewardExchange" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_REWARD_EXCHANGE
+		WHERE USER_ID = #{value}
+	</select>
+
+	<select id="sumUserUsedPoint" parameterType="int" resultType="int">
+		SELECT NVL(SUM(USED_POINT), 0)
+		FROM LQ_REWARD_EXCHANGE
+		WHERE USER_ID = #{value}
+	</select>
+
+	<select id="findBadgeIdByName" parameterType="string" resultType="int">
+		SELECT BADGE_ID
+		FROM LQ_BADGE
+		WHERE NAME = #{value}
+	</select>
+
+	<insert id="insertBadge" parameterType="RewardBadgeDTO">
+		INSERT INTO LQ_BADGE (
+			BADGE_ID,
+			NAME,
+			DESCRIPTION,
+			CONDITION_TEXT,
+			ICON_URL,
+			CREATED_AT
+		) VALUES (
+			SEQ_LQ_BADGE_PK.NEXTVAL,
+			#{name},
+			#{description},
+			#{conditionText},
+			#{iconUrl},
+			SYSDATE
+		)
+	</insert>
+
+	<select id="existsUserBadge" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_USER_BADGE
+		WHERE USER_ID = #{userId}
+		  AND BADGE_ID = #{badgeId}
+	</select>
+
+	<insert id="insertUserBadge" parameterType="map">
+		INSERT INTO LQ_USER_BADGE (
+			USER_BADGE_ID,
+			USER_ID,
+			BADGE_ID,
+			EARNED_AT
+		) VALUES (
+			SEQ_LQ_USER_BADGE_PK.NEXTVAL,
+			#{userId},
+			#{badgeId},
+			SYSDATE
+		)
+	</insert>
+
+	<select id="findBadgeById" parameterType="int" resultType="RewardBadgeDTO">
+		SELECT
+			BADGE_ID,
+			NAME,
+			DESCRIPTION,
+			CONDITION_TEXT,
+			ICON_URL
+		FROM LQ_BADGE
+		WHERE BADGE_ID = #{value}
+	</select>
+
+	<select id="findUserBadgesByNickname" parameterType="string" resultType="RewardBadgeDTO">
+		SELECT
+			B.BADGE_ID,
+			B.NAME,
+			B.DESCRIPTION,
+			B.CONDITION_TEXT,
+			B.ICON_URL,
+			UB.EARNED_AT
+		FROM LQ_USER_BADGE UB
+		INNER JOIN LQ_USER U
+			ON U.USER_ID = UB.USER_ID
+		INNER JOIN LQ_BADGE B
+			ON B.BADGE_ID = UB.BADGE_ID
+		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND U.NICKNAME = #{_parameter}
+		ORDER BY UB.EARNED_AT DESC, UB.USER_BADGE_ID DESC
+	</select>
+
+	<select id="findWalletCouponByExchangeId" parameterType="long" resultType="RewardWalletCoupon">
+		SELECT
+			RE.EXCHANGE_ID,
+			RI.NAME,
+			NVL(NULLIF(TRIM(RI.DESCRIPTION), ''), '리워드 상점') AS STORE,
+			RE.STATUS,
+			RE.EXPIRED_AT,
+			CASE
+				WHEN RE.EXPIRED_AT IS NULL THEN NULL
+				ELSE TRUNC(RE.EXPIRED_AT) - TRUNC(SYSDATE)
+			END AS DAYS_LEFT
+		FROM LQ_REWARD_EXCHANGE RE
+		INNER JOIN LQ_REWARD_ITEM RI
+			ON RI.REWARD_ITEM_ID = RE.REWARD_ITEM_ID
+		WHERE RE.EXCHANGE_ID = #{value}
 	</select>
 </mapper>

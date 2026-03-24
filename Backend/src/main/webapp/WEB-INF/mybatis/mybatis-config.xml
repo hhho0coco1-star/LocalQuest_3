@@ -39,11 +39,18 @@
         <typeAlias type="com.app.dto.quest.QuestDTO" alias="Quest"/>
         <typeAlias type="com.app.dto.rank.Rank" alias="Rank" />
 		<typeAlias type="com.app.dto.reward.RewardBoxSummary" alias="RewardBoxSummary"/>
+		<typeAlias type="com.app.dto.reward.RewardBadgeDTO" alias="RewardBadgeDTO"/>
+		<typeAlias type="com.app.dto.reward.RewardExchangeRequestDTO" alias="RewardExchangeRequestDTO"/>
+		<typeAlias type="com.app.dto.reward.RewardExchangeResultDTO" alias="RewardExchangeResultDTO"/>
 		<typeAlias type="com.app.dto.reward.RewardRoadmapItem" alias="RewardRoadmapItem"/>
 		<typeAlias type="com.app.dto.reward.RewardShopItem" alias="RewardShopItem"/>
 		<typeAlias type="com.app.dto.reward.RewardWeeklyStats" alias="RewardWeeklyStats"/>
 		<typeAlias type="com.app.dto.reward.RewardWalletCoupon" alias="RewardWalletCoupon"/>
 		<typeAlias type="com.app.dto.reward.RewardItemDTO" alias="RewardItem"/>
+		<typeAlias type="com.app.dto.push.UserNotificationSettingDTO" alias="UserNotificationSettingDTO"/>
+		<typeAlias type="com.app.dto.push.PushSubscriptionDTO" alias="PushSubscriptionDTO"/>
+		<typeAlias type="com.app.dto.push.PushDispatchTargetDTO" alias="PushDispatchTargetDTO"/>
+		<typeAlias type="com.app.dto.push.NotificationLogDTO" alias="NotificationLogDTO"/>
     </typeAliases>
 
 </configuration>

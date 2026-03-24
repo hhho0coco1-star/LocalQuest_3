@@ -31,4 +31,24 @@ export const rewardApi = {
 
     return api.get("/api/rewards/weekly", { params });
   },
+
+  getRankings: () => {
+    return api.get("/api/rankings");
+  },
+
+  exchangeReward: ({ userId, rewardItemId }) => {
+    return api.post("/api/rewards/exchange", {
+      userId,
+      rewardItemId,
+    });
+  },
+
+  getRewardBadges: (nickname) => {
+    const params = {};
+    if (nickname && nickname.trim()) {
+      params.nickname = nickname.trim();
+    }
+
+    return api.get("/api/rewards/badges", { params });
+  },
 };

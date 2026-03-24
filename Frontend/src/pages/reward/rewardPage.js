@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { rewardApi } from "../../api/RewardApi";
 import "./rewardPage.css";
 
@@ -36,10 +37,6 @@ const STATUS_TABS = [
   { id: "SOLD_OUT", label: "품절" },
 ];
 
-const RANKING_API_PATHS = [
-  "/api/rankings"
-].filter(Boolean);
-
 const DEFAULT_WEEKLY_STATS = {
   questDone: 0,
   gainXp: 0,
@@ -48,7 +45,13 @@ const DEFAULT_WEEKLY_STATS = {
   weeklyProgress: 0,
 };
 
-function resolveNicknameFromClient() {
+const BADGE_ICON_MAP = {
+  badge_first_exchange: "🎉",
+  badge_exchange_runner: "🛍️",
+  badge_point_master: "💎",
+};
+
+function resolveNicknameFromClient(authNickname = "") {
   if (typeof window === "undefined") {
     return "";
   }
@@ -58,11 +61,28 @@ function resolveNicknameFromClient() {
     return queryNickname.trim();
   }
 
+  if (authNickname && authNickname.trim()) {
+    return authNickname.trim();
+  }
+
   const storageKeys = ["lq_nickname", "nickname", "userNickname"];
   for (const key of storageKeys) {
     const storedValue = window.localStorage.getItem(key);
     if (storedValue && storedValue.trim()) {
       return storedValue.trim();
+    }
+  }
+
+  const rawAuth = window.localStorage.getItem("lq_auth");
+  if (rawAuth) {
+    try {
+      const parsedAuth = JSON.parse(rawAuth);
+      const nestedNickname = parsedAuth?.user?.nickname ?? parsedAuth?.nickname;
+      if (nestedNickname && String(nestedNickname).trim()) {
+        return String(nestedNickname).trim();
+      }
+    } catch {
+      // ignore malformed local storage payload
     }
   }
 
@@ -139,6 +159,61 @@ function normalizeWeeklyStats(stats) {
       Math.max(0, toSafeNumber(stats?.weeklyProgress, DEFAULT_WEEKLY_STATS.weeklyProgress)),
     ),
   };
+}
+
+function normalizeWalletCoupons(coupons) {
+  if (!Array.isArray(coupons)) {
+    return [];
+  }
+
+  return coupons.map((coupon, index) => ({
+    id: coupon?.exchangeId ?? coupon?.id ?? `wallet-${index}`,
+    name: coupon?.name ?? "쿠폰",
+    store: coupon?.store ?? "리워드 상점",
+    expire: coupon?.expire ?? "만료일 미정",
+    urgent: Boolean(coupon?.urgent),
+  }));
+}
+
+function normalizeRewardBadges(badges) {
+  if (!Array.isArray(badges)) {
+    return [];
+  }
+
+  return badges.map((badge, index) => {
+    const badgeId = Math.max(1, toSafeNumber(badge?.badgeId, index + 1));
+    return {
+      badgeId,
+      name: badge?.name ?? `배지 ${badgeId}`,
+      description: badge?.description ?? "",
+      conditionText: badge?.conditionText ?? "",
+      iconUrl: badge?.iconUrl ?? "",
+      earnedAt: formatDateLabel(badge?.earnedAt),
+    };
+  });
+}
+
+function getBadgeIcon(iconUrl) {
+  const key = String(iconUrl ?? "").trim();
+  if (!key) {
+    return "🏅";
+  }
+
+  return BADGE_ICON_MAP[key] ?? "🏅";
+}
+
+function getExchangeErrorMessage(error) {
+  const payload = error?.response?.data;
+  if (typeof payload === "string" && payload.trim()) {
+    return payload.trim();
+  }
+
+  const message = payload?.message;
+  if (typeof message === "string" && message.trim()) {
+    return message.trim();
+  }
+
+  return "교환 처리 중 오류가 발생했습니다.";
 }
 
 function normalizeRoadmapItems(roadmap) {
@@ -225,31 +300,14 @@ function toRankingRow(row) {
   };
 }
 
-async function fetchRankingList() {
-  let lastError;
-
-  for (const endpoint of RANKING_API_PATHS) {
-    try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch rankings: ${endpoint} (${response.status})`);
-      }
-
-      const data = await response.json();
-      if (!Array.isArray(data)) {
-        throw new Error(`Invalid ranking payload from ${endpoint}`);
-      }
-
-      return data;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError ?? new Error("No ranking endpoint available");
-}
-
 function RewardPage() {
+  const authNickname = useSelector((state) => state.auth?.user?.nickname ?? "");
+  const authUserId = useSelector((state) => toSafeNumber(state.auth?.user?.userId, 0));
+  const resolvedNickname = useMemo(
+    () => resolveNicknameFromClient(authNickname),
+    [authNickname],
+  );
+
   const [levelBox, setLevelBox] = useState(null);
   const [isLevelBoxLoading, setIsLevelBoxLoading] = useState(true);
   const [points, setPoints] = useState(0);
@@ -262,9 +320,12 @@ function RewardPage() {
   const [myRank, setMyRank] = useState(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortType, setSortType] = useState("latest");
+  const [badges, setBadges] = useState([]);
+  const [isBadgesLoading, setIsBadgesLoading] = useState(true);
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [pendingItem, setPendingItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExchanging, setIsExchanging] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [xpAnimated, setXpAnimated] = useState(false);
@@ -294,7 +355,7 @@ function RewardPage() {
           setIsLevelBoxLoading(true);
         }
 
-        const nickname = resolveNicknameFromClient();
+        const nickname = resolvedNickname;
         if (!nickname) {
           if (isMounted) {
             setLevelBox(null);
@@ -370,7 +431,49 @@ function RewardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [resolvedNickname]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBadges = async () => {
+      try {
+        if (isMounted) {
+          setIsBadgesLoading(true);
+        }
+
+        const nickname = resolvedNickname;
+        if (!nickname) {
+          if (isMounted) {
+            setBadges([]);
+          }
+          return;
+        }
+
+        const response = await rewardApi.getRewardBadges(nickname);
+        if (!isMounted) {
+          return;
+        }
+
+        setBadges(normalizeRewardBadges(response?.data));
+      } catch (error) {
+        if (isMounted) {
+          console.error("배지 목록 조회 실패:", error);
+          setBadges([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsBadgesLoading(false);
+        }
+      }
+    };
+
+    loadBadges();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedNickname]);
 
   useEffect(() => {
     let isMounted = true;
@@ -381,7 +484,7 @@ function RewardPage() {
           setIsWalletLoading(true);
         }
 
-        const nickname = resolveNicknameFromClient();
+        const nickname = resolvedNickname;
         if (!nickname) {
           if (isMounted) {
             setWallet([]);
@@ -401,15 +504,7 @@ function RewardPage() {
           return;
         }
 
-        const mappedWallet = data.map((coupon, index) => ({
-          id: coupon?.exchangeId ?? `wallet-${index}`,
-          name: coupon?.name ?? "쿠폰",
-          store: coupon?.store ?? "리워드 상점",
-          expire: coupon?.expire ?? "만료일 미정",
-          urgent: Boolean(coupon?.urgent),
-        }));
-
-        setWallet(mappedWallet);
+        setWallet(normalizeWalletCoupons(data));
       } catch (error) {
         if (isMounted) {
           console.error("쿠폰 보관함 조회 실패:", error);
@@ -427,7 +522,7 @@ function RewardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [resolvedNickname]);
 
   useEffect(() => {
     let isMounted = true;
@@ -470,7 +565,7 @@ function RewardPage() {
 
     const loadWeeklyStats = async () => {
       try {
-        const nickname = resolveNicknameFromClient();
+        const nickname = resolvedNickname;
         if (!nickname) {
           if (isMounted) {
             setWeeklyStats(DEFAULT_WEEKLY_STATS);
@@ -497,14 +592,15 @@ function RewardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [resolvedNickname]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadRankings = async () => {
       try {
-        const rankingList = await fetchRankingList();
+        const response = await rewardApi.getRankings();
+        const rankingList = Array.isArray(response?.data) ? response.data : [];
         const mapped = rankingList
           .map(toRankingRow)
           .filter((row) => row.rank > 0)
@@ -516,7 +612,7 @@ function RewardPage() {
 
         setRankingList(mapped);
 
-        const myNickname = levelBox?.nickname?.trim();
+        const myNickname = levelBox?.nickname?.trim() || resolvedNickname;
         const myRow = mapped.find((row) => (
           row.isMe
           || row.name.includes("(나)")
@@ -546,7 +642,7 @@ function RewardPage() {
       isMounted = false;
       window.clearInterval(timerId);
     };
-  }, [levelBox?.nickname]);
+  }, [levelBox?.nickname, resolvedNickname]);
 
   const visibleItems = useMemo(() => {
     const filtered = rewardItems.filter((item) => {
@@ -595,6 +691,11 @@ function RewardPage() {
   };
 
   const openPurchaseModal = (item) => {
+    if (!authUserId) {
+      showToastMessage("로그인한 사용자만 교환할 수 있어요.");
+      return;
+    }
+
     if (!canPurchase(item)) return;
     setPendingItem(item);
     setIsModalOpen(true);
@@ -610,37 +711,73 @@ function RewardPage() {
     setShowToast(true);
   };
 
-  const confirmPurchase = () => {
+  const confirmPurchase = async () => {
     if (!pendingItem) return;
+    if (!authUserId) {
+      showToastMessage("로그인한 사용자만 교환할 수 있어요.");
+      return;
+    }
 
-    setPoints((prev) => prev - pendingItem.PRICE_POINT);
-    setRewardItems((prev) =>
-      prev.map((item) => {
-        if (item.REWARD_ITEM_ID !== pendingItem.REWARD_ITEM_ID) {
-          return item;
+    if (isExchanging) {
+      return;
+    }
+
+    try {
+      setIsExchanging(true);
+      const response = await rewardApi.exchangeReward({
+        userId: authUserId,
+        rewardItemId: pendingItem.REWARD_ITEM_ID,
+      });
+
+      const data = response?.data ?? {};
+      const nextPoint = toSafeNumber(data.remainingPoint, points - pendingItem.PRICE_POINT);
+      const nextStock = Math.max(0, toSafeNumber(data.updatedStock, pendingItem.STOCK - 1));
+      const nextStatus = String(data.itemStatus ?? "").trim().toUpperCase() || (nextStock > 0 ? "ON_SALE" : "SOLD_OUT");
+      const itemName = data.itemName ?? pendingItem.NAME;
+
+      setPoints(Math.max(0, nextPoint));
+      setRewardItems((prev) =>
+        prev.map((item) => {
+          if (item.REWARD_ITEM_ID !== pendingItem.REWARD_ITEM_ID) {
+            return item;
+          }
+
+          return {
+            ...item,
+            STOCK: nextStock,
+            STATUS: nextStatus,
+          };
+        }),
+      );
+
+      const walletCoupon = data.walletCoupon;
+      if (walletCoupon) {
+        const normalized = normalizeWalletCoupons([walletCoupon]);
+        if (normalized.length > 0) {
+          setWallet((prev) => [...normalized, ...prev]);
         }
-        const nextStock = Math.max(item.STOCK - 1, 0);
-        return {
-          ...item,
-          STOCK: nextStock,
-          STATUS: nextStock > 0 ? "ON_SALE" : "SOLD_OUT",
-        };
-      }),
-    );
+      }
 
-    setWallet((prev) => [
-      ...prev,
-      {
-        id: `w-${Date.now()}-${pendingItem.REWARD_ITEM_ID}`,
-        name: pendingItem.NAME,
-        store: "리워드 상점 교환",
-        expire: "7일 남음",
-        urgent: false,
-      },
-    ]);
+      const awardedBadges = normalizeRewardBadges(data.newlyAwardedBadges);
+      if (awardedBadges.length > 0) {
+        setBadges((prev) => {
+          const existingIds = new Set(prev.map((badge) => badge.badgeId));
+          const fresh = awardedBadges.filter((badge) => !existingIds.has(badge.badgeId));
+          return [...fresh, ...prev];
+        });
 
-    showToastMessage(`🎉 ${pendingItem.NAME} 교환이 완료됐어요!`);
-    closeModal();
+        const awardedNames = awardedBadges.map((badge) => badge.name).join(", ");
+        showToastMessage(`🎉 ${itemName} 교환 완료! 새 배지 획득: ${awardedNames}`);
+      } else {
+        showToastMessage(`🎉 ${itemName} 교환이 완료됐어요!`);
+      }
+
+      closeModal();
+    } catch (error) {
+      showToastMessage(getExchangeErrorMessage(error));
+    } finally {
+      setIsExchanging(false);
+    }
   };
 
   return (
@@ -824,6 +961,34 @@ function RewardPage() {
                 </div>
                 <p className="reward-weekly-foot">주간 목표 {weeklyStats.weeklyProgress}% 달성</p>
               </div>
+            </article>
+
+            <article className="reward-card reward-badge-card">
+              <div className="reward-badge-head">
+                <h2>내 배지</h2>
+                <span>{badges.length}개 획득</span>
+              </div>
+
+              {isBadgesLoading ? (
+                <p className="reward-badge-empty">배지 데이터를 불러오는 중입니다.</p>
+              ) : badges.length > 0 ? (
+                <div className="reward-badge-list">
+                  {badges.slice(0, 6).map((badge) => (
+                    <article key={badge.badgeId} className="reward-badge-item">
+                      <span className="reward-badge-icon" aria-hidden="true">
+                        {getBadgeIcon(badge.iconUrl)}
+                      </span>
+                      <div className="reward-badge-copy">
+                        <strong>{badge.name}</strong>
+                        <p>{badge.conditionText || badge.description || "획득 조건 정보 준비 중"}</p>
+                        <span>{badge.earnedAt}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="reward-badge-empty">아직 획득한 배지가 없어요.</p>
+              )}
             </article>
 
             <article className="reward-card reward-rank-card">
@@ -1052,8 +1217,22 @@ function RewardPage() {
           <p className="reward-modal-caption">구매한 쿠폰은 보관함에서 바로 사용 가능합니다</p>
 
           <div className="reward-modal-actions">
-            <button type="button" className="reward-modal-button reward-is-cancel" onClick={closeModal}>취소</button>
-            <button type="button" className="reward-modal-button reward-is-confirm" onClick={confirmPurchase}>구매 확정</button>
+            <button
+              type="button"
+              className="reward-modal-button reward-is-cancel"
+              onClick={closeModal}
+              disabled={isExchanging}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="reward-modal-button reward-is-confirm"
+              onClick={confirmPurchase}
+              disabled={isExchanging}
+            >
+              {isExchanging ? "교환 처리 중..." : "구매 확정"}
+            </button>
           </div>
         </section>
       </div>

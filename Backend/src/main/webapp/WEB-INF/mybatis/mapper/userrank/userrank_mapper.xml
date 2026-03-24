@@ -7,12 +7,12 @@
 	<insert id="saveUserRank" parameterType="UserRankDTO">
 		INSERT INTO LQ_USER_RANK (
 		rank_id,
-		user_id,
+		nickname,
 		total_exp,
 		ranking
 		) VALUES (
 		SEQ_LQ_USER_RANK_PK.nextval,
-		#{userId},
+		#{nickname},
 		#{totalExp},
 		#{ranking} )
 	</insert>
