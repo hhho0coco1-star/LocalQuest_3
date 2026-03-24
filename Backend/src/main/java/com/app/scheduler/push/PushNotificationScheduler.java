@@ -19,17 +19,32 @@ public class PushNotificationScheduler {
 
     @Scheduled(cron = "0 30 11 ? * MON-FRI", zone = "Asia/Seoul")
     public void sendLunchNotification() {
-        dispatch("LUNCH", "점심 시간 알림", "가까운 로컬 미션과 함께 점심 시간을 즐겨보세요.", "/explore");
+        dispatch(
+            "LUNCH",
+            "점심 30분, 오늘 미션 하나 완료해볼까요?",
+            "근처 퀘스트 1개만 완료해도 포인트를 받을 수 있어요.",
+            "/explore"
+        );
     }
 
     @Scheduled(cron = "0 30 17 ? * MON-FRI", zone = "Asia/Seoul")
     public void sendDinnerNotification() {
-        dispatch("DINNER", "저녁 시간 알림", "퇴근길에 참여할 수 있는 퀘스트를 확인해보세요.", "/explore");
+        dispatch(
+            "DINNER",
+            "퇴근길 저녁 퀘스트가 열렸어요",
+            "집 가기 전 15분, 오늘의 로컬 미션을 확인해보세요.",
+            "/explore"
+        );
     }
 
     @Scheduled(cron = "0 0 10 ? * SAT,SUN", zone = "Asia/Seoul")
     public void sendWeekendNotification() {
-        dispatch("WEEKEND", "주말 오전 알림", "주말 전용 로컬 퀘스트가 열렸어요. 지금 확인해보세요.", "/main");
+        dispatch(
+            "WEEKEND",
+            "주말 오전 한정 퀘스트 오픈",
+            "이번 주말에만 가능한 미션이 추가됐어요. 지금 확인해보세요.",
+            "/main"
+        );
     }
 
     private void dispatch(String type, String title, String body, String targetUrl) {

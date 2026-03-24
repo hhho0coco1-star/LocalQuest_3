@@ -1,6 +1,6 @@
-﻿package com.app.dto.push;
+package com.app.dto.push;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 import lombok.Data;
 
@@ -14,6 +14,6 @@ public class UserNotificationSettingDTO {
     private String dinnerPushAgree;
     private String weekendPushAgree;
     private String preferredTimezone;
-    private LocalDateTime updatedAt;
-    private LocalDateTime createdAt;
+    private Date updatedAt;
+    private Date createdAt;
 }

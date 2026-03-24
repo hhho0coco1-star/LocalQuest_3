@@ -1,4 +1,4 @@
-﻿package com.app.controller.api.push;
+package com.app.controller.api.push;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.app.dto.push.PushClickRequest;
+import com.app.dto.push.PushDeactivateRequest;
 import com.app.dto.push.PushDispatchResultDTO;
 import com.app.dto.push.PushSettingRequest;
 import com.app.dto.push.PushSubscriptionDTO;
@@ -127,6 +128,26 @@ public class PushAPIController {
         return ResponseEntity.ok(Collections.singletonMap("updatedCount", Integer.valueOf(updatedCount)));
     }
 
+    @PostMapping("/subscriptions/deactivate")
+    public ResponseEntity<?> deactivateSubscriptionByBody(
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+        @RequestBody PushDeactivateRequest request
+    ) {
+        Integer userId = resolveUserId(authorizationHeader);
+        if (userId == null || userId.intValue() <= 0) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Collections.singletonMap("message", "Unauthorized"));
+        }
+
+        if (request == null || request.getEndpoint() == null || request.getEndpoint().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body(Collections.singletonMap("message", "endpoint is required"));
+        }
+
+        int updatedCount = pushService.deactivateSubscription(userId.intValue(), request.getEndpoint());
+        return ResponseEntity.ok(Collections.singletonMap("updatedCount", Integer.valueOf(updatedCount)));
+    }
+
     @PostMapping("/test")
     public ResponseEntity<?> sendTestNotification(
         @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
@@ -138,8 +159,16 @@ public class PushAPIController {
                 .body(Collections.singletonMap("message", "Unauthorized"));
         }
 
-        PushDispatchResultDTO result = pushService.sendTestNotification(userId.intValue(), request);
-        return ResponseEntity.ok(result);
+        try {
+            PushDispatchResultDTO result = pushService.sendTestNotification(userId.intValue(), request);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap(
+                    "message",
+                    e.getMessage() == null ? "push test failed" : e.getMessage()
+                ));
+        }
     }
 
     @PostMapping("/click")

@@ -1,6 +1,6 @@
-﻿package com.app.dto.push;
+package com.app.dto.push;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 import lombok.Data;
 
@@ -15,7 +15,7 @@ public class NotificationLogDTO {
     private String targetUrl;
     private String sendStatus;
     private String failReason;
-    private LocalDateTime sentAt;
-    private LocalDateTime clickedAt;
-    private LocalDateTime createdAt;
+    private Date sentAt;
+    private Date clickedAt;
+    private Date createdAt;
 }

@@ -144,11 +144,19 @@ const Header = () => {
       const endpoint = subscription?.endpoint;
 
       if (subscription) {
-        await subscription.unsubscribe();
+        try {
+          await subscription.unsubscribe();
+        } catch (error) {
+          // Ignore unsubscribe failure and continue with server-side disable.
+        }
       }
 
       if (endpoint) {
-        await pushApi.deactivateSubscription(endpoint);
+        try {
+          await pushApi.deactivateSubscription(endpoint);
+        } catch (error) {
+          // If endpoint sync fails, we still turn off user-level push agreement.
+        }
       }
 
       await pushApi.saveSettings({ pushAgree: false });

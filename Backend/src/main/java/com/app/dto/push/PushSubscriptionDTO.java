@@ -1,6 +1,6 @@
-﻿package com.app.dto.push;
+package com.app.dto.push;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 import lombok.Data;
 
@@ -15,9 +15,9 @@ public class PushSubscriptionDTO {
     private String browserName;
     private String userAgent;
     private String isActive;
-    private LocalDateTime lastSuccessAt;
-    private LocalDateTime lastFailAt;
+    private Date lastSuccessAt;
+    private Date lastFailAt;
     private Integer failCount;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Date createdAt;
+    private Date updatedAt;
 }

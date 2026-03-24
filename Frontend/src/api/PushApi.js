@@ -7,6 +7,6 @@ export const pushApi = {
   getSubscriptions: () => api.get('/api/push/subscriptions'),
   saveSubscription: (payload) => api.post('/api/push/subscriptions', payload),
   deactivateSubscription: (endpoint) =>
-    api.delete('/api/push/subscriptions', { params: { endpoint } }),
+    api.post('/api/push/subscriptions/deactivate', { endpoint }),
   sendTest: (payload = {}) => api.post('/api/push/test', payload),
 };

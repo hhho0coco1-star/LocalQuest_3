@@ -1,8 +1,9 @@
-﻿package com.app.service.push.impl;
+package com.app.service.push.impl;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.security.Security;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.Utils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 @Service
 public class PushServiceImpl implements PushService {
@@ -332,7 +334,7 @@ public class PushServiceImpl implements PushService {
         notificationLog.setTargetUrl(targetUrl);
         notificationLog.setSendStatus(STATUS_SKIPPED);
         notificationLog.setFailReason(trimToMaxLength(reason, 500));
-        notificationLog.setSentAt(LocalDateTime.now());
+        notificationLog.setSentAt(new Date());
         pushDAO.insertNotificationLog(notificationLog);
     }
 
@@ -356,7 +358,7 @@ public class PushServiceImpl implements PushService {
         notificationLog.setTitle(title);
         notificationLog.setBody(body);
         notificationLog.setTargetUrl(targetUrl);
-        notificationLog.setSentAt(LocalDateTime.now());
+        notificationLog.setSentAt(new Date());
 
         if (!isPushEnabled()) {
             notificationLog.setSendStatus(STATUS_FAIL);
@@ -385,7 +387,7 @@ public class PushServiceImpl implements PushService {
             failureParam.put("forceDeactivate", (statusCode == 404 || statusCode == 410) ? YN_YES : YN_NO);
             pushDAO.markSubscriptionFailure(failureParam);
             return DispatchOutcome.FAIL;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             notificationLog.setSendStatus(STATUS_FAIL);
             notificationLog.setFailReason(trimToMaxLength(trimToEmpty(e.getMessage()), 500));
             pushDAO.insertNotificationLog(notificationLog);
@@ -403,6 +405,8 @@ public class PushServiceImpl implements PushService {
     }
 
     private int sendWebPush(PushDispatchTargetDTO target, String payload) throws Exception {
+        ensureBouncyCastleProvider();
+
         nl.martijndwars.webpush.PushService pushService = new nl.martijndwars.webpush.PushService();
         pushService.setSubject(getVapidSubject());
         pushService.setPublicKey(Utils.loadPublicKey(getPublicVapidKey()));
@@ -421,6 +425,12 @@ public class PushServiceImpl implements PushService {
         }
 
         return httpResponse.getStatusLine().getStatusCode();
+    }
+
+    private void ensureBouncyCastleProvider() {
+        if (Security.getProvider("BC") == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
     }
 
     private String buildPayload(long notificationId, String type, String title, String body, String targetUrl) {
