@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
+import { inquiryApi } from '../../api/InquiryApi';
 import { pushApi } from '../../api/PushApi';
 import { questApi } from '../../api/QuestApi';
 import { userApi } from '../../api/UserApi';
@@ -38,7 +39,7 @@ function formatDateValue(value) {
         return '-';
     }
 
-    const parsed = new Date(value);
+    const parsed = toDate(value);
     if (Number.isNaN(parsed.getTime())) {
         return String(value);
     }
@@ -54,7 +55,7 @@ function formatReviewCreatedAt(value) {
         return '-';
     }
 
-    const parsed = new Date(value);
+    const parsed = toDate(value);
     if (Number.isNaN(parsed.getTime())) {
         return String(value);
     }
@@ -67,12 +68,65 @@ function formatReviewCreatedAt(value) {
     return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 
+function toDate(value) {
+    if (value instanceof Date) {
+        return value;
+    }
+
+    if (Array.isArray(value) && value.length >= 3) {
+        const year = Number(value[0]);
+        const month = Number(value[1]);
+        const day = Number(value[2]);
+        const hour = Number(value[3] ?? 0);
+        const minute = Number(value[4] ?? 0);
+        const second = Number(value[5] ?? 0);
+
+        if (
+            Number.isFinite(year) &&
+            Number.isFinite(month) &&
+            Number.isFinite(day) &&
+            Number.isFinite(hour) &&
+            Number.isFinite(minute) &&
+            Number.isFinite(second)
+        ) {
+            return new Date(year, month - 1, day, hour, minute, second);
+        }
+    }
+
+    if (typeof value === 'string' && /^\d{4},\d{1,2},\d{1,2}(,\d{1,2}){0,3}$/.test(value.trim())) {
+        const parts = value.split(',').map((part) => Number(part.trim()));
+        return toDate(parts);
+    }
+
+    if (typeof value === 'object' && value !== null) {
+        const year = Number(value.year);
+        const month = Number(value.monthValue ?? value.month);
+        const day = Number(value.dayOfMonth ?? value.day);
+        const hour = Number(value.hour ?? 0);
+        const minute = Number(value.minute ?? 0);
+        const second = Number(value.second ?? 0);
+
+        if (Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day)) {
+            return new Date(year, month - 1, day, hour, minute, second);
+        }
+    }
+
+    return new Date(value);
+}
+
 function renderStarText(ratingValue) {
     const rating = Number(ratingValue) || 0;
     const boundedRating = Math.max(0, Math.min(5, rating));
     return `${'★'.repeat(boundedRating)}${'☆'.repeat(5 - boundedRating)} (${boundedRating})`;
 }
 
+function resolveInquiryStatusLabel(statusValue) {
+    const normalized = String(statusValue ?? '').trim().toUpperCase();
+    if (normalized === 'ANSWERED') {
+        return '답변 완료';
+    }
+    return '답변 대기';
+}
 function resolveGenderLabel(genderValue) {
     if (!genderValue) {
         return '-';
@@ -150,6 +204,9 @@ function MyPage() {
     const [myReviews, setMyReviews] = useState([]);
     const [isMyReviewsLoading, setIsMyReviewsLoading] = useState(false);
     const [myReviewsError, setMyReviewsError] = useState('');
+    const [myInquiries, setMyInquiries] = useState([]);
+    const [isMyInquiriesLoading, setIsMyInquiriesLoading] = useState(false);
+    const [myInquiriesError, setMyInquiriesError] = useState('');
 
     useEffect(() => {
         let isCancelled = false;
@@ -261,6 +318,47 @@ function MyPage() {
         };
 
         fetchMyReviews();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [activeTab]);
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const fetchMyInquiries = async () => {
+            if (activeTab !== 'inquiryHistory') {
+                return;
+            }
+
+            setIsMyInquiriesLoading(true);
+            setMyInquiriesError('');
+
+            try {
+                const response = await inquiryApi.getMyInquiries();
+                if (isCancelled) {
+                    return;
+                }
+                setMyInquiries(Array.isArray(response.data) ? response.data : []);
+            } catch (error) {
+                if (isCancelled) {
+                    return;
+                }
+
+                const message =
+                    error.response?.data?.message ??
+                    '문의내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+                setMyInquiriesError(message);
+                setMyInquiries([]);
+            } finally {
+                if (!isCancelled) {
+                    setIsMyInquiriesLoading(false);
+                }
+            }
+        };
+
+        fetchMyInquiries();
 
         return () => {
             isCancelled = true;
@@ -555,6 +653,38 @@ function MyPage() {
                                     </div>
                                 </form>
                             )
+                        ) : activeTab === 'inquiryHistory' ? (
+                            <section className="mypage-inquiry-panel">
+                                <h2>1:1 문의내역</h2>
+                                {isMyInquiriesLoading ? (
+                                    <div className="mypage-loading">문의내역을 불러오는 중입니다.</div>
+                                ) : myInquiriesError ? (
+                                    <p className="mypage-feedback-message is-error">{myInquiriesError}</p>
+                                ) : myInquiries.length === 0 ? (
+                                    <p className="mypage-inquiry-empty">등록한 문의가 없습니다.</p>
+                                ) : (
+                                    <div className="mypage-inquiry-list">
+                                        {myInquiries.map((inquiry) => (
+                                            <article key={inquiry.inquiryId} className="mypage-inquiry-item">
+                                                <div className="mypage-inquiry-head">
+                                                    <strong>{inquiry.title || `문의 #${inquiry.inquiryId}`}</strong>
+                                                    <span className={`mypage-inquiry-status ${String(inquiry.status || '').toUpperCase() === 'ANSWERED' ? 'is-answered' : 'is-pending'}`}>
+                                                        {resolveInquiryStatusLabel(inquiry.status)}
+                                                    </span>
+                                                </div>
+                                                <p className="mypage-inquiry-date">등록일: {formatReviewCreatedAt(inquiry.createdAt)}</p>
+                                                <p className="mypage-inquiry-content">{inquiry.content || '-'}</p>
+                                                {String(inquiry.status || '').toUpperCase() === 'ANSWERED' ? (
+                                                    <div className="mypage-inquiry-answer">
+                                                        <p className="mypage-inquiry-answer-date">답변일: {formatReviewCreatedAt(inquiry.answeredAt)}</p>
+                                                        <p className="mypage-inquiry-answer-content">{inquiry.answerContent || '-'}</p>
+                                                    </div>
+                                                ) : null}
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
                         ) : activeTab === 'myReviews' ? (
                             <section className="mypage-review-panel">
                                 <h2>내 리뷰</h2>

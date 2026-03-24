@@ -1,5 +1,6 @@
 package com.app.controller;
 
+import com.app.auth.SessionAuthKeys;
 import com.app.dto.inquiry.InquiryDTO;
 import com.app.service.inquiry.InquiryService;
 import lombok.RequiredArgsConstructor;
@@ -7,7 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/inquiries") // 공통 경로 설정
@@ -35,6 +38,18 @@ public class InquiryController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<InquiryDTO>> getList(@PathVariable int userId) {
         List<InquiryDTO> list = inquiryService.findInquiryList(userId);
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getMyInquiryList(HttpSession session) {
+        Integer loginUserId = resolveLoginUserId(session);
+        if (loginUserId == null || loginUserId <= 0) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "로그인한 사용자만 문의내역을 조회할 수 있습니다."));
+        }
+
+        List<InquiryDTO> list = inquiryService.findInquiryList(loginUserId);
         return ResponseEntity.ok(list);
     }
 
@@ -73,5 +88,26 @@ public class InquiryController {
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("삭제 실패");
         }
+    }
+
+    private Integer resolveLoginUserId(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+
+        Object sessionUserId = session.getAttribute(SessionAuthKeys.USER_ID);
+        if (sessionUserId instanceof Number) {
+            return ((Number) sessionUserId).intValue();
+        }
+
+        if (sessionUserId instanceof String) {
+            try {
+                return Integer.parseInt(((String) sessionUserId).trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+
+        return null;
     }
 }

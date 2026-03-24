@@ -312,6 +312,101 @@
   white-space: pre-wrap;
 }
 
+.mypage-inquiry-panel {
+  border: 1px solid #e6e9f2;
+  border-radius: 14px;
+  background-color: #f8faff;
+  padding: 24px;
+}
+
+.mypage-inquiry-panel h2 {
+  margin: 0;
+  color: #1f2940;
+  font-size: 24px;
+}
+
+.mypage-inquiry-empty {
+  margin: 14px 0 0;
+  color: #5e6780;
+  font-size: 15px;
+}
+
+.mypage-inquiry-list {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.mypage-inquiry-item {
+  border: 1px solid #dde4f3;
+  border-radius: 12px;
+  background-color: #ffffff;
+  padding: 14px 16px;
+}
+
+.mypage-inquiry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mypage-inquiry-head strong {
+  color: #20293d;
+  font-size: 16px;
+}
+
+.mypage-inquiry-status {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mypage-inquiry-status.is-pending {
+  background-color: #eef2ff;
+  color: #3848b8;
+}
+
+.mypage-inquiry-status.is-answered {
+  background-color: #e8fbef;
+  color: #1e8551;
+}
+
+.mypage-inquiry-date {
+  margin: 10px 0 0;
+  color: #6f7890;
+  font-size: 13px;
+}
+
+.mypage-inquiry-content {
+  margin: 8px 0 0;
+  color: #3d475f;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.mypage-inquiry-answer {
+  margin-top: 10px;
+  border-top: 1px solid #edf1fa;
+  padding-top: 10px;
+}
+
+.mypage-inquiry-answer-date {
+  margin: 0;
+  color: #5c6692;
+  font-size: 13px;
+}
+
+.mypage-inquiry-answer-content {
+  margin: 6px 0 0;
+  color: #26304a;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 900px) {
   .mypage-layout {
     grid-template-columns: 1fr;
