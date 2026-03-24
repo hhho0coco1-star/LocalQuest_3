@@ -631,6 +631,16 @@ function MainPage() {
           {!topRatedLoading && !topRatedError ? (
             topRatedQuests.length ? (
               <div className="hot-quest-carousel-shell">
+                <div className="hot-quest-slider-stage">
+                  <button
+                    type="button"
+                    className="hot-quest-nav-btn hot-quest-nav-btn-side is-prev"
+                    onClick={() => scrollTopRatedQuests(-1)}
+                    disabled={!canScrollTopQuestPrev}
+                    aria-label="추천 퀘스트 이전으로 이동"
+                  >
+                    &lt;
+                  </button>
                 <div
                   ref={topQuestTrackRef}
                   className="hot-quest-track"
@@ -664,6 +674,16 @@ function MainPage() {
                       </div>
                     </button>
                   ))}
+                </div>
+                  <button
+                    type="button"
+                    className="hot-quest-nav-btn hot-quest-nav-btn-side is-next"
+                    onClick={() => scrollTopRatedQuests(1)}
+                    disabled={!canScrollTopQuestNext}
+                    aria-label="추천 퀘스트 다음으로 이동"
+                  >
+                    &gt;
+                  </button>
                 </div>
 
                 <div className="hot-quest-range-row">
