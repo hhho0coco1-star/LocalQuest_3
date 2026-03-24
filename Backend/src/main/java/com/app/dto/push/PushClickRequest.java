@@ -1,4 +1,4 @@
-﻿package com.app.dto.push;
+package com.app.dto.push;
 
 import lombok.Data;
 

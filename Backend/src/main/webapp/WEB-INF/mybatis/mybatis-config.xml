@@ -12,6 +12,9 @@
     <typeAliases>
         <typeAlias type="com.app.dto.badge.BadgeDTO" alias="BadgeDTO"/>
         <typeAlias type="com.app.dto.business.BusinessDTO" alias="BusinessDTO"/>
+        <typeAlias type="com.app.dto.business.BusinessDashboardDTO" alias="BusinessDashboardDTO"/>
+        <typeAlias type="com.app.dto.business.BusinessHourlyAuthDTO" alias="BusinessHourlyAuthDTO"/>
+        <typeAlias type="com.app.dto.business.BusinessOverviewDTO" alias="BusinessOverviewDTO"/>
         <typeAlias type="com.app.dto.businessinquiry.BusinessInquiryDTO" alias="BusinessInquiryDTO"/>
         <typeAlias type="com.app.dto.faq.FaqDTO" alias="FaqDTO"/>
         <typeAlias type="com.app.dto.graderange.GradeRangeDTO" alias="GradeRangeDTO"/>

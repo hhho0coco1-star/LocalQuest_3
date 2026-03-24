@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.app.dao.business.BusinessDAO;
+import com.app.dto.business.BusinessDashboardDTO;
 import com.app.dto.business.BusinessDTO;
+import com.app.dto.business.BusinessHourlyAuthDTO;
 import com.app.service.business.BusinessService;
 
 @Service
@@ -30,6 +32,16 @@ public class BusinessServiceImpl implements BusinessService {
     @Override
     public BusinessDTO getBusinessByUserId(int userId) {
         return dao.getBusinessByUserId(userId);
+    }
+
+    @Override
+    public BusinessDashboardDTO getBusinessDashboardByBusinessId(int businessId) {
+        return dao.getBusinessDashboardByBusinessId(businessId);
+    }
+
+    @Override
+    public List<BusinessHourlyAuthDTO> getBusinessHourlyAuthCounts(int businessId) {
+        return dao.getBusinessHourlyAuthCounts(businessId);
     }
 
     @Override
