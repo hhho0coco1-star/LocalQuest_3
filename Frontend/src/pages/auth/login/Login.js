@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import './Login.css';
 import Button from '../../../components/common/Button';
@@ -28,6 +28,7 @@ function Login() {
     const [isFindingPassword, setIsFindingPassword] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useDispatch();
 
     const handleLogin = async (e) => {
@@ -59,7 +60,8 @@ function Login() {
                 }
             }));
 
-            navigate('/main');
+            const redirectPath = new URLSearchParams(location.search).get('redirect');
+            navigate(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/main', { replace: true });
         } catch (error) {
             const errorMessage = error.response?.data || '로그인에 실패했습니다.';
             alert(errorMessage);

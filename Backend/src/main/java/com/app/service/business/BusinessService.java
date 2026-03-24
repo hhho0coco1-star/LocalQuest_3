@@ -12,6 +12,8 @@ public interface BusinessService {
 
     public BusinessDTO getBusinessByUserId(int userId);
 
+    public Map<String, Object> getBusinessAuthSummary(int businessId);
+
     public boolean registerBusiness(BusinessDTO business);
 
     public boolean updateBusiness(BusinessDTO business);

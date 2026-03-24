@@ -33,6 +33,11 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
+    public Map<String, Object> getBusinessAuthSummary(int businessId) {
+        return dao.getBusinessAuthSummary(businessId);
+    }
+
+    @Override
     @Transactional
     public boolean registerBusiness(BusinessDTO business) {
         return dao.saveBusiness(business) > 0;

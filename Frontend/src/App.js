@@ -11,10 +11,19 @@ import QuestList from './pages/quest/QuestList/QuestList';
 import QuestDetail from './pages/quest/QuestDetail/QuestDetail';
 import MyQuest from './pages/quest/MyQuest/MyQuest';
 import MyQuestDetail from './pages/quest/MyQuest/MyQuestDetail';
+import QrVerify from './pages/quest/QrVerify/QrVerify';
 import RewardPage from './pages/reward/rewardPage';
 import CustomerService from './pages/support/CustomerService';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
+
+const resolveSafeRedirectPath = (value) => {
+  if (!value || typeof value !== 'string') {
+    return '/main';
+  }
+
+  return value.startsWith('/') ? value : '/main';
+};
 
 function AppRoutes({ isAuthenticated }) {
   const location = useLocation();
@@ -27,7 +36,11 @@ function AppRoutes({ isAuthenticated }) {
       <Routes>
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/main" replace /> : <Login />}
+          element={
+            isAuthenticated
+              ? <Navigate to={resolveSafeRedirectPath(new URLSearchParams(location.search).get('redirect'))} replace />
+              : <Login />
+          }
         />
         <Route path="/login/social/callback" element={<SocialLoginCallback />} />
         <Route path="/signup" element={<SignUp />} />
@@ -38,6 +51,7 @@ function AppRoutes({ isAuthenticated }) {
         />
         <Route path="/explore" element={<QuestList />} />
         <Route path="/explore/:questId" element={<QuestDetail />} />
+        <Route path="/qr/verify" element={<QrVerify />} />
         <Route path="/quest" element={<MyQuest />} />
         <Route
           path="/mypage"

@@ -36,4 +36,6 @@ public interface UserQuestDAO {
     UserQuestDTO findUserQuestByUserIdAndQuestId(UserQuestDTO userQuest);
 
     int updateUserQuestForAccept(UserQuestDTO userQuest);
+
+    int completeUserQuest(UserQuestDTO userQuest);
 }

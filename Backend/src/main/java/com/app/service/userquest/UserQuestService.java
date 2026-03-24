@@ -9,6 +9,7 @@ import com.app.dto.userquest.UserQuestDetailDTO;
 import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestOverviewDTO;
 
+import com.app.dto.locationqr.QrVerificationResponseDTO;
 import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestSummaryDTO;
 
@@ -34,4 +35,6 @@ public interface UserQuestService {
     UserQuestSummaryDTO getUserQuestSummary(int userId, int questId);
 
     List<UserQuestSummaryDTO> getUserQuestSummaries(int userId);
+
+    QrVerificationResponseDTO verifyLocationQr(int userId, String qrAuthKey);
 }
