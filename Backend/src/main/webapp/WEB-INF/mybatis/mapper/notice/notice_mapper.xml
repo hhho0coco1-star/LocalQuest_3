@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="notice_mapper">
+	<insert id="saveNotice" parameterType="NoticeDTO">
+		INSERT INTO LQ_NOTICE (
+		notice_id,
+		title,
+		content,
+		view_count,
+		is_pinned,
+		created_at
+		) VALUES (
+		SEQ_LQ_NOTICE_PK.nextval,
+		#{title},
+		#{content},
+		#{viewCount},
+		#{isPinned},
+		sysdate )
+	</insert>
+</mapper>

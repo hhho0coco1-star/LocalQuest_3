@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../components/common/Button';
+import { TERMS } from '../../../data/termsData';
 import './Terms.css';
 
 function Terms() {
@@ -27,13 +28,13 @@ function Terms() {
 
     // 개별 체크 핸들러
     const handleSingleCheck = (name, isChecked) => {
-        const updatedChecks = { ...checks, [name]: isChecked };
-        setChecks(updatedChecks);
-
-        // 모든 항목이 체크되었는지 확인하여 '전체 동의' 상태 업데이트
-        const allChecked = updatedChecks.term1 && updatedChecks.term2 && updatedChecks.term3;
-        setChecks(prev => ({ ...prev, [name]: isChecked, all: allChecked }));
-    };
+    setChecks(prev => {
+        const nextChecks = { ...prev, [name]: isChecked };
+        // 업데이트된 nextChecks를 기준으로 전체 동의 여부 계산
+        const allChecked = nextChecks.term1 && nextChecks.term2 && nextChecks.term3;
+        return { ...nextChecks, all: allChecked };
+    });
+};
 
     const handleNext = () => {
         if (checks.term1 && checks.term2) {
@@ -51,7 +52,7 @@ function Terms() {
                 <div className="check-item all">
                     <label>
                         <input type="checkbox" checked={checks.all} onChange={handleAllCheck} />
-                        <strong>전체 동의합니다.</strong>
+                        <strong>전체 동의</strong>
                     </label>
                 </div>
 
@@ -62,7 +63,7 @@ function Terms() {
                         <input type="checkbox" checked={checks.term1} onChange={(e) => handleSingleCheck('term1', e.target.checked)} />
                         <span>[필수] 이용약관 동의</span>
                     </label>
-                    <div className="terms-content">이용약관 내용이 여기에 들어갑니다...</div>
+                    <div className="terms-content">{TERMS.SERVICE}</div>
                 </div>
 
                 <div className="check-item">
@@ -70,7 +71,7 @@ function Terms() {
                         <input type="checkbox" checked={checks.term2} onChange={(e) => handleSingleCheck('term2', e.target.checked)} />
                         <span>[필수] 개인정보 수집 및 이용 동의</span>
                     </label>
-                    <div className="terms-content">개인정보 수집 내용이 여기에 들어갑니다...</div>
+                    <div className="terms-content">{TERMS.PRIVACY}</div>
                 </div>
 
                 <div className="check-item">
@@ -78,7 +79,7 @@ function Terms() {
                         <input type="checkbox" checked={checks.term3} onChange={(e) => handleSingleCheck('term3', e.target.checked)} />
                         <span>[선택] 마케팅 정보 수신 동의</span>
                     </label>
-                    <div className="terms-content">마케팅 활용 내용이 여기에 들어갑니다...</div>
+                    <div className="terms-content">{TERMS.MARKETING}</div>
                 </div>
             </div>
 

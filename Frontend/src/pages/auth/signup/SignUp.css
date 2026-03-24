@@ -1,3 +1,4 @@
+/* 1. 레이아웃 및 컨테이너 */
 .signup-container {
     display: flex;
     flex-direction: column;
@@ -5,7 +6,7 @@
     justify-content: center;
     min-height: 100vh;
     background-color: #f4f7f6;
-    padding: 40px 20px;
+    padding: 60px 20px;
 }
 
 .signup-title {
@@ -13,44 +14,148 @@
     font-size: 1.8rem;
     font-weight: bold;
     color: #333;
+    letter-spacing: -0.5px;
 }
 
 .signup-form {
     background: white;
     padding: 40px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     width: 100%;
-    max-width: 450px;
+    max-width: 500px; /* 중복된 max-width 하나로 통합 */
     box-sizing: border-box;
 }
 
-/* 성별 선택 영역 스타일 */
-.gender-section {
+/* 2. 섹션 구분 (계정 정보 / 개인 정보) */
+.form-section {
+    width: 100%;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    color: #007bff;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f0f0f0;
+    text-align: left;
+    font-weight: bold;
+}
+
+.section-divider {
+    height: 1px;
+    background-color: #eee;
+    margin: 30px 0;
+}
+
+/* 3. 개별 필드 및 그룹 */
+.signup-field-group {
     margin-bottom: 20px;
     text-align: left;
 }
 
-.gender-options {
+.field-check-message {
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.field-check-message.checking {
+    color: #6c757d;
+}
+
+.field-check-message.available {
+    color: #198754;
+}
+
+.field-check-message.unavailable,
+.field-check-message.error {
+    color: #dc3545;
+}
+
+/* 생년월일 드롭다운 */
+.birth-dropdowns {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     margin-top: 8px;
 }
 
-.gender-item {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
+.lq-select {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff;
     font-size: 15px;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.2s;
 }
 
-.gender-item input {
-    margin-right: 8px;
+.lq-select:focus {
+    border-color: #007bff;
+    outline: none;
 }
 
+.lq-select.is-error {
+    border-color: #dc3545;
+}
+
+.lq-select.is-error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+/* 성별 선택 박스 */
+.gender-box-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.gender-box {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff;
+    color: #666;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.gender-box.active {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+}
+
+.gender-box:hover:not(.active) {
+    background-color: #f8f9fa;
+    border-color: #ccc;
+}
+
+.gender-box.is-error {
+    border-color: #dc3545;
+}
+
+/* 4. 하단 버튼 영역 */
 .signup-buttons {
-    margin-top: 30px;
+    margin-top: 40px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+}
+
+/* 5. 반응형 디자인 */
+@media (max-width: 480px) {
+    .signup-form {
+        padding: 30px 20px;
+    }
+    
+    .signup-title {
+        font-size: 1.5rem;
+    }
 }

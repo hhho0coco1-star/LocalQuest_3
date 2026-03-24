@@ -20,7 +20,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 80px;   
+  padding: 0 50px;   
 }
 
 .header-top-section {
@@ -28,13 +28,10 @@
   padding: 15px 0; 
 }
 
-.header-logo-link { text-decoration: none; }
-.header-logo-wrapper { display: flex; align-items: center; gap: 6px; }
-.header-logo-text {
-  font-size: 26px;
-  font-weight: 900;
-  font-style: italic;
-  color: #1a1a1a;
+.header-logo-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .header-utility-btns { display: flex; gap: 15px; align-items: center; }
@@ -42,6 +39,7 @@
 .header-auth-btn {
   background: none;
   border: none;
+  text-decoration: none;
   font-size: 14px;
   font-weight: 600;
   color: #666;
@@ -51,6 +49,10 @@
 .header-signup-btn {
   background-color: #0f172a;
   color: white;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 22px;
   border-radius: 50px;
   border: none;
@@ -110,14 +112,6 @@
     padding: 0 20px;
   }
 
-  .header-logo-wrapper {
-    gap: 8px;
-  }
-
-  .header-logo-text {
-    font-size: 20px;
-  }
-
   .header-utility-btns {
     gap: 10px;
     flex-shrink: 0;
@@ -156,11 +150,6 @@
 @media (max-width: 480px) {
   .header-inner {
     padding: 0 14px;
-  }
-
-  .header-logo-text {
-    font-size: 16px;
-    line-height: 1.1;
   }
 
   .header-utility-btns {

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="rank_mapper">
+	<select id="findRankList" resultType="Rank">
+		SELECT
+			UR.RANK_ID,
+			U.NICKNAME,
+			UR.TOTAL_EXP,
+			ROW_NUMBER() OVER (ORDER BY UR.TOTAL_EXP DESC, UR.RANK_ID ASC) AS RANKING,
+			NVL(
+				(
+				<![CDATA[ 
+					SELECT MAX(LR.LEVEL_NO)
+					FROM LQ_LEVEL_RANGE LR
+					WHERE UR.TOTAL_EXP >= NVL(LR.MIN_EXP, 0)
+					  AND (LR.MAX_EXP IS NULL OR UR.TOTAL_EXP <= LR.MAX_EXP)
+				]]>
+				),
+				FLOOR(UR.TOTAL_EXP / 500) + 1
+			) AS LEVEL_NO
+		FROM LQ_USER_RANK UR
+		INNER JOIN LQ_USER U
+			ON U.USER_ID = UR.USER_ID
+		ORDER BY RANKING ASC
+	</select>
+</mapper>

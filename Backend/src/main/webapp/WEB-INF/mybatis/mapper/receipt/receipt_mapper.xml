@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="receipt_mapper">
+	<insert id="saveReceipt" parameterType="ReceiptDTO">
+		INSERT INTO LQ_RECEIPT (
+			RECEIPT_ID,
+			USER_ID,
+			USER_QUEST_PROGRESS_ID,
+			CATEGORY,
+			VERIFY_STATUS,
+			FILE_PATH,
+			FILE_UPLOAD_NAME,
+			FILE_ORIGINAL_NAME,
+			CREATED_AT
+		) VALUES (
+			SEQ_LQ_RECEIPT_PK.NEXTVAL,
+			#{userId},
+			#{userQuestProgressId},
+			#{category},
+			#{verifyStatus},
+			#{filePath},
+			#{fileUploadName},
+			#{fileOriginalName},
+			SYSDATE
+		)
+	</insert>
+</mapper>

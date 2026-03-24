@@ -12,71 +12,65 @@ http://www.springframework.org/schema/context/spring-context.xsd">
 
 	<annotation-driven />
 
-	<context:component-scan	base-package="com.app.controller"></context:component-scan>
-	<context:component-scan	base-package="com.app.service"/>
-	<context:component-scan	base-package="com.app.dao"/>
-<!-- 	<context:component-scan	base-package="com.app.config"/> -->
+	<context:component-scan
+		base-package="com.app.controller"></context:component-scan>
+	<context:component-scan
+		base-package="com.app.service" />
+	<context:component-scan
+		base-package="com.app.dao" />
+	<!-- <context:component-scan base-package="com.app.config"/> -->
 
-<!-- 	뷰리졸버 설정 부분 -->
+	<!-- 뷰리졸버 설정 부분 -->
 	<beans:bean
 		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
 		<beans:property name="prefix" value="/WEB-INF/views/"></beans:property>
 		<beans:property name="suffix" value=".jsp"></beans:property>
 	</beans:bean>
-	
-	<resources location="file:///D:/fileStorage/" mapping="/fileStorage/**" />
+
+	<resources location="file:///D:/fileStorage/"
+		mapping="/fileStorage/**" />
 	<resources location="/resources/" mapping="/**"></resources>
+<!-- 	<resources location="/resources/static/css/" mapping="/css/**" /> -->
+<!-- 	<resources location="/resources/static/js/" mapping="/js/**" /> -->
+<!-- 	<resources location="/resources/static/images/" mapping="/images/**" /> -->
+
+	<annotation-driven>
+		<message-converters>
+			<!-- @ResponseBody로 String 처리할때 한글처리 -->
+			<beans:bean
+				class="org.springframework.http.converter.StringHttpMessageConverter">
+				<beans:property name="supportedMediaTypes">
+					<beans:list>
+						<beans:value>text/html;charset=UTF-8</beans:value>
+						<beans:value>application/text;charset=UTF-8</beans:value>
+						<beans:value>text/plain;charset=UTF-8</beans:value>
+						<beans:value>application/json;charset=UTF-8</beans:value>
+					</beans:list>
+				</beans:property>
+			</beans:bean>
+		</message-converters>
+	</annotation-driven>
+
+	<beans:bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<beans:property name="maxUploadSize" value="10485760" />
+		<beans:property name="defaultEncoding" value="utf-8" />
+	</beans:bean>
 
 
-	<annotation-driven>						
-		<message-converters>					
-			<!-- @ResponseBody로 String 처리할때 한글처리 -->				
-			<beans:bean	class="org.springframework.http.converter.StringHttpMessageConverter">			
-				<beans:property name="supportedMediaTypes">			
-					<beans:list>		
-						<beans:value>text/html;charset=UTF-8</beans:value>	
-						<beans:value>application/text;charset=UTF-8</beans:value>	
-						<beans:value>text/plain;charset=UTF-8</beans:value>	
-						<beans:value>application/json;charset=UTF-8</beans:value>	
-					</beans:list>		
-				</beans:property>			
-			</beans:bean>				
-		</message-converters>					
-	</annotation-driven>						
 
-	<beans:bean id="multipartResolver"		
-		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">	
-		<beans:property name="maxUploadSize" value="10485760" />	
-		<beans:property name="defaultEncoding" value="utf-8" />	
-	</beans:bean>		
-	
+	<interceptors>
+		<interceptor>
+			<mapping path="/admin"/>
+			<mapping path="/admin/**" />
+			<mapping path="/mypage" />
+			<mapping path="/mypage/**" />
+			<beans:bean class="com.app.interceptor.RoleBasedPageInterceptor" />
+		</interceptor>
+	</interceptors>
 
 
-<!-- 	<interceptors> -->
-<!-- 		<interceptor> -->
-<!-- 			<mapping path="/customer/**"/> -->
-<!-- 			<exclude-mapping path="/customer/signin"/> -->
-<!-- 			<exclude-mapping path="/customer/signup"/> -->
-<!-- 			<exclude-mapping path="/customer/checkDupIdJson"/> -->
-<!-- 			<beans:bean class="com.app.interceptor.LoginInterceptor"></beans:bean> -->
-			
-<!-- 			<exclude-mapping path="/"/> -->
-<!-- 			<exclude-mapping path="/main"/> -->
-<!-- 			<exclude-mapping path="/css/**"/> -->
-<!-- 			<exclude-mapping path="/js/**"/> -->
-<!-- 			<exclude-mapping path="/images/**"/>			 -->	
-<!-- 		</interceptor> -->
-		
-<!-- 		<interceptor> -->
-<!-- 			<mapping path="/admin/**" /> -->
-<!-- 			<exclude-mapping path="/admin/signin"/> -->
-<!-- 			<beans:bean class="com.app.interceptor.AdminInterceptor"></beans:bean> -->
-<!-- 		</interceptor> -->
-		
-<!-- 	</interceptors> -->
-	
-	
-	
-	
+
+
 
 </beans:beans>

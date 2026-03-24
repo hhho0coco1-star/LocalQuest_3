@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pointhistory_mapper">
+	<insert id="savePointHistory" parameterType="PointHistoryDTO">
+		INSERT INTO LQ_POINT_HISTORY (
+		point_history_id,
+		user_id,
+		point_amount,
+		category,
+		description,
+		created_at
+		) VALUES (
+		SEQ_LQ_POINT_HISTORY_PK.nextval,
+		#{userId},
+		#{pointAmount},
+		#{category},
+		#{description},
+		sysdate )
+	</insert>
+</mapper>

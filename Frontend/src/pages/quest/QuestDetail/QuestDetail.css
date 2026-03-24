@@ -1,0 +1,191 @@
+.quest-detail-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff9f5 0%, #f8fafc 48%, #ffffff 100%);
+}
+
+.quest-detail-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 40px 100px;
+}
+
+.quest-detail-back {
+  margin-bottom: 20px;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quest-detail-card,
+.quest-detail-empty {
+  padding: 40px;
+  border-radius: 28px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.quest-detail-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.quest-detail-category {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quest-detail-head h1 {
+  margin: 16px 0 12px;
+  font-size: clamp(2rem, 3vw, 3.1rem);
+  color: #0f172a;
+}
+
+.quest-detail-head p {
+  margin: 0;
+  line-height: 1.7;
+  color: #475569;
+}
+
+.quest-detail-summary {
+  min-width: 180px;
+  padding: 24px;
+  border-radius: 24px;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.quest-detail-summary strong {
+  display: block;
+  font-size: 40px;
+}
+
+.quest-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.quest-detail-meta article {
+  padding: 22px;
+  border-radius: 22px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.quest-detail-meta span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+}
+
+.quest-detail-meta strong {
+  color: #0f172a;
+}
+
+.quest-detail-steps h2 {
+  margin: 0 0 16px;
+  color: #0f172a;
+}
+
+.quest-detail-empty-copy {
+  margin: 0;
+  color: #475569;
+}
+
+.quest-detail-steps ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.quest-detail-location-list {
+  display: grid;
+  gap: 16px;
+}
+
+.quest-detail-location-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px;
+  border-radius: 22px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.quest-detail-location-order {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.quest-detail-location-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quest-detail-location-body h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.quest-detail-location-body p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.quest-detail-location-note {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #be123c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .quest-detail-main {
+    padding: 32px 20px 80px;
+  }
+
+  .quest-detail-card,
+  .quest-detail-empty {
+    padding: 28px;
+  }
+
+  .quest-detail-head {
+    flex-direction: column;
+  }
+
+  .quest-detail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .quest-detail-location-item {
+    flex-direction: column;
+  }
+}

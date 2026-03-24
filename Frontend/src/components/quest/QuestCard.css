@@ -1,0 +1,119 @@
+.quest-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 260px;
+  padding: 24px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quest-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.quest-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.quest-card-badge,
+.quest-card-category {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.quest-card-badge {
+  padding: 8px 12px;
+  color: #ffffff;
+}
+
+.quest-card-badge-easy {
+  background: #14b8a6;
+}
+
+.quest-card-badge-normal {
+  background: #f97316;
+}
+
+.quest-card-badge-hard {
+  background: #e11d48;
+}
+
+.quest-card-category {
+  padding: 8px 14px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.quest-card-content h3 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.quest-card-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.quest-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 24px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.quest-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quest-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+}
+
+.quest-card-bottom strong {
+  display: block;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.quest-card-bottom span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.quest-card-button {
+  border: none;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quest-card-button:hover {
+  background: #d93d5e;
+}

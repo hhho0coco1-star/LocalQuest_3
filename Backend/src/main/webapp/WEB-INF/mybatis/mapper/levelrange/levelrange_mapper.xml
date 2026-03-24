@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="levelrange_mapper">
+	<insert id="saveLevelRange" parameterType="LevelRangeDTO">
+		INSERT INTO LQ_LEVEL_RANGE (
+		level_id,
+		level_no,
+		min_exp,
+		max_exp
+		) VALUES (
+		SEQ_LQ_LEVEL_RANGE_PK.nextval,
+		#{levelNo},
+		#{minExp},
+		#{maxExp} )
+	</insert>
+</mapper>

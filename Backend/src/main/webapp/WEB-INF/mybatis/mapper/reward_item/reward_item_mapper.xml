@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="reward_item_mapper">
+
+	<select id="selectSearchItems" parameterType="map"
+		resultType="RewardItem">
+		SELECT
+		REWARD_ITEM_ID as rewardItemId,
+		NAME,
+		DESCRIPTION,
+		PRICE_POINT as pricePoint,
+		STOCK,
+		STATUS,
+		CREATED_AT as createdAt
+		FROM LQ_REWARD_ITEM
+		WHERE STATUS != 'DELETED'
+		<if test="status != null and status != ''">
+			AND STATUS = #{status}
+		</if>
+		<if test="keyword != null and keyword != ''">
+			AND NAME LIKE '%' || #{keyword} || '%'
+		</if>
+		ORDER BY REWARD_ITEM_ID DESC
+	</select>
+
+	<insert id="insertItem" parameterType="RewardItem">
+		INSERT INTO LQ_REWARD_ITEM (
+		REWARD_ITEM_ID, NAME, DESCRIPTION, PRICE_POINT, STOCK, STATUS
+		) VALUES (
+		SEQ_LQ_REWARD_ITEM_PK.NEXTVAL, #{name}, #{description}, #{pricePoint}, #{stock}, 'ON_SALE'
+		)
+	</insert>
+
+	<insert id="saveRewardItem" parameterType="RewardItem">
+		INSERT INTO LQ_REWARD_ITEM (
+		REWARD_ITEM_ID,
+		NAME,
+		DESCRIPTION,
+		PRICE_POINT,
+		STOCK,
+		STATUS,
+		CREATED_AT
+		) VALUES (
+		SEQ_LQ_REWARD_ITEM_PK.NEXTVAL,
+		#{name},
+		#{description},
+		#{pricePoint},
+		#{stock},
+		#{status},
+		SYSDATE
+		)
+	</insert>
+
+	<update id="updateItem" parameterType="RewardItem">
+		UPDATE LQ_REWARD_ITEM
+		SET
+		NAME = #{name},
+		DESCRIPTION = #{description},
+		PRICE_POINT = #{pricePoint},
+		STOCK = #{stock},
+		STATUS = #{status}
+		WHERE REWARD_ITEM_ID = #{rewardItemId}
+	</update>
+
+	<update id="updateItemStatus" parameterType="map">
+		UPDATE LQ_REWARD_ITEM
+		SET STATUS = #{status}
+		WHERE REWARD_ITEM_ID = #{rewardItemId}
+	</update>
+
+</mapper>

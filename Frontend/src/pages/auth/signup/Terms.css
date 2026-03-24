@@ -44,10 +44,11 @@
     background: #f9f9f9;
     border: 1px solid #eee;
     height: 80px;
-    overflow-y: scroll;
+    overflow-y: auto;
     font-size: 13px;
     color: #666;
     border-radius: 4px;
+    white-space: pre-line; 
 }
 
 .terms-buttons {

@@ -24,11 +24,16 @@
 
 /* 페이지 제목 */
 .login-title {
-    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin-bottom: 30px;
-    font-size: 2rem;
-    font-weight: bold;
-    text-align: center;
+}
+
+.login-logo-link {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
 }
 
 /* 아이디 저장 체크박스 영역 */
@@ -69,6 +74,165 @@
 .login-find button:hover {
     color: #333;
     text-decoration: underline;
+}
+
+.find-id-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 1200;
+}
+
+.find-id-modal {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 26px 22px 22px;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+.find-id-modal h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #111827;
+}
+
+.find-id-guide {
+    margin: 10px 0 18px;
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.find-id-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.find-id-error {
+    margin: 0;
+    font-size: 13px;
+    color: #dc2626;
+}
+
+.find-id-result {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #111827;
+    font-size: 14px;
+}
+
+.find-id-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.find-id-cancel-btn {
+    flex: 1;
+    min-height: 46px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.find-id-cancel-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.find-id-next-btn {
+    flex: 1;
+    width: auto;
+    min-height: 46px;
+}
+
+.find-password-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 1200;
+}
+
+.find-password-modal {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 26px 22px 22px;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+.find-password-modal h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #111827;
+}
+
+.find-password-guide {
+    margin: 10px 0 18px;
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.find-password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.find-password-error {
+    margin: 0;
+    font-size: 13px;
+    color: #dc2626;
+}
+
+.find-password-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.find-password-cancel-btn {
+    flex: 1;
+    min-height: 46px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.find-password-cancel-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.find-password-next-btn {
+    flex: 1;
+    width: auto;
+    min-height: 46px;
 }
 
 /* 소셜 로그인 섹션 */

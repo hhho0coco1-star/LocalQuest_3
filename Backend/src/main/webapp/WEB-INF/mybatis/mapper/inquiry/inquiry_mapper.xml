@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="inquiry_mapper">
+	<insert id="saveInquiry" parameterType="InquiryDTO">
+		INSERT INTO LQ_INQUIRY (
+		inquiry_id,
+		user_id,
+		title,
+		content,
+		status,
+		answer_content,
+		answered_at,
+		created_at
+		) VALUES (
+		SEQ_LQ_INQUIRY_PK.nextval,
+		#{userId},
+		#{title},
+		#{content},
+		#{status},
+		#{answerContent},
+		#{answeredAt},
+		sysdate )
+	</insert>
+</mapper>

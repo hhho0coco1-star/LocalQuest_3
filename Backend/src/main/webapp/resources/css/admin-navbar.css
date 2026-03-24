@@ -1,0 +1,68 @@
+@charset "UTF-8";
+
+/* 관리자 네비게이션 전체 컨테이너 */
+.admin-nav-container {
+    width: 100%;
+    background-color: #1a1c23; /* 관리자 느낌의 짙은 네이비/블랙 */
+    color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.admin-nav-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 60px; /* 사이드바보다 컴팩트한 높이 */
+}
+
+/* 브랜드 로고 영역 */
+.admin-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #D93D5E; /* 로컬퀘스트 포인트 컬러 유지 */
+    margin-right: 40px;
+    white-space: nowrap;
+}
+
+/* 메뉴 리스트 */
+.admin-nav-menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    gap: 5px;
+}
+
+.admin-nav-item {
+    height: 100%;
+}
+
+.admin-nav-item a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 15px;
+    height: 100%;
+    color: #cbd5e0;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+/* 호버 효과 */
+.admin-nav-item a:hover {
+    background-color: #2d3748;
+    color: #ffffff;
+    border-bottom: 3px solid #D93D5E; /* 하단 포인트 라인 */
+}
+
+.admin-nav-item a i {
+    font-size: 1rem;
+}

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+           "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="quest_mapper">
+
+    <select id="selectAllQuests" resultType="Quest">
+        SELECT
+            QUEST_ID as questId,
+            TITLE,
+            DESCRIPTION,
+            CATEGORY,
+            REWARD_EXP as rewardExp,
+            REWARD_POINT as rewardPoint,
+            TIME_LIMIT as timeLimit,
+            STATUS,
+            CREATED_AT as createdAt
+        FROM LQ_QUEST
+        WHERE STATUS != 'DELETED'
+        ORDER BY QUEST_ID DESC
+    </select>
+
+    <select id="selectQuestMapList" resultType="com.app.dto.quest.QuestMapDTO">
+        SELECT
+            q.QUEST_ID as questId,
+            q.TITLE as title,
+            q.DESCRIPTION as description,
+            q.CATEGORY as category,
+            q.REWARD_EXP as rewardExp,
+            q.REWARD_POINT as rewardPoint,
+            q.TIME_LIMIT as timeLimit,
+            q.STATUS as status,
+            ql.QUEST_LOCATION_ID as questLocationId,
+            ql.LOCATION_ID as locationId,
+            ql.VISIT_ORDER as visitOrder,
+            l.NAME as locationName,
+            l.ADDRESS as address,
+            l.ADDRESS_DETAIL as addressDetail,
+            l.LATITUDE as latitude,
+            l.LONGITUDE as longitude,
+            l.LOCATION_TYPE as locationType
+        FROM LQ_QUEST q
+        INNER JOIN LQ_QUEST_LOCATION ql
+            ON q.QUEST_ID = ql.QUEST_ID
+        INNER JOIN LQ_LOCATION l
+            ON ql.LOCATION_ID = l.LOCATION_ID
+        WHERE q.STATUS = 'ACTIVE'
+          AND ql.VISIT_ORDER = (
+              SELECT MIN(ql2.VISIT_ORDER)
+              FROM LQ_QUEST_LOCATION ql2
+              WHERE ql2.QUEST_ID = q.QUEST_ID
+          )
+          AND l.LATITUDE IS NOT NULL
+          AND l.LONGITUDE IS NOT NULL
+        ORDER BY q.QUEST_ID DESC
+    </select>
+
+    <select id="selectQuestById" parameterType="int" resultType="Quest">
+        SELECT
+            QUEST_ID as questId,
+            TITLE,
+            DESCRIPTION,
+            CATEGORY,
+            REWARD_EXP as rewardExp,
+            REWARD_POINT as rewardPoint,
+            TIME_LIMIT as timeLimit,
+            STATUS,
+            CREATED_AT as createdAt
+        FROM LQ_QUEST
+        WHERE QUEST_ID = #{questId}
+    </select>
+
+    <select id="selectQuestLocationsByQuestId" parameterType="int" resultType="QuestLocationInfoDTO">
+        SELECT
+            ql.QUEST_LOCATION_ID as questLocationId,
+            ql.LOCATION_ID as locationId,
+            ql.VISIT_ORDER as visitOrder,
+            l.NAME as name,
+            l.ZIP_CODE as zipCode,
+            l.ADDRESS as address,
+            l.ADDRESS_DETAIL as addressDetail,
+            l.LATITUDE as latitude,
+            l.LONGITUDE as longitude,
+            l.LOCATION_TYPE as locationType,
+            l.DESCRIPTION as description
+        FROM LQ_QUEST_LOCATION ql
+        INNER JOIN LQ_LOCATION l
+            ON ql.LOCATION_ID = l.LOCATION_ID
+        WHERE ql.QUEST_ID = #{questId}
+        ORDER BY ql.VISIT_ORDER ASC
+    </select>
+
+    <update id="updateQuest" parameterType="Quest">
+        UPDATE LQ_QUEST
+        SET TITLE = #{title},
+            DESCRIPTION = #{description},
+            CATEGORY = #{category},
+            REWARD_EXP = #{rewardExp},
+            REWARD_POINT = #{rewardPoint},
+            TIME_LIMIT = #{timeLimit},
+            STATUS = #{status}
+        WHERE QUEST_ID = #{questId}
+    </update>
+
+    <update id="updateQuestStatus" parameterType="map">
+        UPDATE LQ_QUEST
+        SET STATUS = #{status}
+        WHERE QUEST_ID = #{questId}
+    </update>
+
+	<insert id="insertQuest" parameterType="Quest">
+		INSERT INTO LQ_QUEST (
+		QUEST_ID, TITLE, DESCRIPTION, CATEGORY, REWARD_EXP, REWARD_POINT
+		)
+		VALUES (
+		SEQ_LQ_QUEST_PK.NEXTVAL, #{title}, #{description},
+		#{category}, #{rewardExp}, #{rewardPoint}
+		)
+	</insert>
+
+	<select id="selectSearchQuests" parameterType="map"
+		resultType="Quest">
+		SELECT
+		QUEST_ID as questId, TITLE, DESCRIPTION, CATEGORY,
+		REWARD_EXP as rewardExp, REWARD_POINT as rewardPoint,
+		STATUS, CREATED_AT as createdAt
+		FROM LQ_QUEST
+		WHERE STATUS != 'DELETED'
+		<if test="status != null and status != ''">
+			AND STATUS = #{status}
+		</if>
+		<if test="keyword != null and keyword != ''">
+			AND TITLE LIKE '%' || #{keyword} || '%'
+		</if>
+		ORDER BY QUEST_ID DESC
+	</select>
+	
+</mapper>

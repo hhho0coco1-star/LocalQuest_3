@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN"
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="reward_mapper">
+	<select id="findRewardBoxSummary" parameterType="string" resultType="RewardBoxSummary">
+		SELECT
+			BASE.NICKNAME,
+			BASE.TOTAL_EXP AS EXP,
+			BASE.POINT,
+			BASE.CURRENT_LEVEL,
+			NVL(
+				(
+					SELECT LR.MIN_EXP
+					FROM LQ_LEVEL_RANGE LR
+					WHERE LR.LEVEL_NO = BASE.CURRENT_LEVEL
+					  AND ROWNUM = 1
+				),
+				(BASE.CURRENT_LEVEL - 1) * 500
+			) AS CURRENT_LEVEL_MIN_EXP,
+			BASE.CURRENT_LEVEL + 1 AS NEXT_LEVEL,
+			NVL(
+				(
+					SELECT LR.MIN_EXP
+					FROM LQ_LEVEL_RANGE LR
+					WHERE LR.LEVEL_NO = BASE.CURRENT_LEVEL + 1
+					  AND ROWNUM = 1
+				),
+				NVL(
+					(
+						SELECT LR.MIN_EXP
+						FROM LQ_LEVEL_RANGE LR
+						WHERE LR.LEVEL_NO = BASE.CURRENT_LEVEL
+						  AND ROWNUM = 1
+					),
+					(BASE.CURRENT_LEVEL - 1) * 500
+				) + 500
+			) AS NEXT_LEVEL_MIN_EXP,
+			(
+				SELECT T.GRADE_NAME
+				FROM (
+					SELECT GR.GRADE_NAME, GR.MIN_LEVEL
+					FROM LQ_GRADE_RANGE GR
+					WHERE BASE.CURRENT_LEVEL >= NVL(GR.MIN_LEVEL, 1)
+					  AND (GR.MAX_LEVEL IS NULL OR BASE.CURRENT_LEVEL &lt;= GR.MAX_LEVEL)
+					ORDER BY NVL(GR.MIN_LEVEL, 0) DESC
+				) T
+				WHERE ROWNUM = 1
+			) AS CURRENT_GRADE_NAME,
+			(
+				SELECT T.MIN_LEVEL
+				FROM (
+					SELECT GR.MIN_LEVEL
+					FROM LQ_GRADE_RANGE GR
+					WHERE BASE.CURRENT_LEVEL >= NVL(GR.MIN_LEVEL, 1)
+					  AND (GR.MAX_LEVEL IS NULL OR BASE.CURRENT_LEVEL &lt;= GR.MAX_LEVEL)
+					ORDER BY NVL(GR.MIN_LEVEL, 0) DESC
+				) T
+				WHERE ROWNUM = 1
+			) AS CURRENT_GRADE_MIN_LEVEL,
+			(
+				SELECT T.MAX_LEVEL
+				FROM (
+					SELECT GR.MAX_LEVEL, GR.MIN_LEVEL
+					FROM LQ_GRADE_RANGE GR
+					WHERE BASE.CURRENT_LEVEL >= NVL(GR.MIN_LEVEL, 1)
+					  AND (GR.MAX_LEVEL IS NULL OR BASE.CURRENT_LEVEL &lt;= GR.MAX_LEVEL)
+					ORDER BY NVL(GR.MIN_LEVEL, 0) DESC
+				) T
+				WHERE ROWNUM = 1
+			) AS CURRENT_GRADE_MAX_LEVEL,
+			(
+				SELECT T.GRADE_NAME
+				FROM (
+					SELECT GR.GRADE_NAME, GR.MIN_LEVEL
+					FROM LQ_GRADE_RANGE GR
+					WHERE NVL(GR.MIN_LEVEL, 1) > BASE.CURRENT_LEVEL
+					ORDER BY NVL(GR.MIN_LEVEL, 999999) ASC
+				) T
+				WHERE ROWNUM = 1
+			) AS NEXT_GRADE_NAME,
+			(
+				SELECT T.MIN_LEVEL
+				FROM (
+					SELECT GR.MIN_LEVEL
+					FROM LQ_GRADE_RANGE GR
+					WHERE NVL(GR.MIN_LEVEL, 1) > BASE.CURRENT_LEVEL
+					ORDER BY NVL(GR.MIN_LEVEL, 999999) ASC
+				) T
+				WHERE ROWNUM = 1
+			) AS NEXT_GRADE_MIN_LEVEL
+		FROM (
+			SELECT
+				U.NICKNAME,
+				NVL(U.EXP, 0) AS TOTAL_EXP,
+				NVL(U.POINT, 0) AS POINT,
+				NVL(
+					(
+						SELECT MAX(LR.LEVEL_NO)
+						FROM LQ_LEVEL_RANGE LR
+						WHERE NVL(U.EXP, 0) >= NVL(LR.MIN_EXP, 0)
+						  AND (LR.MAX_EXP IS NULL OR NVL(U.EXP, 0) &lt;= LR.MAX_EXP)
+					),
+					FLOOR(NVL(U.EXP, 0) / 500) + 1
+				) AS CURRENT_LEVEL
+			FROM LQ_USER U
+			WHERE U.STATUS = 'ACTIVE'
+			<if test="_parameter != null and _parameter != ''">
+				AND U.NICKNAME = #{_parameter}
+			</if>
+			ORDER BY NVL(U.EXP, 0) DESC, U.USER_ID ASC
+		) BASE
+		WHERE ROWNUM = 1
+	</select>
+
+	<select id="findRewardRoadmap" resultType="RewardRoadmapItem">
+		SELECT
+			GRADE_NAME,
+			MIN_LEVEL,
+			MAX_LEVEL
+		FROM LQ_GRADE_RANGE
+		ORDER BY NVL(MIN_LEVEL, 1) ASC, NVL(MAX_LEVEL, 999999) ASC
+	</select>
+
+	<select id="findRewardShopItems" resultType="RewardShopItem">
+		SELECT
+			REWARD_ITEM_ID,
+			NAME,
+			DESCRIPTION,
+			PRICE_POINT,
+			STOCK,
+			STATUS,
+			CREATED_AT
+		FROM LQ_REWARD_ITEM
+		ORDER BY CREATED_AT DESC, REWARD_ITEM_ID DESC
+	</select>
+
+	<select id="findRewardWeeklyStats" parameterType="string" resultType="RewardWeeklyStats">
+		SELECT
+			NVL(
+				(
+					SELECT COUNT(*)
+					FROM LQ_USER_QUEST UQ
+					WHERE UQ.USER_ID = U.USER_ID
+					  AND UQ.STATUS = 'COMPLETED'
+					  AND UQ.COMPLETED_AT IS NOT NULL
+					  AND UQ.COMPLETED_AT &gt;= TRUNC(SYSDATE, 'IW')
+					  AND UQ.COMPLETED_AT &lt; TRUNC(SYSDATE, 'IW') + 7
+				),
+				0
+			) AS QUEST_DONE,
+			NVL(
+				(
+					SELECT SUM(NVL(Q.REWARD_EXP, 0))
+					FROM LQ_USER_QUEST UQ
+					INNER JOIN LQ_QUEST Q
+						ON Q.QUEST_ID = UQ.QUEST_ID
+					WHERE UQ.USER_ID = U.USER_ID
+					  AND UQ.STATUS = 'COMPLETED'
+					  AND UQ.COMPLETED_AT IS NOT NULL
+					  AND UQ.COMPLETED_AT &gt;= TRUNC(SYSDATE, 'IW')
+					  AND UQ.COMPLETED_AT &lt; TRUNC(SYSDATE, 'IW') + 7
+				),
+				0
+			) AS GAIN_XP,
+			NVL(
+				(
+					SELECT COUNT(*)
+					FROM LQ_REWARD_EXCHANGE RE
+					WHERE RE.USER_ID = U.USER_ID
+					  AND UPPER(NVL(RE.STATUS, '')) = 'USED'
+					  AND RE.USED_AT IS NOT NULL
+					  AND RE.USED_AT &gt;= TRUNC(SYSDATE, 'IW')
+					  AND RE.USED_AT &lt; TRUNC(SYSDATE, 'IW') + 7
+				),
+				0
+			) AS USED_COUPON,
+			NVL(
+				(
+					SELECT LEAST(
+						100,
+						GREATEST(
+							1,
+							ROUND((R.MY_RANK * 100.0) / NULLIF(R.TOTAL_COUNT, 0))
+						)
+					)
+					FROM (
+						SELECT
+							X.RN AS MY_RANK,
+							(SELECT COUNT(*) FROM LQ_USER_RANK) AS TOTAL_COUNT
+						FROM (
+							SELECT
+								UR.USER_ID,
+								ROW_NUMBER() OVER (ORDER BY UR.TOTAL_EXP DESC, UR.RANK_ID ASC) AS RN
+							FROM LQ_USER_RANK UR
+						) X
+						WHERE X.USER_ID = U.USER_ID
+					) R
+				),
+				100
+			) AS TOP_PERCENT,
+			0 AS WEEKLY_PROGRESS
+		FROM LQ_USER U
+		WHERE U.STATUS = 'ACTIVE'
+		  AND U.NICKNAME = #{_parameter}
+		  AND ROWNUM = 1
+	</select>
+
+	<select id="findRewardWallet" parameterType="string" resultType="RewardWalletCoupon">
+		SELECT
+			RE.EXCHANGE_ID,
+			RI.NAME,
+			NVL(NULLIF(TRIM(RI.DESCRIPTION), ''), '리워드 상점') AS STORE,
+			RE.STATUS,
+			RE.EXPIRED_AT,
+			CASE
+				WHEN RE.EXPIRED_AT IS NULL THEN NULL
+				ELSE TRUNC(RE.EXPIRED_AT) - TRUNC(SYSDATE)
+			END AS DAYS_LEFT
+		FROM LQ_REWARD_EXCHANGE RE
+		INNER JOIN LQ_USER U
+			ON U.USER_ID = RE.USER_ID
+		INNER JOIN LQ_REWARD_ITEM RI
+			ON RI.REWARD_ITEM_ID = RE.REWARD_ITEM_ID
+		WHERE U.STATUS = 'ACTIVE'
+		<if test="_parameter != null and _parameter != ''">
+			AND U.NICKNAME = #{_parameter}
+		</if>
+		AND (RE.STATUS IS NULL OR UPPER(RE.STATUS) NOT IN ('USED', 'EXPIRED'))
+		AND (RE.EXPIRED_AT IS NULL OR <![CDATA[ TRUNC(RE.EXPIRED_AT) >= TRUNC(SYSDATE) ]]>)
+		ORDER BY NVL(RE.EXPIRED_AT, TO_DATE('2999-12-31', 'YYYY-MM-DD')) ASC, RE.EXCHANGED_AT DESC
+	</select>
+</mapper>

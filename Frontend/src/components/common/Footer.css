@@ -25,16 +25,13 @@
 .footer-logo-box {
   display: flex;
   align-items: center;
-  gap: 10px;
   margin-bottom: 20px;
 }
 
-.footer-logo-text {
-  font-size: 22px;
-  font-weight: 900;
-  font-style: italic;
-  color: #1a1a1a;
-  letter-spacing: -0.5px;
+.footer-localquest-logo .lq-logo-icon {
+  width: 24px;
+  height: 24px;
+  filter: none;
 }
 
 .footer-brand-desc {

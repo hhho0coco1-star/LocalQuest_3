@@ -1,0 +1,305 @@
+@charset "UTF-8";
+
+/* 전체 컨테이너 배경 및 폰트 설정 */
+.adm-q-container {
+    padding: 20px;
+    background-color: #1a1a27; /* 관리자 페이지 특유의 어두운 배경 */
+    min-height: 100vh;
+    color: #ffffff;
+}
+
+.adm-q-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.adm-q-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* 그리드 레이아웃: 정확히 4개씩 배치 */
+.adm-q-grid {
+    display: grid;
+    /* 1fr씩 4등분, 간격은 20px */
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 20px;
+    padding: 10px 0;
+}
+
+/* 퀘스트 카드 스타일 */
+.adm-q-card {
+    background: #252537; /* 카드 다크 배경 */
+    border-radius: 12px;
+    border: 1px solid #323248;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.adm-q-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    border-color: #7239ea; /* 호버 시 포인트 컬러 */
+}
+
+/* 카드 상단 헤더 */
+.adm-q-card-header {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(114, 57, 234, 0.1); /* 미세한 보라색 광택 */
+}
+
+.adm-q-category {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #7239ea;
+    font-weight: bold;
+}
+
+.adm-q-status-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: #1e1e2d;
+}
+
+/* 카드 본문 */
+.adm-q-card-body {
+    padding: 20px;
+    flex-grow: 1;
+}
+
+.adm-q-card-title {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.adm-q-card-desc {
+    font-size: 14px;
+    color: #9292af; /* 흐릿한 텍스트 */
+    line-height: 1.5;
+}
+
+/* 보상 영역 */
+.adm-q-reward {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px;
+    background: #1e1e2d;
+    border-top: 1px solid #323248;
+}
+
+.reward-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.exp-icon { color: #0095ff; }
+.point-icon { color: #ffa800; }
+
+/* 카드 하단 버튼 영역 */
+.adm-q-card-footer {
+    display: flex;
+    background: #2b2b40;
+}
+
+.adm-q-card-footer button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: #9292af;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.adm-q-card-footer button:hover {
+    background: #323248;
+    color: #ffffff;
+}
+
+/* 특정 버튼 강조 */
+.btn-q-stop:hover { color: #f1416c !important; } /* 정지: 빨강 */
+.btn-q-start:hover { color: #50cd89 !important; } /* 활성화: 초록 */
+.btn-q-delete:hover { background: #f1416c !important; color: #fff !important; }
+
+/* 비활성화 카드 상태 */
+.adm-q-card.INACTIVE {
+    opacity: 0.6;
+    filter: grayscale(0.5);
+}
+
+/* 모달 배경 */
+.adm-q-modal {
+    display: none; /* 기본 숨김 */
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px); /* 배경 블러 처리 */
+}
+
+/* 모달 컨텐츠 */
+.adm-q-modal-content {
+    background-color: #252537;
+    margin: 10% auto;
+    padding: 0;
+    border: 1px solid #323248;
+    width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+    color: #fff;
+}
+
+.adm-q-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #323248;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-modal {
+    font-size: 28px;
+    cursor: pointer;
+    color: #9292af;
+}
+
+.modal-body { padding: 20px; }
+
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; margin-bottom: 5px; color: #9292af; font-size: 13px; }
+
+.input-group input, .input-group select, .input-group textarea {
+    width: 100%;
+    padding: 10px;
+    background: #1e1e2d;
+    border: 1px solid #323248;
+    border-radius: 6px;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #323248;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-submit { background: #7239ea; color: white; flex: 2; border: none; padding: 12px; border-radius: 6px; cursor: pointer; }
+.btn-cancel { background: #323248; color: #9292af; flex: 1; border: none; padding: 12px; border-radius: 6px; cursor: pointer; }
+
+/* 새 퀘스트 등록 버튼 스타일 */
+.adm-q-btn-add {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 아이콘과 텍스트 사이 간격 */
+    background-color: #7239ea; /* 메인 보라색 포인트 */
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px; /* 부드러운 라운드 */
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 애니메이션 */
+    box-shadow: 0 4px 12px rgba(114, 57, 234, 0.2); /* 은은한 그림자 */
+}
+
+/* 버튼 마우스 호버 효과 */
+.adm-q-btn-add:hover {
+    background-color: #5d29d6; /* 좀 더 진한 보라색 */
+    transform: translateY(-2px); /* 살짝 위로 뜨는 느낌 */
+    box-shadow: 0 6px 16px rgba(114, 57, 234, 0.4); /* 그림자 강화 */
+}
+
+/* 버튼 클릭(Active) 효과 */
+.adm-q-btn-add:active {
+    transform: translateY(0); /* 눌리는 느낌 */
+    box-shadow: 0 2px 6px rgba(114, 57, 234, 0.3);
+}
+
+/* 플러스 아이콘 스타일 */
+.adm-q-btn-add i {
+    font-size: 14px;
+    transition: transform 0.3s ease;
+}
+
+/* 호버 시 아이콘 살짝 회전 애니메이션 (센스!) */
+.adm-q-btn-add:hover i {
+    transform: rotate(90deg);
+}
+
+.adm-q-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.adm-q-controls select {
+    padding: 8px 12px;
+    background-color: #1e1e2d;
+    border: 1px solid #323248;
+    color: #ffffff;
+    border-radius: 6px;
+    outline: none;
+}
+
+.adm-q-search-box {
+    display: flex;
+    background-color: #1e1e2d;
+    border: 1px solid #323248;
+    border-radius: 6px;
+    padding: 2px 5px;
+}
+
+.adm-q-search-box input {
+    background: none;
+    border: none;
+    color: white;
+    padding: 6px 10px;
+    outline: none;
+}
+
+.adm-q-search-box button {
+    background: none;
+    border: none;
+    color: #7239ea;
+    cursor: pointer;
+    padding: 0 10px;
+}
+
+.adm-q-search-box button:hover {
+    color: #ffffff;
+}
+
+/* 상점 전용 아이콘 색상 */
+.point-icon { color: #ffca28; margin-right: 5px; }
+.stock-icon { color: #42a5f5; margin-right: 5px; }
+
+/* 품절(SOLD_OUT) 카드의 시각적 효과 */
+.adm-q-card.SOLD_OUT {
+    opacity: 0.6;
+    border-left: 4px solid #ef5350;
+}
+
+.adm-q-card.SOLD_OUT .adm-q-status-badge {
+    background: #ef5350;
+}

@@ -1,0 +1,98 @@
+@charset "UTF-8";
+
+.header-main-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+  
+  /*  상단 고정 필수 코드 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+/*  중앙 정렬 및 너비 */
+.header-inner {
+  max-width: 1400px; /* 와이어프레임 너비 기준 */
+  width: 100%;
+  margin: 0 auto;    
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 80px;   
+}
+
+.header-top-section {
+  display: flex;
+  padding: 15px 0; 
+}
+
+.header-logo-link { text-decoration: none; }
+.header-logo-wrapper { display: flex; align-items: center; gap: 6px; }
+.header-logo-text {
+  font-size: 26px;
+  font-weight: 900;
+  font-style: italic;
+  color: #1a1a1a;
+}
+
+.header-utility-btns { display: flex; gap: 15px; align-items: center; }
+
+.header-auth-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+}
+
+.header-signup-btn {
+  background-color: #0f172a;
+  color: white;
+  padding: 8px 22px;
+  border-radius: 50px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.header-user-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.header-nav-bar {
+  height: 55px;
+  display: flex; 
+  border-top: 1px solid #f8f8f8;
+}
+
+.header-nav-list {
+  list-style: none;
+  display: flex;
+  gap: 40px;
+  margin: 0;
+  padding: 0;
+}
+
+.header-nav-link {
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  transition: color 0.2s;
+}
+
+.header-nav-link:hover { color: #D93D5E; }
+
+
+.header-relative-space {
+	position: relative;
+	height: 125px;
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="questlocation_mapper">
+	<insert id="saveQuestLocation" parameterType="QuestLocationDTO">
+		INSERT INTO LQ_QUEST_LOCATION (
+		quest_location_id,
+		quest_id,
+		location_id,
+		visit_order,
+		created_at
+		) VALUES (
+		SEQ_LQ_QUEST_LOCATION_PK.nextval,
+		#{questId},
+		#{locationId},
+		#{visitOrder},
+		sysdate )
+	</insert>
+</mapper>

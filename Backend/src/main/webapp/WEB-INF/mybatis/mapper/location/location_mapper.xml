@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="location_mapper">
+	<insert id="saveLocation" parameterType="LocationDTO">
+		INSERT INTO LQ_LOCATION (
+		location_id,
+		business_id,
+		name,
+		zip_code,
+		address,
+		address_detail,
+		latitude,
+		longitude,
+		location_type,
+		description,
+		created_at
+		) VALUES (
+		SEQ_LQ_LOCATION_PK.nextval,
+		#{businessId},
+		#{name},
+		#{zipCode},
+		#{address},
+		#{addressDetail},
+		#{latitude},
+		#{longitude},
+		#{locationType},
+		#{description},
+		sysdate )
+	</insert>
+</mapper>

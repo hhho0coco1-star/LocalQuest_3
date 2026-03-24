@@ -1,0 +1,145 @@
+@charset "UTF-8";
+
+/* 관리자 회원관리 전용 스타일 */
+.adm-u-container {
+    background-color: #1e1e2d; /* 네비바 배경색과 통일 */
+    padding: 30px;
+    border-radius: 12px;
+    color: #ffffff;
+    min-height: 100%;
+    
+    margin-top: 10px
+}
+
+.adm-u-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #323248;
+    padding-bottom: 20px;
+}
+
+.adm-u-title {
+    font-size: 1.5rem;
+    margin: 0;
+    font-weight: 600;
+}
+
+.adm-u-title i {
+    color: #7239ea; /* 네비바 포인트 컬러 */
+    margin-right: 10px;
+}
+
+/* 검색창 영역 */
+.adm-u-search-group {
+    display: flex;
+    gap: 10px;
+}
+
+.adm-u-select, .adm-u-input {
+    background: #151521;
+    border: 1px solid #323248;
+    color: #ffffff;
+    padding: 8px 15px;
+    border-radius: 6px;
+    outline: none;
+}
+
+.adm-u-btn-search {
+    background: #7239ea;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.adm-u-btn-search:hover {
+    background: #5d2cc1;
+}
+
+/* 테이블 스타일 */
+.adm-u-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.adm-u-table th {
+    text-align: left;
+    color: #a1a5b7;
+    font-size: 0.85rem;
+    padding: 15px;
+    border-bottom: 1px solid #323248;
+    background: rgba(21, 21, 33, 0.5);
+}
+
+.adm-u-table td {
+    padding: 15px;
+    border-bottom: 1px solid #323248;
+    font-size: 0.95rem;
+    color: #dbdfe9;
+}
+
+.adm-u-row:hover {
+    background: rgba(114, 57, 234, 0.05); /* 마우스 올리면 보라색 잔상 */
+}
+
+.adm-u-bold {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.adm-u-table-select {
+    background: #2b2b40;
+    border: 1px solid #323248;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* 상태 배지 스타일 */
+.adm-u-badge {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+/* 실제 DB 상태값에 맞게 매칭 */
+.adm-u-badge.ACTIVE { background: rgba(80, 205, 137, 0.1); color: #50cd89; }
+.adm-u-badge.WITHDRAWN { background: rgba(241, 65, 108, 0.1); color: #f1416c; }
+
+/* 정지 버튼 */
+.adm-u-btn-stop {
+    background: transparent;
+    border: 1px solid #f1416c;
+    color: #f1416c;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.adm-u-btn-stop:hover {
+    background: #f1416c;
+    color: #fff;
+}
+
+/* 활성화 버튼 (새로 추가) */
+.adm-u-btn-activate {
+    background: transparent;
+    border: 1px solid #50CD89;
+    color: #50CD89;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.adm-u-btn-activate:hover {
+    background-color: #52c41a; /* 호버 시 초록색 채우기 */
+    color: white;
+}

@@ -4,5 +4,229 @@
 		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="user_mapper">
-	
+
+	<!-- 관리자_회원정보 조회 -->
+	<!-- 관리자_회원정보 검색 -->
+	<select id="searchUser" resultType="User">
+		SELECT
+		USER_ID as userId,
+		USER_LOGIN_ID as userLoginId,
+		NAME,
+		EMAIL,
+		NICKNAME,
+		ROLE,
+		EXP,
+		POINT,
+		STATUS,
+		CREATED_AT as createdAt
+		FROM LQ_USER
+		<where>
+			<if test="type != null and keyword != null and keyword != ''">
+				<choose>
+					<when test="type == 'userLoginId'">
+						AND USER_LOGIN_ID LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="type == 'name'">
+						AND NAME LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="type == 'nickname'">
+						AND NICKNAME LIKE '%' || #{keyword} || '%'
+					</when>
+				</choose>
+			</if>
+		</where>
+		ORDER BY USER_ID
+		<choose>
+			<when test="sort == 'ASC'">ASC</when>
+			<otherwise>DESC</otherwise>
+		</choose>
+	</select>
+
+	<!-- 관리자_회원정보 변경(User_Type 변경) -->
+	<update id="updateUserRole" parameterType="map">
+		UPDATE LQ_USER
+		SET
+		ROLE
+		= #{newRole}
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<!-- 관리자_회원정보 상태 변경(회원정보_정지) -->
+	<update id="updateUserStatus" parameterType="map">
+		UPDATE LQ_USER
+		SET
+		STATUS = #{newStatus}
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<insert id="saveUser" parameterType="User">
+		INSERT INTO LQ_USER (
+		user_id,
+		user_login_id,
+		name,
+		email,
+		password,
+		nickname,
+		birth,
+		gender,
+		role,
+		exp,
+		point,
+		status,
+		created_at
+		) VALUES (
+		SEQ_LQ_USER_PK.nextval,
+		#{userLoginId},
+		#{name},
+		#{email},
+		#{password},
+		#{nickname},
+		#{birth},
+		#{gender},
+		#{role},
+		#{exp},
+		#{point},
+		#{status},
+		sysdate )
+	</insert>
+
+	<select id="countByUserLoginId" parameterType="string" resultType="int">
+		SELECT COUNT(1)
+		FROM LQ_USER
+		WHERE user_login_id = #{value}
+	</select>
+
+	<select id="countByNickname" parameterType="string" resultType="int">
+		SELECT COUNT(1)
+		FROM LQ_USER
+		WHERE nickname = #{value}
+	</select>
+
+	<select id="countByEmail" parameterType="string" resultType="int">
+		SELECT COUNT(1)
+		FROM LQ_USER
+		WHERE email = #{value}
+	</select>
+
+	<select id="findByUserId" parameterType="int" resultType="User">
+		SELECT
+			user_id,
+			user_login_id,
+			name,
+			email,
+			password,
+			nickname,
+			birth,
+			gender,
+			role,
+			exp,
+			point,
+			status,
+			created_at
+		FROM LQ_USER
+		WHERE user_id = #{value}
+	</select>
+
+	<select id="findByUserLoginId" parameterType="string" resultType="User">
+		SELECT
+			user_id,
+			user_login_id,
+			name,
+			email,
+			password,
+			nickname,
+			birth,
+			gender,
+			role,
+			exp,
+			point,
+			status
+		FROM LQ_USER
+		WHERE user_login_id = #{value}
+	</select>
+
+	<select id="findByEmail" parameterType="string" resultType="User">
+		SELECT
+			user_id,
+			user_login_id,
+			name,
+			email,
+			password,
+			nickname,
+			birth,
+			gender,
+			role,
+			exp,
+			point,
+			status
+		FROM LQ_USER
+		WHERE email = #{value}
+	</select>
+
+	<update id="updateMyProfileByUserId" parameterType="User">
+		UPDATE LQ_USER
+		<set>
+			<if test="nickname != null">
+				nickname = #{nickname},
+			</if>
+			<if test="password != null">
+				password = #{password},
+			</if>
+		</set>
+		WHERE user_id = #{userId}
+	</update>
+
+	<select id="findActiveUserByNameAndEmail" parameterType="User" resultType="User">
+		SELECT
+			user_id,
+			user_login_id,
+			name,
+			email,
+			password,
+			nickname,
+			birth,
+			gender,
+			role,
+			exp,
+			point,
+			status
+		FROM LQ_USER
+		WHERE name = #{name}
+		  AND email = #{email}
+		  AND status = 'ACTIVE'
+	</select>
+
+	<select id="findActiveUserByUserLoginIdAndEmail" parameterType="User" resultType="User">
+		SELECT
+			user_id,
+			user_login_id,
+			name,
+			email,
+			password,
+			nickname,
+			birth,
+			gender,
+			role,
+			exp,
+			point,
+			status
+		FROM LQ_USER
+		WHERE user_login_id = #{userLoginId}
+		  AND email = #{email}
+		  AND status = 'ACTIVE'
+	</select>
+
+	<update id="updatePasswordByUserId" parameterType="User">
+		UPDATE LQ_USER
+		SET password = #{password}
+		WHERE user_id = #{userId}
+	</update>
+
+	<update id="updateSocialProfileByUserId" parameterType="User">
+		UPDATE LQ_USER
+		SET
+			birth = #{birth},
+			gender = #{gender}
+		WHERE user_id = #{userId}
+	</update>
 </mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="rewardexchange_mapper">
+	<insert id="saveRewardExchange" parameterType="RewardExchangeDTO">
+		INSERT INTO LQ_REWARD_EXCHANGE (
+		exchange_id,
+		user_id,
+		reward_item_id,
+		used_point,
+		status,
+		expired_at,
+		used_at,
+		exchanged_at
+		) VALUES (
+		SEQ_LQ_REWARD_EXCHANGE_PK.nextval,
+		#{userId},
+		#{rewardItemId},
+		#{usedPoint},
+		#{status},
+		#{expiredAt},
+		#{usedAt},
+		sysdate )
+	</insert>
+</mapper>

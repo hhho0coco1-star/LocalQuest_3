@@ -1,0 +1,354 @@
+.my-quest-detail-progress-panel {
+  margin-bottom: 28px;
+  padding: 28px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f8fafc, #ecfeff);
+  border: 1px solid #dbeafe;
+}
+
+.my-quest-detail-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.my-quest-detail-progress-head h2 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.my-quest-detail-status {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.my-quest-detail-status.is-in_progress {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.my-quest-detail-status.is-saved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.my-quest-detail-status.is-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.my-quest-detail-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.my-quest-detail-progress-grid article {
+  padding: 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.my-quest-detail-progress-grid span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+}
+
+.my-quest-detail-progress-grid strong {
+  color: #0f172a;
+}
+
+.my-quest-detail-progress-bar {
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #dbeafe;
+}
+
+.my-quest-detail-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #14b8a6, #0f766e);
+}
+
+.my-quest-detail-location-item.is-completed {
+  border-color: rgba(34, 197, 94, 0.25);
+  background: linear-gradient(180deg, #ffffff, #f0fdf4);
+}
+
+.my-quest-detail-location-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.my-quest-detail-location-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.my-quest-detail-location-badge.is-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.my-quest-detail-completed-at {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.my-quest-detail-verification {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.my-quest-detail-verify-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-quest-detail-uploaded-note {
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.my-quest-receipt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.my-quest-receipt-modal {
+  width: min(100%, 720px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.my-quest-receipt-result-modal {
+  width: min(100%, 420px);
+  padding: 28px;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.my-quest-receipt-modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.my-quest-receipt-chip {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.my-quest-receipt-result-chip {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.my-quest-receipt-result-chip.is-failed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.my-quest-receipt-modal-head h2 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.my-quest-receipt-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.my-quest-receipt-copy {
+  margin: 14px 0 20px;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.my-quest-receipt-result-copy {
+  margin: 0 0 12px;
+  color: #0f172a;
+  line-height: 1.7;
+}
+
+.my-quest-receipt-result-reason {
+  margin: 0 0 20px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.my-quest-receipt-form {
+  display: grid;
+  gap: 16px;
+}
+
+.my-quest-receipt-upload-box {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed #94a3b8;
+  border-radius: 22px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.my-quest-receipt-upload-box input {
+  display: none;
+}
+
+.my-quest-receipt-upload-box strong {
+  color: #0f172a;
+}
+
+.my-quest-receipt-upload-box span,
+.my-quest-receipt-helper,
+.my-quest-receipt-file-meta span {
+  color: #64748b;
+}
+
+.my-quest-receipt-file-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.my-quest-receipt-file-meta strong {
+  color: #0f172a;
+}
+
+.my-quest-receipt-preview-wrap {
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.my-quest-receipt-preview {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
+.my-quest-receipt-error {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.my-quest-receipt-helper {
+  margin: 0;
+  font-size: 13px;
+}
+
+.my-quest-receipt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.my-quest-receipt-cancel,
+.my-quest-receipt-submit {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-quest-receipt-cancel:disabled,
+.my-quest-receipt-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.my-quest-receipt-cancel {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.my-quest-receipt-submit {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .my-quest-detail-progress-head,
+  .my-quest-detail-location-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .my-quest-detail-progress-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-quest-receipt-modal {
+    padding: 22px;
+  }
+
+  .my-quest-receipt-actions {
+    flex-direction: column;
+  }
+}

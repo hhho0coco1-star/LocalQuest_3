@@ -1,0 +1,48 @@
+.lq-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lq-logo-icon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 10px rgba(255, 64, 96, 0.2));
+}
+
+.lq-logo-text {
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .lq-logo {
+    gap: 8px;
+  }
+
+  .lq-logo-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .lq-logo-text {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lq-logo-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .lq-logo-text {
+    font-size: 16px;
+  }
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN" 
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="faq_mapper">
+	<insert id="saveFAQ" parameterType="FAQDTO">
+		INSERT INTO LQ_FAQ (
+		faq_id,
+		category,
+		question,
+		answer,
+		view_count,
+		created_at
+		) VALUES (
+		SEQ_LQ_FAQ_PK.nextval,
+		#{category},
+		#{question},
+		#{answer},
+		#{viewCount},
+		sysdate )
+	</insert>
+</mapper>

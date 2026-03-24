@@ -1,16 +1,49 @@
-<?xml version="1.0" encoding="UTF-8"?>						
-<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"						
-					"http://mybatis.org/dtd/mybatis-3-config.dtd">
-					
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+                    "http://mybatis.org/dtd/mybatis-3-config.dtd">
 
 <configuration>
 
-	<settings>
-		<setting name="mapUnderscoreToCamelCase" value="true"/>
-		<setting name="jdbcTypeForNull" value="NULL"/>
-	</settings>
-	
-	<typeAliases>
-	</typeAliases>
-	
+    <settings>
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <setting name="jdbcTypeForNull" value="NULL"/>
+    </settings>
+
+    <typeAliases>
+        <typeAlias type="com.app.dto.badge.BadgeDTO" alias="BadgeDTO"/>
+        <typeAlias type="com.app.dto.business.BusinessDTO" alias="BusinessDTO"/>
+        <typeAlias type="com.app.dto.businessinquiry.BusinessInquiryDTO" alias="BusinessInquiryDTO"/>
+        <typeAlias type="com.app.dto.faq.FAQDTO" alias="FAQDTO"/>
+        <typeAlias type="com.app.dto.graderange.GradeRangeDTO" alias="GradeRangeDTO"/>
+        <typeAlias type="com.app.dto.inquiry.InquiryDTO" alias="InquiryDTO"/>
+        <typeAlias type="com.app.dto.levelrange.LevelRangeDTO" alias="LevelRangeDTO"/>
+        <typeAlias type="com.app.dto.location.LocationDTO" alias="LocationDTO"/>
+        <typeAlias type="com.app.dto.notice.NoticeDTO" alias="NoticeDTO"/>
+        <typeAlias type="com.app.dto.pointhistory.PointHistoryDTO" alias="PointHistoryDTO"/>
+        <typeAlias type="com.app.dto.quest.QuestDTO" alias="QuestDTO"/>
+        <typeAlias type="com.app.dto.quest.QuestDetailDTO" alias="QuestDetailDTO"/>
+        <typeAlias type="com.app.dto.quest.QuestLocationInfoDTO" alias="QuestLocationInfoDTO"/>
+        <typeAlias type="com.app.dto.questlocation.QuestLocationDTO" alias="QuestLocationDTO"/>
+        <typeAlias type="com.app.dto.questreview.QuestReviewDTO" alias="QuestReviewDTO"/>
+        <typeAlias type="com.app.dto.receipt.ReceiptDTO" alias="ReceiptDTO"/>
+        <typeAlias type="com.app.dto.rewardexchange.RewardExchangeDTO" alias="RewardExchangeDTO"/>
+        <typeAlias type="com.app.dto.user.User" alias="User"/>
+        <typeAlias type="com.app.dto.userbadge.UserBadgeDTO" alias="UserBadgeDTO"/>
+        <typeAlias type="com.app.dto.userquest.UserQuestDetailDTO" alias="UserQuestDetailDTO"/>
+        <typeAlias type="com.app.dto.userquest.UserQuestDetailLocationDTO" alias="UserQuestDetailLocationDTO"/>
+        <typeAlias type="com.app.dto.userquest.UserQuestDTO" alias="UserQuestDTO"/>
+        <typeAlias type="com.app.dto.userquest.UserQuestOverviewDTO" alias="UserQuestOverviewDTO"/>
+        <typeAlias type="com.app.dto.userquest.UserQuestSummaryDTO" alias="UserQuestSummaryDTO"/>
+        <typeAlias type="com.app.dto.userquestprogress.UserQuestProgressDTO" alias="UserQuestProgressDTO"/>
+        <typeAlias type="com.app.dto.userrank.UserRankDTO" alias="UserRankDTO"/>
+        <typeAlias type="com.app.dto.quest.QuestDTO" alias="Quest"/>
+        <typeAlias type="com.app.dto.rank.Rank" alias="Rank" />
+		<typeAlias type="com.app.dto.reward.RewardBoxSummary" alias="RewardBoxSummary"/>
+		<typeAlias type="com.app.dto.reward.RewardRoadmapItem" alias="RewardRoadmapItem"/>
+		<typeAlias type="com.app.dto.reward.RewardShopItem" alias="RewardShopItem"/>
+		<typeAlias type="com.app.dto.reward.RewardWeeklyStats" alias="RewardWeeklyStats"/>
+		<typeAlias type="com.app.dto.reward.RewardWalletCoupon" alias="RewardWalletCoupon"/>
+		<typeAlias type="com.app.dto.reward.RewardItemDTO" alias="RewardItem"/>
+    </typeAliases>
+
 </configuration>

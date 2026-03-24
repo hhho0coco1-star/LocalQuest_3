@@ -13,7 +13,7 @@
 
 	<bean class="org.apache.commons.dbcp2.BasicDataSource" id="data_source">
 		<property name="driverClassName" value="oracle.jdbc.OracleDriver" />
-		<property name="url" value="jdbc:oracle:thin:@localhost:1521:orcl" />
+		<property name="url" value="jdbc:oracle:thin:@192.168.0.111:1521:orcl" />
 		<property name="username" value="scott" />
 		<property name="password" value="tiger" />
 	</bean>
@@ -28,8 +28,10 @@
 		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory" />
 	</bean>
 	
+	<context:component-scan base-package="com.app.controller"/>
 	<context:component-scan	base-package="com.app.service"/>
 	<context:component-scan	base-package="com.app.dao"/>
+	<context:component-scan	base-package="com.app.validator"/>
 	
 <!-- 	<bean id="sampleScheduler" class="com.app.scheduler.DailyCheckScheduler" /> -->
 <!-- 	 <task:scheduler id="mainScheduler" pool-size="10" /> -->
