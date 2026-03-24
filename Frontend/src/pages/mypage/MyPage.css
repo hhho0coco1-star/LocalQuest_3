@@ -115,6 +115,60 @@
   grid-column: 1 / -1;
 }
 
+.mypage-push-toggle {
+  width: 100%;
+  max-width: 210px;
+  height: 46px;
+  border: 1px solid #d7ddeb;
+  border-radius: 999px;
+  background-color: #f4f7fc;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mypage-push-toggle:hover {
+  border-color: #c2cbde;
+}
+
+.mypage-push-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mypage-push-toggle-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(18, 29, 48, 0.18);
+  transition: transform 0.2s ease;
+}
+
+.mypage-push-toggle-text {
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6a7387;
+}
+
+.mypage-push-toggle.is-on {
+  background-color: #fff1f4;
+  border-color: #ff90a5;
+}
+
+.mypage-push-toggle.is-on .mypage-push-toggle-thumb {
+  transform: translateX(128px);
+}
+
+.mypage-push-toggle.is-on .mypage-push-toggle-text {
+  color: #d93958;
+}
+
 .mypage-feedback-message {
   margin: 18px 0 0;
   color: #2d6cdf;

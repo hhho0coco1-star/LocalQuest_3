@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
+import { pushApi } from '../../api/PushApi';
 import { userApi } from '../../api/UserApi';
 import { clearAuth, updateUserProfile } from '../../store/authSlice';
 import './MyPage.css';
@@ -62,6 +63,15 @@ function resolveGenderLabel(genderValue) {
     return String(genderValue);
 }
 
+function parseYnToBoolean(value) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    const normalized = String(value ?? '').trim().toUpperCase();
+    return normalized === 'Y' || normalized === 'TRUE' || normalized === '1';
+}
+
 function normalizeProfile(source, fallbackUser = null) {
     const data = source ?? {};
     const user = fallbackUser ?? {};
@@ -98,14 +108,17 @@ function MyPage() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const user = useSelector((state) => state.auth.user);
+
     const [activeTab, setActiveTab] = useState('profile');
     const [profile, setProfile] = useState(() => normalizeProfile(null, user));
     const [isProfileLoading, setIsProfileLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isWithdrawing, setIsWithdrawing] = useState(false);
+    const [initialPushEnabled, setInitialPushEnabled] = useState(false);
     const [formState, setFormState] = useState({
         password: PASSWORD_MASK,
         nickname: normalizeProfile(null, user).nickname,
+        pushEnabled: false,
     });
     const [feedbackMessage, setFeedbackMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
@@ -119,16 +132,24 @@ function MyPage() {
             setFeedbackMessage('');
 
             try {
-                const response = await userApi.getMyProfile();
+                const [profileResponse, pushSettingResponse] = await Promise.all([
+                    userApi.getMyProfile(),
+                    pushApi.getSettings().catch(() => null),
+                ]);
+
                 if (isCancelled) {
                     return;
                 }
 
-                const normalized = normalizeProfile(response.data);
+                const normalized = normalizeProfile(profileResponse.data);
+                const pushEnabled = parseYnToBoolean(pushSettingResponse?.data?.pushAgree);
+
                 setProfile(normalized);
+                setInitialPushEnabled(pushEnabled);
                 setFormState({
                     password: PASSWORD_MASK,
                     nickname: normalized.nickname,
+                    pushEnabled,
                 });
 
                 dispatch(
@@ -172,16 +193,18 @@ function MyPage() {
         setFormState({
             password: PASSWORD_MASK,
             nickname: profile.nickname,
+            pushEnabled: initialPushEnabled,
         });
-    }, [profile.nickname]);
+    }, [profile.nickname, initialPushEnabled]);
 
     const hasChanged = useMemo(() => {
         const trimmedNickname = formState.nickname.trim();
         const hasNicknameChange = trimmedNickname !== profile.nickname;
         const hasPasswordChange =
             formState.password.trim() !== '' && formState.password !== PASSWORD_MASK;
-        return hasNicknameChange || hasPasswordChange;
-    }, [formState.nickname, formState.password, profile.nickname]);
+        const hasPushChange = formState.pushEnabled !== initialPushEnabled;
+        return hasNicknameChange || hasPasswordChange || hasPushChange;
+    }, [formState.nickname, formState.password, formState.pushEnabled, profile.nickname, initialPushEnabled]);
 
     const handleFieldChange = (event) => {
         const { name, value } = event.target;
@@ -213,13 +236,21 @@ function MyPage() {
         );
     };
 
+    const handlePushToggle = () => {
+        setFormState((prev) => ({
+            ...prev,
+            pushEnabled: !prev.pushEnabled,
+        }));
+    };
+
     const handleCancel = () => {
         setFormState({
             password: PASSWORD_MASK,
             nickname: profile.nickname,
+            pushEnabled: initialPushEnabled,
         });
         setErrorMessage('');
-        setFeedbackMessage('입력한 변경 사항을 취소했습니다.');
+        setFeedbackMessage('입력한 변경사항을 취소했습니다.');
     };
 
     const handleSubmit = async (event) => {
@@ -240,40 +271,62 @@ function MyPage() {
         const nextPassword =
             formState.password === PASSWORD_MASK ? '' : formState.password.trim();
 
-        if (!hasChanged) {
-            setFeedbackMessage('변경된 항목이 없습니다.');
+        const hasNicknameChange = trimmedNickname !== profile.nickname;
+        const hasPasswordChange = nextPassword !== '';
+        const hasPushChange = formState.pushEnabled !== initialPushEnabled;
+
+        if (!hasNicknameChange && !hasPasswordChange && !hasPushChange) {
+            setFeedbackMessage('변경한 항목이 없습니다.');
             return;
         }
 
         try {
             setIsSubmitting(true);
 
-            const response = await userApi.updateMyProfile({
-                nickname: trimmedNickname,
-                password: nextPassword,
-            });
+            let updatedProfile = profile;
 
-            const updatedProfile = normalizeProfile(response.data, user);
-            setProfile(updatedProfile);
+            if (hasNicknameChange || hasPasswordChange) {
+                const response = await userApi.updateMyProfile({
+                    nickname: trimmedNickname,
+                    password: nextPassword,
+                });
+
+                updatedProfile = normalizeProfile(response.data, user);
+                setProfile(updatedProfile);
+
+                dispatch(
+                    updateUserProfile({
+                        userId: updatedProfile.userId,
+                        userLoginId: updatedProfile.userLoginId,
+                        name: updatedProfile.name,
+                        email: updatedProfile.email,
+                        nickname: updatedProfile.nickname,
+                        birth: updatedProfile.birth,
+                        gender: updatedProfile.gender,
+                        createdAt: updatedProfile.createdAt,
+                        role: updatedProfile.role,
+                        status: updatedProfile.status,
+                    })
+                );
+            }
+
+            if (hasPushChange) {
+                const nextPushEnabled = formState.pushEnabled;
+                await pushApi.saveSettings({
+                    pushAgree: nextPushEnabled,
+                    marketingAgree: nextPushEnabled,
+                    lunchPushAgree: nextPushEnabled,
+                    dinnerPushAgree: nextPushEnabled,
+                    weekendPushAgree: nextPushEnabled,
+                });
+                setInitialPushEnabled(nextPushEnabled);
+            }
+
             setFormState({
                 password: PASSWORD_MASK,
                 nickname: updatedProfile.nickname,
+                pushEnabled: formState.pushEnabled,
             });
-
-            dispatch(
-                updateUserProfile({
-                    userId: updatedProfile.userId,
-                    userLoginId: updatedProfile.userLoginId,
-                    name: updatedProfile.name,
-                    email: updatedProfile.email,
-                    nickname: updatedProfile.nickname,
-                    birth: updatedProfile.birth,
-                    gender: updatedProfile.gender,
-                    createdAt: updatedProfile.createdAt,
-                    role: updatedProfile.role,
-                    status: updatedProfile.status,
-                })
-            );
 
             setFeedbackMessage('회원 정보가 수정되었습니다.');
         } catch (error) {
@@ -292,7 +345,7 @@ function MyPage() {
         }
 
         const shouldWithdraw = window.confirm(
-            '회원 탈퇴 시 계정 정보와 활동 내역이 삭제되며 복구할 수 없습니다. 계속할까요?'
+            '회원 탈퇴 시 계정 정보와 활동 내역은 삭제되며 복구할 수 없습니다. 계속할까요?'
         );
         if (!shouldWithdraw) {
             return;
@@ -392,6 +445,22 @@ function MyPage() {
                                             <span>가입일</span>
                                             <input type="text" value={profile.createdAtLabel} readOnly />
                                         </label>
+
+                                        <div className="mypage-field-row mypage-field-row-full">
+                                            <span>푸시 알림</span>
+                                            <button
+                                                type="button"
+                                                className={`mypage-push-toggle${formState.pushEnabled ? ' is-on' : ''}`}
+                                                onClick={handlePushToggle}
+                                                aria-pressed={formState.pushEnabled}
+                                                disabled={isSubmitting}
+                                            >
+                                                <span className="mypage-push-toggle-thumb" />
+                                                <span className="mypage-push-toggle-text">
+                                                    {formState.pushEnabled ? 'ON' : 'OFF'}
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {errorMessage ? <p className="mypage-feedback-message is-error">{errorMessage}</p> : null}
@@ -407,7 +476,7 @@ function MyPage() {
                                             disabled={isSubmitting}
                                         />
                                         <Button
-                                            text={isSubmitting ? '수정 중...' : '수정'}
+                                            text={isSubmitting ? '수정 중..' : '수정'}
                                             type="submit"
                                             variant="primary"
                                             className="mypage-action-button"
@@ -419,11 +488,11 @@ function MyPage() {
                         ) : activeTab === 'withdraw' ? (
                             <section className="mypage-withdraw-panel">
                                 <h2>회원 탈퇴</h2>
-                                <p>회원 탈퇴 시 계정 정보와 활동 내역이 삭제되며 복구할 수 없습니다.</p>
+                                <p>회원 탈퇴 시 계정 정보와 활동 내역은 삭제되며 복구할 수 없습니다.</p>
                                 {errorMessage ? <p className="mypage-feedback-message is-error">{errorMessage}</p> : null}
                                 <div className="mypage-withdraw-action-row">
                                     <Button
-                                        text={isWithdrawing ? '처리 중...' : '회원 탈퇴'}
+                                        text={isWithdrawing ? '처리 중..' : '회원 탈퇴'}
                                         type="button"
                                         variant="danger"
                                         className="mypage-action-button"
