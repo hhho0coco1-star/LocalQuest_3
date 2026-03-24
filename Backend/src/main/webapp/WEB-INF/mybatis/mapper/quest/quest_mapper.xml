@@ -104,6 +104,68 @@
         ORDER BY q.QUEST_ID DESC
     </select>
 
+    <select id="selectTopRatedQuests" parameterType="int" resultType="com.app.dto.quest.QuestTopRatedDTO">
+        SELECT *
+        FROM (
+            SELECT
+                q.QUEST_ID as questId,
+                q.TITLE as title,
+                q.DESCRIPTION as description,
+                q.CATEGORY as category,
+                q.REWARD_EXP as rewardExp,
+                q.REWARD_POINT as rewardPoint,
+                q.TIME_LIMIT as timeLimit,
+                q.STATUS as status,
+                ql.QUEST_LOCATION_ID as questLocationId,
+                ql.LOCATION_ID as locationId,
+                ql.VISIT_ORDER as visitOrder,
+                l.NAME as locationName,
+                l.ADDRESS as address,
+                l.ADDRESS_DETAIL as addressDetail,
+                l.LATITUDE as latitude,
+                l.LONGITUDE as longitude,
+                l.LOCATION_TYPE as locationType,
+                ROUND(NVL(AVG(r.RATING), 0), 1) as reviewAverage,
+                COUNT(r.REVIEW_ID) as reviewCount
+            FROM LQ_QUEST q
+            INNER JOIN LQ_QUEST_LOCATION ql
+                ON q.QUEST_ID = ql.QUEST_ID
+            INNER JOIN LQ_LOCATION l
+                ON ql.LOCATION_ID = l.LOCATION_ID
+            LEFT JOIN LQ_QUEST_REVIEW r
+                ON q.QUEST_ID = r.QUEST_ID
+            WHERE q.STATUS = 'ACTIVE'
+              AND ql.VISIT_ORDER = (
+                  SELECT MIN(ql2.VISIT_ORDER)
+                  FROM LQ_QUEST_LOCATION ql2
+                  WHERE ql2.QUEST_ID = q.QUEST_ID
+              )
+            GROUP BY
+                q.QUEST_ID,
+                q.TITLE,
+                q.DESCRIPTION,
+                q.CATEGORY,
+                q.REWARD_EXP,
+                q.REWARD_POINT,
+                q.TIME_LIMIT,
+                q.STATUS,
+                ql.QUEST_LOCATION_ID,
+                ql.LOCATION_ID,
+                ql.VISIT_ORDER,
+                l.NAME,
+                l.ADDRESS,
+                l.ADDRESS_DETAIL,
+                l.LATITUDE,
+                l.LONGITUDE,
+                l.LOCATION_TYPE
+            ORDER BY
+                ROUND(NVL(AVG(r.RATING), 0), 1) DESC,
+                COUNT(r.REVIEW_ID) DESC,
+                q.QUEST_ID DESC
+        )
+        WHERE ROWNUM <= #{limit}
+    </select>
+
     <select id="selectQuestById" parameterType="int" resultType="Quest">
         SELECT
             q.QUEST_ID as questId,

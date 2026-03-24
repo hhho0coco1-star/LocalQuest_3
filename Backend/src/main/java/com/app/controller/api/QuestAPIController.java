@@ -21,6 +21,7 @@ import com.app.auth.SessionAuthKeys;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestDetailDTO;
 import com.app.dto.quest.QuestMapDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 import com.app.service.quest.QuestService;
 import com.app.service.userquest.UserQuestService;
 
@@ -64,7 +65,12 @@ public class QuestAPIController {
         }
     }
 
-    @GetMapping("/{questId}")
+    @GetMapping("/top-rated")
+    public ResponseEntity<List<QuestTopRatedDTO>> getTopRatedQuests() {
+        return ResponseEntity.ok(questService.getTopRatedQuests(10));
+    }
+
+    @GetMapping("/{questId:\\d+}")
     public ResponseEntity<?> getQuestDetail(@PathVariable int questId) {
         try {
             QuestDetailDTO quest = questService.getQuestDetailById(questId);
