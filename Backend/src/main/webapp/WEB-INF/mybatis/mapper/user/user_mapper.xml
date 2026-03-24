@@ -6,22 +6,6 @@
 <mapper namespace="user_mapper">
 
 	<!-- 관리자_회원정보 조회 -->
-	<select id="selectAllUsers" resultType="User">
-		SELECT
-		USER_ID as userId,
-		USER_LOGIN_ID as userLoginId,
-		NAME,
-		EMAIL,
-		NICKNAME,
-		ROLE,
-		EXP,
-		POINT,
-		STATUS,
-		CREATED_AT as createdAt
-		FROM LQ_USER
-		ORDER BY CREATED_AT DESC
-	</select>
-
 	<!-- 관리자_회원정보 검색 -->
 	<select id="searchUser" resultType="User">
 		SELECT
@@ -124,6 +108,25 @@
 		WHERE email = #{value}
 	</select>
 
+	<select id="findByUserId" parameterType="int" resultType="User">
+		SELECT
+			user_id,
+			user_login_id,
+			name,
+			email,
+			password,
+			nickname,
+			birth,
+			gender,
+			role,
+			exp,
+			point,
+			status,
+			created_at
+		FROM LQ_USER
+		WHERE user_id = #{value}
+	</select>
+
 	<select id="findByUserLoginId" parameterType="string" resultType="User">
 		SELECT
 			user_id,
@@ -159,6 +162,19 @@
 		FROM LQ_USER
 		WHERE email = #{value}
 	</select>
+
+	<update id="updateMyProfileByUserId" parameterType="User">
+		UPDATE LQ_USER
+		<set>
+			<if test="nickname != null">
+				nickname = #{nickname},
+			</if>
+			<if test="password != null">
+				password = #{password},
+			</if>
+		</set>
+		WHERE user_id = #{userId}
+	</update>
 
 	<select id="findActiveUserByNameAndEmail" parameterType="User" resultType="User">
 		SELECT
@@ -204,5 +220,21 @@
 		UPDATE LQ_USER
 		SET password = #{password}
 		WHERE user_id = #{userId}
+	</update>
+
+	<update id="updateSocialProfileByUserId" parameterType="User">
+		UPDATE LQ_USER
+		SET
+			birth = #{birth},
+			gender = #{gender}
+		WHERE user_id = #{userId}
+	</update>
+
+	<update id="addRewardByUserId" parameterType="map">
+		UPDATE LQ_USER
+		SET
+			EXP = NVL(EXP, 0) + #{rewardExp},
+			POINT = NVL(POINT, 0) + #{rewardPoint}
+		WHERE USER_ID = #{userId}
 	</update>
 </mapper>

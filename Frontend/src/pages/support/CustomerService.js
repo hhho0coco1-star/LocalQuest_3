@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../../styles/CustomerService.css';
 
 const faqData = [
@@ -62,9 +62,30 @@ const mockLoginUser = {
   memberName: '홍길동'
 };
 
+const TAB_BY_PATH = {
+  '/support': 'notice',
+  '/support/notice': 'notice',
+  '/support/faq': 'faq',
+  '/support/contact': 'contact'
+};
+
+const PATH_BY_TAB = {
+  notice: '/support/notice',
+  faq: '/support/faq',
+  contact: '/support/contact'
+};
+
+const resolveTab = (location) => {
+  if (location.state?.tab) {
+    return location.state.tab;
+  }
+  return TAB_BY_PATH[location.pathname] || 'notice';
+};
+
 const CustomerService = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'notice');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(resolveTab(location));
   const [openNoticeId, setOpenNoticeId] = useState(null);
   const [openFaqId, setOpenFaqId] = useState(null);
   const [inquiryForm, setInquiryForm] = useState({
@@ -74,10 +95,17 @@ const CustomerService = () => {
   const [submittedInquiry, setSubmittedInquiry] = useState(null);
 
   useEffect(() => {
-    if (location.state?.tab) {
-      setActiveTab(location.state.tab);
+    setActiveTab(resolveTab(location));
+  }, [location]);
+
+  const handleTabClick = (tab) => {
+    const nextPath = PATH_BY_TAB[tab] || '/support';
+    setActiveTab(tab);
+
+    if (location.pathname !== nextPath) {
+      navigate(nextPath, { state: { tab } });
     }
-  }, [location.state]);
+  };
 
   const handleInquiryChange = (e) => {
     const { name, value } = e.target;
@@ -125,19 +153,19 @@ const CustomerService = () => {
       <div className="cs-tab-menu">
         <button
           className={activeTab === 'notice' ? 'active' : ''}
-          onClick={() => setActiveTab('notice')}
+          onClick={() => handleTabClick('notice')}
         >
           공지사항
         </button>
         <button
           className={activeTab === 'faq' ? 'active' : ''}
-          onClick={() => setActiveTab('faq')}
+          onClick={() => handleTabClick('faq')}
         >
           자주 묻는 질문
         </button>
         <button
           className={activeTab === 'contact' ? 'active' : ''}
-          onClick={() => setActiveTab('contact')}
+          onClick={() => handleTabClick('contact')}
         >
           1:1 문의
         </button>

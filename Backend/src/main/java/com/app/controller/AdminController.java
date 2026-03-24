@@ -1,8 +1,13 @@
 package com.app.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -13,16 +18,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.app.dto.business.BusinessDTO;
+import com.app.dto.businessinquiry.BusinessInquiryDTO;
+import com.app.dto.location.LocationDTO;
 import com.app.dto.quest.QuestDTO;
+import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
+import com.app.service.business.BusinessService;
+import com.app.service.businessinquiry.BusinessInquiryService;
+import com.app.service.location.LocationService;
 import com.app.service.quest.QuestService;
 import com.app.service.reward.RewardItemService;
 import com.app.service.user.UserService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 	
 	@Autowired
     private UserService userService;
@@ -33,13 +49,22 @@ public class AdminController {
 	@Autowired
     private RewardItemService rewardItemService;
 
-	// 관리자 메인 페이지
+	@Autowired
+	private LocationService locationService;
+	
+	@Autowired
+	private BusinessService businessService;
+
+	@Autowired
+	private BusinessInquiryService businessInquiryService;
+
+	// 관리자 메인 ?�이지
 	@GetMapping("")
 	public String admin() {
 		return "admin/admin";
 	}
 	
-	// 1. 회원 목록 조회 (정렬 및 검색 통합 권장)
+	// 1. ?�원 목록 조회 (?�렬 �?검???�합 권장)
 	@GetMapping("/users")
 	public String getUserList(
 	        @RequestParam(value="sort", defaultValue="DESC") String sort,
@@ -47,22 +72,22 @@ public class AdminController {
 	        @RequestParam(value="keyword", required=false) String keyword,
 	        Model model) {
 	    
-	    // Service에서 정렬과 검색을 동시에 처리하도록 넘깁니다.
+	    // Service?�서 ?�렬�?검?�을 ?�시??처리?�도�??�깁?�다.
 	    List<User> userList = userService.searchUsers(type, keyword, sort);
 	    model.addAttribute("userList", userList);
 	    
 	    return "admin/admin-user"; 
 	}
 
-	// 2. 회원 검색 (검색어와 정렬값을 함께 서비스로 전달)
+	// 2. ?�원 검??(검?�어?� ?�렬값을 ?�께 ?�비?�로 ?�달)
 	@GetMapping("/search")
 	public String searchUsers(
 	        @RequestParam("type") String type, 
 	        @RequestParam("keyword") String keyword, 
-	        @RequestParam(value="sort", defaultValue="DESC") String sort, // 정렬 파라미터 추가
+	        @RequestParam(value="sort", defaultValue="DESC") String sort, // ?�렬 ?�라미터 추�?
 	        Model model) {
 	    
-	    // [수정 핵심] 이제 서비스 메서드는 3개의 인자를 받습니다.
+	    // [?�정 ?�심] ?�제 ?�비??메서?�는 3개의 ?�자�?받습?�다.
 	    List<User> searchList = userService.searchUsers(type, keyword, sort);
 	    
 	    model.addAttribute("userList", searchList);
@@ -73,38 +98,38 @@ public class AdminController {
 	    return "admin/admin-user";
 	}
     
-    // 회원정보 상태 변경(관리자, 비니지스, 사용자)
+    // ?�원?�보 ?�태 변�?관리자, 비니지?? ?�용??
     @PostMapping("/users/updateRole")
     @ResponseBody
     public String updateRole(@RequestParam int userId, @RequestParam String role) {
-        // 1. 마스터 관리자 보호 (백엔드 최종 방어)
+        // 1. 마스??관리자 보호 (백엔??최종 방어)
         if (userId == 1) {
             return "fail";
         }
         
         try {
-            // 2. 서비스 호출 결과를 변수에 담습니다.
+            // 2. ?�비???�출 결과�?변?�에 ?�습?�다.
             boolean isUpdated = userService.changeUserRole(userId, role);
             
-            // 3. 실제 업데이트 성공 여부에 따라 응답
+            // 3. ?�제 ?�데?�트 ?�공 ?��????�라 ?�답
             return isUpdated ? "success" : "fail";
         } catch (Exception e) {
-            e.printStackTrace(); // 에러 로그 확인용
+            e.printStackTrace(); // ?�러 로그 ?�인??
             return "error";
         }
     }
     
-    // 회원정보 상태변경
+    // ?�원?�보 ?�태변�?
     @PostMapping("/users/updateStatus")
     @ResponseBody
     public String updateStatus(@RequestParam int userId, @RequestParam String status) {
-        // 1. 마스터 관리자 보호 (백엔드 최종 방어)
+        // 1. 마스??관리자 보호 (백엔??최종 방어)
         if (userId == 1) {
             return "fail";
         }
         
         try {
-            // [수정 핵심] 서비스의 파라미터 형식(int, String)에 맞춰서 호출합니다.
+            // [?�정 ?�심] ?�비?�의 ?�라미터 ?�식(int, String)??맞춰???�출?�니??
             boolean isUpdated = userService.changeUserStatus(userId, status); 
             
             return isUpdated ? "success" : "fail";
@@ -117,7 +142,7 @@ public class AdminController {
     // ================ Quest ================
     
     /**
-     * 1. 퀘스트 관리 메인 페이지 (전체 목록 조회)
+     * 1. ?�스??관�?메인 ?�이지 (?�체 목록 조회)
      */
     @GetMapping("/quests")
     public String questList(
@@ -125,27 +150,78 @@ public class AdminController {
         @RequestParam(value="keyword", required=false) String keyword,
         Model model) {
         
-        // 1. 검색 조건을 Map에 담기
-        Map<String, Object> params = new HashMap<>();
-        params.put("status", (status != null && !status.isEmpty()) ? status : null);
-        params.put("keyword", (keyword != null && !keyword.isEmpty()) ? keyword : null);
-        
-        // 2. 통합 서비스 호출 
-        // (params가 비어있으면 MyBatis 동적 쿼리가 전체를 조회합니다)
-        List<QuestDTO> questList = questService.getSearchQuests(params);
+        // 1. 검??조건??Map???�기
+        String normalizedStatus = (status != null && !status.trim().isEmpty()) ? status.trim() : null;
+        String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+
+        // 2. ?�합 ?�비???�출 
+        // (params가 비어?�으�?MyBatis ?�적 쿼리가 ?�체�?조회?�니??
+        List<QuestDTO> questList;
+        String questLoadError = null;
+        try {
+            List<QuestDTO> allQuests = questService.getAdminQuestList();
+            if (allQuests == null || allQuests.isEmpty()) {
+                questList = Collections.emptyList();
+            } else {
+                List<QuestDTO> filteredQuestList = new ArrayList<>();
+                String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+                for (QuestDTO quest : allQuests) {
+                    if (quest == null) {
+                        continue;
+                    }
+
+                    String questStatus = quest.getStatus();
+                    if (questStatus == null || questStatus.trim().isEmpty()) {
+                        questStatus = "ACTIVE";
+                        quest.setStatus(questStatus);
+                    }
+
+                    if (normalizedStatus != null && !normalizedStatus.equalsIgnoreCase(questStatus)) {
+                        continue;
+                    }
+
+                    if (keywordLower != null) {
+                        String questTitle = quest.getTitle() == null ? "" : quest.getTitle();
+                        if (!questTitle.toLowerCase(Locale.ROOT).contains(keywordLower)) {
+                            continue;
+                        }
+                    }
+
+                    filteredQuestList.add(quest);
+                }
+
+                questList = filteredQuestList;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            questList = java.util.Collections.emptyList();
+            questLoadError = "?�스??목록 조회 �??�류가 발생?�습?�다.";
+        }
+        List<String> questCategoryList;
+        try {
+            questCategoryList = questService.getQuestCategories();
+            if (questCategoryList == null || questCategoryList.isEmpty()) {
+                questCategoryList = Arrays.asList("DAILY", "MAIN", "SUB", "EVENT");
+            }
+        } catch (Exception e) {
+            questCategoryList = Arrays.asList("DAILY", "MAIN", "SUB", "EVENT");
+        }
         
         model.addAttribute("questList", questList);
+        model.addAttribute("questCategoryList", questCategoryList);
+        model.addAttribute("questLoadError", questLoadError);
         
-        // 3. 검색 조건 유지 (화면 input/select 박스 상태 유지용)
-        model.addAttribute("currentStatus", status);
-        model.addAttribute("currentKeyword", keyword);
+        // 3. 검??조건 ?��? (?�면 input/select 박스 ?�태 ?��???
+        model.addAttribute("currentStatus", normalizedStatus);
+        model.addAttribute("currentKeyword", normalizedKeyword);
         
         return "admin/admin-quest";
     }
     /**
-     * 2. 퀘스트 상태 변경 (비동기 처리)
-     * @param questId 변경할 퀘스트 번호
-     * @param status 변경할 상태 ('ACTIVE', 'INACTIVE', 'DELETED')
+     * 2. ?�스???�태 변�?(비동�?처리)
+     * @param questId 변경할 ?�스??번호
+     * @param status 변경할 ?�태 ('ACTIVE', 'INACTIVE', 'DELETED')
      */
     @PostMapping("/quests/updateStatus")
     @ResponseBody
@@ -159,59 +235,259 @@ public class AdminController {
         }
     }
 
-    // 3. 퀘스트 등록 (관리자용)
+    // 3. ?�스???�록 (관리자??
+    @GetMapping("/locations/search")
+    @ResponseBody
+    public List<Map<String, Object>> searchLocations(
+        @RequestParam(value = "keyword", required = false) String keyword) {
+        try {
+            List<LocationDTO> locations = locationService.searchLocations(keyword);
+            List<Map<String, Object>> response = new java.util.ArrayList<>();
+
+            for (LocationDTO location : locations) {
+                if (location == null) {
+                    continue;
+                }
+
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("locationId", location.getLocationId());
+                item.put("businessId", location.getBusinessId());
+                item.put("name", location.getName());
+                item.put("zipCode", location.getZipCode());
+                item.put("address", location.getAddress());
+                item.put("addressDetail", location.getAddressDetail());
+                item.put("latitude", location.getLatitude());
+                item.put("longitude", location.getLongitude());
+                item.put("locationType", location.getLocationType());
+                item.put("description", location.getDescription());
+                response.add(item);
+            }
+
+            return response;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
     @PostMapping("/quests/register")
     @ResponseBody
-    public String registerQuest(QuestDTO quest) { 
+    public String registerQuest(
+        QuestDTO quest,
+        @RequestParam(value = "locationsJson", required = false) String locationsJson) { 
         try {
-            // 데이터가 잘 넘어오는지 서버 콘솔에서 확인 (디버깅용)
-            System.out.println(">>> 퀘스트 등록 요청 데이터: " + quest);
+            // ?�이?��? ???�어?�는지 ?�버 콘솔?�서 ?�인 (?�버깅용)
+            System.out.println(">>> ?�스???�록 ?�청 ?�이?? " + quest);
             
-            // 필수값이 비어있는지 간단 체크 (서버 측 검증)
+            // ?�수값이 비어?�는지 간단 체크 (?�버 �?검�?
             if (quest.getTitle() == null || quest.getTitle().trim().isEmpty()) {
                 return "fail:title_empty";
             }
+            if (quest.getCategory() == null || quest.getCategory().trim().isEmpty()) {
+                return "fail:category_empty";
+            }
+            if (quest.getDescription() == null || quest.getDescription().trim().isEmpty()) {
+                return "fail:description_empty";
+            }
+            List<String> questCategoryList = null;
+            try {
+                questCategoryList = questService.getQuestCategories();
+            } catch (Exception e) {
+                return "fail:category_table_missing";
+            }
+            if (questCategoryList == null || questCategoryList.isEmpty()) {
+                return "fail:category_not_ready";
+            }
+            if (!questCategoryList.contains(quest.getCategory())) {
+                return "fail:category_invalid";
+            }
 
-            boolean isRegistered = questService.registerQuest(quest);
+            List<QuestLocationInfoDTO> locations = parseQuestLocations(locationsJson);
+            if (locations == null) {
+                return "fail:locations_invalid";
+            }
+            String locationValidationResult = validateQuestLocations(locations);
+            if (locationValidationResult != null) {
+                return locationValidationResult;
+            }
+
+            boolean isRegistered = questService.registerQuest(quest, locations);
             
-            // 성공 시 반드시 "success"만 반환하도록 보장
+            // ?�공 ??반드??"success"�?반환?�도�?보장
             return isRegistered ? "success" : "fail";
             
         } catch (Exception e) {
-            System.err.println("!!! 퀘스트 등록 중 에러 발생 !!!");
+            System.err.println("!!! ?�스???�록 �??�러 발생 !!!");
+            
             e.printStackTrace();
+            if (isQuestLocationStorageUnavailable(e)) {
+                return "fail:location_tables_missing";
+            }
+            if (isQuestLocationReferenceMissing(e)) {
+                return "fail:location_reference_missing";
+            }
+            if (isQuestLocationConstraintConflict(e)) {
+                return "fail:location_conflict";
+            }
             return "error";
         }
     }
     
     /**
-     * 퀘스트 정보 수정 처리 (Ajax)
+     * ?�스???�보 ?�정 처리 (Ajax)
      */
     @PostMapping("/quests/update")
-    @ResponseBody // Ajax 요청에 대해 문자열 데이터를 직접 반환하기 위해 필수!
-    public String updateQuest(QuestDTO quest) {
+    @ResponseBody // Ajax ?�청???�??문자???�이?��? 직접 반환?�기 ?�해 ?�수!
+    public String updateQuest(
+        QuestDTO quest,
+        @RequestParam(value = "locationsJson", required = false) String locationsJson) {
         try {
-            // 1. 넘어온 데이터 로그 확인 (디버깅용)
-            System.out.println(">>> 퀘스트 수정 요청 데이터: " + quest);
+            // 1. ?�어???�이??로그 ?�인 (?�버깅용)
+            System.out.println(">>> ?�스???�정 ?�청 ?�이?? " + quest);
 
-            // 2. 서비스 호출 (성공 시 true 반환)
-            boolean isUpdated = questService.updateQuest(quest);
+            // 2. ?�비???�출 (?�공 ??true 반환)
+            if (quest.getQuestId() <= 0) {
+                return "fail:invalid_id";
+            }
+            if (quest.getTitle() == null || quest.getTitle().trim().isEmpty()) {
+                return "fail:title_empty";
+            }
+            if (quest.getCategory() == null || quest.getCategory().trim().isEmpty()) {
+                return "fail:category_empty";
+            }
+            if (quest.getDescription() == null || quest.getDescription().trim().isEmpty()) {
+                return "fail:description_empty";
+            }
+            List<String> questCategoryList = null;
+            try {
+                questCategoryList = questService.getQuestCategories();
+            } catch (Exception e) {
+                return "fail:category_table_missing";
+            }
+            if (questCategoryList == null || questCategoryList.isEmpty()) {
+                return "fail:category_not_ready";
+            }
+            if (!questCategoryList.contains(quest.getCategory())) {
+                return "fail:category_invalid";
+            }
 
-            // 3. 결과 반환 (JS의 res.trim() === "success"와 매칭)
+            List<QuestLocationInfoDTO> locations = parseQuestLocations(locationsJson);
+            if (locations == null) {
+                return "fail:locations_invalid";
+            }
+            String locationValidationResult = validateQuestLocations(locations);
+            if (locationValidationResult != null) {
+                return locationValidationResult;
+            }
+
+            boolean isUpdated = questService.updateQuest(quest, locations);
+
+            // 3. 결과 반환 (JS??res.trim() === "success"?� 매칭)
             return isUpdated ? "success" : "fail";
 
         } catch (Exception e) {
-            // 에러 발생 시 콘솔에 출력하고 error 반환
-            System.err.println("!!! 퀘스트 수정 중 서버 에러 발생 !!!");
+            // ?�러 발생 ??콘솔??출력?�고 error 반환
+            System.err.println("!!! ?�스???�정 �??�버 ?�러 발생 !!!");
             e.printStackTrace();
+            if (isQuestLocationStorageUnavailable(e)) {
+                return "fail:location_tables_missing";
+            }
+            if (isQuestLocationReferenceMissing(e)) {
+                return "fail:location_reference_missing";
+            }
+            if (isQuestLocationConstraintConflict(e)) {
+                return "fail:location_conflict";
+            }
             return "error";
         }
+    }
+
+    private List<QuestLocationInfoDTO> parseQuestLocations(String locationsJson) {
+        if (locationsJson == null || locationsJson.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        try {
+            return objectMapper.readValue(
+                locationsJson,
+                new TypeReference<List<QuestLocationInfoDTO>>() {}
+            );
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String validateQuestLocations(List<QuestLocationInfoDTO> locations) {
+        if (locations == null) {
+            return "fail:locations_invalid";
+        }
+
+        for (QuestLocationInfoDTO location : locations) {
+            if (location == null) {
+                return "fail:locations_invalid";
+            }
+            if (location.getName() == null || location.getName().trim().isEmpty()) {
+                return "fail:location_name_empty";
+            }
+            if (location.getAddress() == null || location.getAddress().trim().isEmpty()) {
+                return "fail:location_address_empty";
+            }
+            if (location.getLatitude() == null || location.getLongitude() == null) {
+                return "fail:location_coordinate_empty";
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isQuestLocationStorageUnavailable(Throwable throwable) {
+        return containsMessage(
+            throwable,
+            "ORA-00942",
+            "ORA-02289",
+            "SEQ_LQ_QUEST_LOCATION_PK",
+            "SEQ_LQ_LOCATION_PK",
+            "TABLE OR VIEW DOES NOT EXIST"
+        );
+    }
+
+    private boolean isQuestLocationReferenceMissing(Throwable throwable) {
+        return containsMessage(
+            throwable,
+            "ORA-02291",
+            "FK_LQ_QUEST_LOCATION_LOCATION",
+            "FK_LQ_QUEST_LOCATION_QUEST"
+        );
+    }
+
+    private boolean isQuestLocationConstraintConflict(Throwable throwable) {
+        return containsMessage(
+            throwable,
+            "UQ_LQ_QUEST_LOCATION_QUEST_LOC",
+            "UQ_LQ_QUEST_LOCATION_ORDER"
+        );
+    }
+
+    private boolean containsMessage(Throwable throwable, String... candidates) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String upperMessage = message.toUpperCase(Locale.ROOT);
+                for (String candidate : candidates) {
+                    if (upperMessage.contains(candidate)) {
+                        return true;
+                    }
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
     
     // ================ Reward_Item ================
     
     /**
-     * 1. 리워드 아이템 목록 조회 (검색 및 필터 통합)
+     * 1. 리워???�이??목록 조회 (검??�??�터 ?�합)
      * URL: /admin/shop
      */
     @GetMapping("/shop")
@@ -224,19 +500,19 @@ public class AdminController {
         params.put("status", (status != null && !status.isEmpty()) ? status : null);
         params.put("keyword", (keyword != null && !keyword.isEmpty()) ? keyword : null);
 
-        // 서비스 호출
+        // ?�비???�출
         List<RewardItemDTO> itemList = rewardItemService.getSearchItems(params);
         model.addAttribute("itemList", itemList);
         
-        // 필터 상태 유지용
+        // ?�터 ?�태 ?��???
         model.addAttribute("currentStatus", status);
         model.addAttribute("currentKeyword", keyword);
 
-        return "admin/admin-reward-item"; // admin-shop.jsp 로 이동
+        return "admin/admin-reward-item"; // admin-shop.jsp �??�동
     }
 
     /**
-     * 2. 아이템 등록 및 수정 처리 (Ajax)
+     * 2. ?�이???�록 �??�정 처리 (Ajax)
      * URL: /admin/shop/save
      */
     @PostMapping("/shop/save")
@@ -244,7 +520,7 @@ public class AdminController {
     public String saveItem(RewardItemDTO item) {
         try {
             boolean result;
-            // PK인 rewardItemId가 0이면 등록, 아니면 수정
+            // PK??rewardItemId가 0?�면 ?�록, ?�니�??�정
             if (item.getRewardItemId() == 0) {
                 result = rewardItemService.registerItem(item);
             } else {
@@ -252,14 +528,14 @@ public class AdminController {
             }
             return result ? "success" : "fail";
         } catch (Exception e) {
-            System.err.println("!!! 상점 아이템 저장 중 에러 발생 !!!");
+            System.err.println("!!! ?�점 ?�이???�??�??�러 발생 !!!");
             e.printStackTrace();
             return "error";
         }
     }
 
     /**
-     * 3. 아이템 상태 변경 (판매중, 품절, 숨김, 삭제 등 Ajax)
+     * 3. ?�이???�태 변�?(?�매�? ?�절, ?��?, ??�� ??Ajax)
      * URL: /admin/shop/updateStatus
      */
     @PostMapping("/shop/updateStatus")
@@ -274,4 +550,203 @@ public class AdminController {
         }
     }
     
+    // ================ Business ================
+    
+    /**
+     * 1. 비즈?�스 목록 조회 �?관리자 ?�이지 진입
+     */
+    @GetMapping("/store-info")
+    public String businessList(
+            @RequestParam(value = "tab", defaultValue = "inquiry") String tab,
+            @RequestParam(value = "businessKeyword", required = false) String businessKeyword,
+            @RequestParam(value = "inquiryKeyword", required = false) String inquiryKeyword,
+            @RequestParam(value = "inquiryStatus", required = false) String inquiryStatus,
+            @RequestParam(value = "userId", required = false) Integer userId,
+            Model model) {
+
+        Map<String, Object> businessParams = new HashMap<>();
+        businessParams.put("keyword", (businessKeyword != null && !businessKeyword.isEmpty()) ? businessKeyword : null);
+        businessParams.put("userId", userId);
+
+        Map<String, Object> inquiryParams = new HashMap<>();
+        inquiryParams.put("keyword", (inquiryKeyword != null && !inquiryKeyword.isEmpty()) ? inquiryKeyword : null);
+        inquiryParams.put("status", (inquiryStatus != null && !inquiryStatus.isEmpty()) ? inquiryStatus : null);
+        inquiryParams.put("userId", userId);
+
+        List<BusinessDTO> businessList = null;
+        List<BusinessInquiryDTO> businessInquiryList = null;
+        String businessError = null;
+        String businessInquiryError = null;
+
+        try {
+            businessList = businessService.getBusinessList(businessParams);
+        } catch (Exception e) {
+            businessError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            e.printStackTrace();
+        }
+
+        try {
+            businessInquiryList = businessInquiryService.getBusinessInquiryList(inquiryParams);
+        } catch (Exception e) {
+            businessInquiryError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            e.printStackTrace();
+        }
+
+        model.addAttribute("currentTab", tab);
+        model.addAttribute("businessList", businessList);
+        model.addAttribute("businessInquiryList", businessInquiryList);
+        model.addAttribute("currentBusinessKeyword", businessKeyword);
+        model.addAttribute("currentInquiryKeyword", inquiryKeyword);
+        model.addAttribute("currentInquiryStatus", inquiryStatus);
+        model.addAttribute("currentUserId", userId);
+
+        return "admin/admin-business";
+    }
+
+    /**
+     * 2. 비즈?�스 ?�세 조회 (Ajax)
+     */
+    @GetMapping("/store-info/detail")
+    @ResponseBody
+    public Map<String, Object> getBusinessDetail(@RequestParam int businessId) {
+        BusinessDTO business = businessService.getBusinessById(businessId);
+
+        if (business == null) {
+            return null;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("businessId", business.getBusinessId());
+        result.put("userId", business.getUserId());
+        result.put("businessName", business.getBusinessName());
+        result.put("zipCode", business.getZipCode());
+        result.put("address", business.getAddress());
+        result.put("addressDetail", business.getAddressDetail());
+        result.put("phone", business.getPhone());
+        result.put("description", business.getDescription());
+        result.put("createdAt", business.getCreatedAt() != null ? business.getCreatedAt().toString() : null);
+
+        return result;
+    }
+
+    @GetMapping("/store-info/inquiry/detail")
+    @ResponseBody
+    public Map<String, Object> getBusinessInquiryDetail(@RequestParam int inquiryId) {
+        BusinessInquiryDTO inquiry = businessInquiryService.getBusinessInquiryById(inquiryId);
+
+        if (inquiry == null) {
+            return null;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("inquiryId", inquiry.getInquiryId());
+        result.put("userId", inquiry.getUserId());
+        result.put("title", inquiry.getTitle());
+        result.put("content", inquiry.getContent());
+        result.put("status", inquiry.getStatus());
+        result.put("zipCode", inquiry.getZipCode());
+        result.put("address", inquiry.getAddress());
+        result.put("addressDetail", inquiry.getAddressDetail());
+        result.put("phone", inquiry.getPhone());
+        result.put("createdAt", inquiry.getCreatedAt() != null ? inquiry.getCreatedAt().toString() : null);
+        return result;
+    }
+
+    /**
+     * 3. 비즈?�스 ?�록/?�정 처리 (Ajax)
+     */
+    @PostMapping("/store-info/save")
+    @ResponseBody
+    public String saveBusiness(
+            BusinessDTO business,
+            @RequestParam(value = "inquiryId", required = false) Integer inquiryId) {
+        try {
+            if (business.getBusinessName() == null || business.getBusinessName().trim().isEmpty()) {
+                return "fail:business_name_empty";
+            }
+            if (business.getZipCode() == null || business.getZipCode().trim().isEmpty()) {
+                return "fail:zip_code_empty";
+            }
+            if (business.getAddress() == null || business.getAddress().trim().isEmpty()) {
+                return "fail:address_empty";
+            }
+            if (business.getUserId() <= 0) {
+                return "fail:user_id_invalid";
+            }
+
+            boolean result;
+            if (business.getBusinessId() == 0) {
+                result = businessService.registerBusiness(business);
+                if (result && inquiryId != null && inquiryId > 0) {
+                    businessInquiryService.updateBusinessInquiryStatus(inquiryId, "ANSWERED");
+                }
+            } else {
+                result = businessService.updateBusiness(business);
+            }
+
+            return result ? "success" : "fail";
+        } catch (Exception e) {
+            System.err.println("!!! 비즈?�스 ?�??�??�러 발생 !!!");
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    @PostMapping("/store-info/inquiry/updateStatus")
+    @ResponseBody
+    public String updateBusinessInquiryStatus(@RequestParam int inquiryId, @RequestParam String status) {
+        try {
+            boolean isUpdated = businessInquiryService.updateBusinessInquiryStatus(inquiryId, status);
+            return isUpdated ? "success" : "fail";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    @PostMapping("/store-info/inquiry/delete")
+    @ResponseBody
+    public String deleteBusinessInquiry(@RequestParam int inquiryId) {
+        try {
+            boolean isDeleted = businessInquiryService.deleteBusinessInquiry(inquiryId);
+            return isDeleted ? "success" : "fail";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    /**
+     * 4. 비즈?�스 ??�� 처리 (Ajax)
+     */
+    @PostMapping("/store-info/delete")
+    @ResponseBody
+    public String deleteBusiness(@RequestParam int businessId) {
+        try {
+            BusinessDTO business = businessService.getBusinessById(businessId);
+            if (business == null) {
+                return "fail";
+            }
+
+            boolean isDeleted = businessService.deleteBusiness(businessId);
+            if (isDeleted) {
+                Map<String, Object> inquiryParams = new HashMap<>();
+                inquiryParams.put("userId", business.getUserId());
+                inquiryParams.put("status", "ANSWERED");
+
+                List<BusinessInquiryDTO> inquiryList = businessInquiryService.getBusinessInquiryList(inquiryParams);
+                if (inquiryList != null && !inquiryList.isEmpty()) {
+                    businessInquiryService.updateBusinessInquiryStatus(inquiryList.get(0).getInquiryId(), "IN_PROGRESS");
+                }
+            }
+            return isDeleted ? "success" : "fail";
+        } catch (Exception e) {
+            System.err.println("!!! 비즈?�스 ??�� �??�러 발생 !!!");
+            e.printStackTrace();
+            return "error";
+        }
+    }
+    
 }
+
+

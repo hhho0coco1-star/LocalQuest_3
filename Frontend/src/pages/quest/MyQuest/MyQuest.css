@@ -123,6 +123,17 @@
   border: 1px solid #e2e8f0;
 }
 
+.my-quest-card-clickable {
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.my-quest-card-clickable:hover {
+  transform: translateY(-2px);
+  border-color: rgba(20, 184, 166, 0.35);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
 .my-quest-card-top {
   display: flex;
   justify-content: space-between;
@@ -189,6 +200,37 @@
   font-size: 14px;
 }
 
+.my-quest-card-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.my-quest-complete-button,
+.my-quest-cancel-button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-quest-complete-button {
+  background: #0f766e;
+}
+
+.my-quest-cancel-button {
+  background: #dc2626;
+}
+
+.my-quest-complete-button:disabled,
+.my-quest-cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .my-quest-side-panel {
   padding: 32px 28px;
 }
@@ -218,6 +260,191 @@
   border: 1px solid #e2e8f0;
 }
 
+.my-quest-history-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.my-quest-review-button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-quest-review-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.my-quest-review-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.my-quest-review-modal {
+  width: min(100%, 560px);
+  padding: 28px;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.my-quest-review-modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.my-quest-review-chip {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.my-quest-review-modal-head h2 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.my-quest-review-close {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.my-quest-review-form {
+  display: grid;
+  gap: 16px;
+}
+
+.my-quest-review-rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.my-quest-review-rating-row span {
+  color: #475569;
+  font-weight: 700;
+}
+
+.my-quest-review-stars {
+  display: flex;
+  gap: 6px;
+}
+
+.my-quest-review-star-button {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.my-quest-review-star-button.is-active {
+  color: #f59e0b;
+}
+
+.my-quest-review-textarea {
+  min-height: 160px;
+  padding: 16px 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 22px;
+  color: #0f172a;
+  font: inherit;
+  resize: vertical;
+}
+
+.my-quest-review-textarea:focus {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+}
+
+.my-quest-review-message {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.my-quest-review-message.is-error {
+  color: #b91c1c;
+}
+
+.my-quest-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.my-quest-review-cancel,
+.my-quest-review-submit,
+.my-quest-review-delete {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-quest-review-cancel {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.my-quest-review-submit {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.my-quest-review-delete {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.my-quest-review-cancel:disabled,
+.my-quest-review-submit:disabled,
+.my-quest-review-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.my-quest-empty,
+.my-quest-feedback {
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.my-quest-feedback.is-error {
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(254, 242, 242, 0.96);
+}
+
 @media (max-width: 1024px) {
   .my-quest-hero,
   .my-quest-content {
@@ -241,5 +468,11 @@
   .my-quest-card-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .my-quest-review-rating-row,
+  .my-quest-review-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

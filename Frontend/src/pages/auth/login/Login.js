@@ -5,6 +5,7 @@ import './Login.css';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
 import LocalQuestLogo from '../../../components/common/LocalQuestLogo';
+import { resolveBackendBaseUrl } from '../../../config/runtimeUrls';
 import { userApi } from '../../../api/UserApi';
 import { setAuth } from '../../../store/authSlice';
 
@@ -194,7 +195,7 @@ function Login() {
     };
 
     const handleSocialLogin = (provider) => {
-        const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+        const apiBaseUrl = resolveBackendBaseUrl();
         window.location.href = `${apiBaseUrl}/api/users/oauth/${provider}/start`;
     };
 

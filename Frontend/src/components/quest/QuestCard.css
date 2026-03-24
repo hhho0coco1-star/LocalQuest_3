@@ -92,6 +92,13 @@
   gap: 16px;
 }
 
+.quest-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .quest-card-bottom strong {
   display: block;
   font-size: 22px;
@@ -116,4 +123,18 @@
 
 .quest-card-button:hover {
   background: #d93d5e;
+}
+
+.quest-card-button-accept {
+  background: #ff385d;
+}
+
+.quest-card-button-accept:hover:not(:disabled) {
+  background: #e72f52;
+}
+
+.quest-card-button:disabled {
+  background: #cbd5e1;
+  color: #ffffff;
+  cursor: not-allowed;
 }

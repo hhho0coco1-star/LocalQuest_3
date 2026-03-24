@@ -4,6 +4,52 @@
 		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="businessinquiry_mapper">
+	<select id="getBusinessInquiryList" parameterType="map" resultType="BusinessInquiryDTO">
+		SELECT
+			INQUIRY_ID AS inquiryId,
+			USER_ID AS userId,
+			TITLE AS title,
+			CONTENT AS content,
+			STATUS AS status,
+			ZIP_CODE AS zipCode,
+			ADDRESS AS address,
+			ADDRESS_DETAIL AS addressDetail,
+			PHONE AS phone,
+			CREATED_AT AS createdAt
+		FROM LQ_BUSINESS_INQUIRY
+		<where>
+			<if test="keyword != null and keyword != ''">
+				AND (
+					TITLE LIKE '%' || #{keyword} || '%'
+					OR CONTENT LIKE '%' || #{keyword} || '%'
+				)
+			</if>
+			<if test="status != null and status != ''">
+				AND STATUS = #{status}
+			</if>
+			<if test="userId != null">
+				AND USER_ID = #{userId}
+			</if>
+		</where>
+		ORDER BY INQUIRY_ID DESC
+	</select>
+
+	<select id="getBusinessInquiryById" parameterType="int" resultType="BusinessInquiryDTO">
+		SELECT
+			INQUIRY_ID AS inquiryId,
+			USER_ID AS userId,
+			TITLE AS title,
+			CONTENT AS content,
+			STATUS AS status,
+			ZIP_CODE AS zipCode,
+			ADDRESS AS address,
+			ADDRESS_DETAIL AS addressDetail,
+			PHONE AS phone,
+			CREATED_AT AS createdAt
+		FROM LQ_BUSINESS_INQUIRY
+		WHERE INQUIRY_ID = #{inquiryId}
+	</select>
+
 	<insert id="saveBusinessInquiry" parameterType="BusinessInquiryDTO">
 		INSERT INTO LQ_BUSINESS_INQUIRY (
 		inquiry_id,
@@ -11,6 +57,10 @@
 		title,
 		content,
 		status,
+		zip_code,
+		address,
+		address_detail,
+		phone,
 		created_at
 		) VALUES (
 		SEQ_LQ_BUSINESS_INQUIRY_PK.nextval,
@@ -18,6 +68,21 @@
 		#{title},
 		#{content},
 		#{status},
+		#{zipCode},
+		#{address},
+		#{addressDetail},
+		#{phone},
 		sysdate )
 	</insert>
+
+	<update id="updateBusinessInquiryStatus" parameterType="map">
+		UPDATE LQ_BUSINESS_INQUIRY
+		SET STATUS = #{status}
+		WHERE INQUIRY_ID = #{inquiryId}
+	</update>
+
+	<delete id="deleteBusinessInquiry" parameterType="int">
+		DELETE FROM LQ_BUSINESS_INQUIRY
+		WHERE INQUIRY_ID = #{inquiryId}
+	</delete>
 </mapper>

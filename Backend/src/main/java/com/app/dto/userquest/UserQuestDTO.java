@@ -11,6 +11,7 @@ public class UserQuestDTO {
     private int questId;
     private String status;
     private LocalDateTime startedAt;
+    private LocalDateTime dueAt;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
 }

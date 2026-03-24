@@ -10,8 +10,6 @@ http://www.springframework.org/schema/beans/spring-beans.xsd
 http://www.springframework.org/schema/context
 http://www.springframework.org/schema/context/spring-context.xsd">
 
-	<annotation-driven />
-
 	<context:component-scan
 		base-package="com.app.controller"></context:component-scan>
 	<context:component-scan
@@ -35,7 +33,7 @@ http://www.springframework.org/schema/context/spring-context.xsd">
 <!-- 	<resources location="/resources/static/images/" mapping="/images/**" /> -->
 
 	<annotation-driven>
-		<message-converters>
+		<message-converters register-defaults="true">
 			<!-- @ResponseBody로 String 처리할때 한글처리 -->
 			<beans:bean
 				class="org.springframework.http.converter.StringHttpMessageConverter">
@@ -59,28 +57,15 @@ http://www.springframework.org/schema/context/spring-context.xsd">
 
 
 
-	<!-- <interceptors> -->
-	<!-- <interceptor> -->
-	<!-- <mapping path="/customer/**"/> -->
-	<!-- <exclude-mapping path="/customer/signin"/> -->
-	<!-- <exclude-mapping path="/customer/signup"/> -->
-	<!-- <exclude-mapping path="/customer/checkDupIdJson"/> -->
-	<!-- <beans:bean class="com.app.interceptor.LoginInterceptor"></beans:bean> -->
-
-	<!-- <exclude-mapping path="/"/> -->
-	<!-- <exclude-mapping path="/main"/> -->
-	<!-- <exclude-mapping path="/css/**"/> -->
-	<!-- <exclude-mapping path="/js/**"/> -->
-	<!-- <exclude-mapping path="/images/**"/> -->
-	<!-- </interceptor> -->
-
-	<!-- <interceptor> -->
-	<!-- <mapping path="/admin/**" /> -->
-	<!-- <exclude-mapping path="/admin/signin"/> -->
-	<!-- <beans:bean class="com.app.interceptor.AdminInterceptor"></beans:bean> -->
-	<!-- </interceptor> -->
-
-	<!-- </interceptors> -->
+	<interceptors>
+		<interceptor>
+			<mapping path="/admin"/>
+			<mapping path="/admin/**" />
+			<mapping path="/mypage" />
+			<mapping path="/mypage/**" />
+			<beans:bean class="com.app.interceptor.RoleBasedPageInterceptor" />
+		</interceptor>
+	</interceptors>
 
 
 

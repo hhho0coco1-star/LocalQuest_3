@@ -3,11 +3,52 @@ import { createSlice } from '@reduxjs/toolkit';
 const AUTH_STORAGE_KEY = 'lq_auth';
 const TOKEN_STORAGE_KEY = 'lq_access_token';
 
+const safeRead = (storage, key) => {
+    try {
+        return storage.getItem(key);
+    } catch (error) {
+        return null;
+    }
+};
+
+const safeWrite = (storage, key, value) => {
+    try {
+        storage.setItem(key, value);
+    } catch (error) {
+        // ignore storage write errors
+    }
+};
+
+const safeRemove = (storage, key) => {
+    try {
+        storage.removeItem(key);
+    } catch (error) {
+        // ignore storage remove errors
+    }
+};
+
 const readPersistedAuth = () => {
     try {
-        const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw);
+        const sessionRaw = safeRead(sessionStorage, AUTH_STORAGE_KEY);
+        if (sessionRaw) {
+            return JSON.parse(sessionRaw);
+        }
+
+        // Backward compatibility: migrate previously persisted localStorage auth.
+        const legacyRaw = safeRead(localStorage, AUTH_STORAGE_KEY);
+        if (!legacyRaw) return null;
+
+        const legacyAuth = JSON.parse(legacyRaw);
+        safeWrite(sessionStorage, AUTH_STORAGE_KEY, JSON.stringify(legacyAuth));
+
+        const legacyToken = safeRead(localStorage, TOKEN_STORAGE_KEY);
+        if (legacyToken) {
+            safeWrite(sessionStorage, TOKEN_STORAGE_KEY, legacyToken);
+        }
+
+        safeRemove(localStorage, AUTH_STORAGE_KEY);
+        safeRemove(localStorage, TOKEN_STORAGE_KEY);
+        return legacyAuth;
     } catch (error) {
         return null;
     }
@@ -40,10 +81,14 @@ const authSlice = createSlice({
                 user: state.user
             };
 
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
+            safeWrite(sessionStorage, AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
             if (state.accessToken) {
-                localStorage.setItem(TOKEN_STORAGE_KEY, state.accessToken);
+                safeWrite(sessionStorage, TOKEN_STORAGE_KEY, state.accessToken);
             }
+
+            // Ensure stale local storage entries do not keep users logged in after closing a window.
+            safeRemove(localStorage, AUTH_STORAGE_KEY);
+            safeRemove(localStorage, TOKEN_STORAGE_KEY);
         },
         clearAuth: (state) => {
             state.isAuthenticated = false;
@@ -51,12 +96,37 @@ const authSlice = createSlice({
             state.expiresIn = 0;
             state.user = null;
 
-            localStorage.removeItem(AUTH_STORAGE_KEY);
-            localStorage.removeItem(TOKEN_STORAGE_KEY);
+            safeRemove(sessionStorage, AUTH_STORAGE_KEY);
+            safeRemove(sessionStorage, TOKEN_STORAGE_KEY);
+            safeRemove(localStorage, AUTH_STORAGE_KEY);
+            safeRemove(localStorage, TOKEN_STORAGE_KEY);
+        },
+        updateUserProfile: (state, action) => {
+            if (!state.isAuthenticated || !state.user) {
+                return;
+            }
+
+            const profilePatch = action.payload ?? {};
+            state.user = {
+                ...state.user,
+                ...profilePatch
+            };
+
+            const nextAuth = {
+                isAuthenticated: state.isAuthenticated,
+                accessToken: state.accessToken,
+                expiresIn: state.expiresIn,
+                user: state.user
+            };
+
+            safeWrite(sessionStorage, AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
+            if (state.accessToken) {
+                safeWrite(sessionStorage, TOKEN_STORAGE_KEY, state.accessToken);
+            }
         }
     }
 });
 
-export const { setAuth, clearAuth } = authSlice.actions;
+export const { setAuth, clearAuth, updateUserProfile } = authSlice.actions;
 export { AUTH_STORAGE_KEY, TOKEN_STORAGE_KEY };
 export default authSlice.reducer;

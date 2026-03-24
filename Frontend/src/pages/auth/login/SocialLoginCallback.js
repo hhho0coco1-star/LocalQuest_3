@@ -11,6 +11,10 @@ function SocialLoginCallback() {
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
+        const hashText = location.hash.startsWith('#')
+            ? location.hash.substring(1)
+            : location.hash;
+        const hashParams = new URLSearchParams(hashText);
         const errorMessage = searchParams.get('error');
 
         if (errorMessage) {
@@ -19,13 +23,13 @@ function SocialLoginCallback() {
             return;
         }
 
-        const accessToken = searchParams.get('accessToken');
-        const expiresIn = Number(searchParams.get('expiresIn') || 0);
-        const userId = Number(searchParams.get('userId') || 0);
-        const userLoginId = searchParams.get('userLoginId');
-        const name = searchParams.get('name');
-        const nickname = searchParams.get('nickname');
-        const role = searchParams.get('role');
+        const accessToken = hashParams.get('accessToken') || searchParams.get('accessToken');
+        const expiresIn = Number(hashParams.get('expiresIn') || searchParams.get('expiresIn') || 0);
+        const userId = Number(hashParams.get('userId') || searchParams.get('userId') || 0);
+        const userLoginId = hashParams.get('userLoginId') || searchParams.get('userLoginId');
+        const name = hashParams.get('name') || searchParams.get('name');
+        const nickname = hashParams.get('nickname') || searchParams.get('nickname');
+        const role = hashParams.get('role') || searchParams.get('role');
 
         if (!accessToken || !userId || !userLoginId) {
             alert('소셜 로그인 처리에 실패했습니다. 다시 시도해주세요.');
@@ -46,7 +50,7 @@ function SocialLoginCallback() {
         }));
 
         navigate('/main', { replace: true });
-    }, [dispatch, location.search, navigate]);
+    }, [dispatch, location.hash, location.search, navigate]);
 
     return (
         <div className="login-container">

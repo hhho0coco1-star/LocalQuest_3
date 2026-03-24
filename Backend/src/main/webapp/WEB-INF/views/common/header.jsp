@@ -8,13 +8,21 @@
 <%-- header.jsp --%>
 <%-- header.jsp --%>
 <c:set var="path" value="${pageContext.request.contextPath}" />
+<c:choose>
+    <c:when test="${not empty requestScope.logoHref}">
+        <c:set var="headerLogoHref" value="${requestScope.logoHref}" />
+    </c:when>
+    <c:otherwise>
+        <c:set var="headerLogoHref" value="${path}/" />
+    </c:otherwise>
+</c:choose>
 <link rel="stylesheet" href="${path}/css/header.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <header class="header-main-container">
     <div class="header-top-section">
         <div class="header-inner">
-            <a href="${pageContext.request.contextPath}/" class="header-logo-link">
+            <a href="${headerLogoHref}" class="header-logo-link">
                 <div class="header-logo-wrapper">
                     <i class="fas fa-map-marker-alt header-logo-icon" style="font-size: 28px; color: #D93D5E;"></i>
                     <span class="header-logo-text">LOCAL QUEST</span>

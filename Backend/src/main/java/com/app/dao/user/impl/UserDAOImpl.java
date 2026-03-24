@@ -41,6 +41,11 @@ public class UserDAOImpl implements UserDAO {
 		Integer count = sqlSessionTemplate.selectOne("user_mapper.countByEmail", email);
 		return count == null ? 0 : count;
 	}
+	
+	@Override
+	public User findByUserId(int userId) {
+		return sqlSessionTemplate.selectOne("user_mapper.findByUserId", userId);
+	}
 
 	@Override
 	public User findByUserLoginId(String userLoginId) {
@@ -63,17 +68,25 @@ public class UserDAOImpl implements UserDAO {
 	}
 
 	@Override
+	public int updateMyProfileByUserId(User user) {
+		return sqlSessionTemplate.update("user_mapper.updateMyProfileByUserId", user);
+	}
+
+	@Override
 	public int updatePasswordByUserId(User user) {
 		return sqlSessionTemplate.update("user_mapper.updatePasswordByUserId", user);
 	}
 
-    @Override
-    public List<User> selectAllUsers() {
-        return sqlSessionTemplate.selectList("user_mapper.selectAllUsers");
-    }
-    
+	@Override
+	public int updateSocialProfileByUserId(User user) {
+		return sqlSessionTemplate.update("user_mapper.updateSocialProfileByUserId", user);
+	}
 
-    
+	@Override
+	public int addRewardByUserId(Map<String, Object> rewardMap) {
+		return sqlSessionTemplate.update("user_mapper.addRewardByUserId", rewardMap);
+	}
+
     @Override
     public int updateUserRole(Map<String, Object> roleMap) {
         return sqlSessionTemplate.update("user_mapper.updateUserRole", roleMap);
