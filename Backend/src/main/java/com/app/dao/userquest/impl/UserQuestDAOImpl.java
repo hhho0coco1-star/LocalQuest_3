@@ -34,6 +34,15 @@ public class UserQuestDAOImpl implements UserQuestDAO {
         params.put("questId", questId);
         return sqlSessionTemplate.selectOne("userquest_mapper.findLatestUserQuestByUserIdAndQuestId", params);
     }
+    @Override
+    public UserQuestDTO findUserQuestByUserIdAndQuestId(UserQuestDTO userQuest) {
+        return sqlSessionTemplate.selectOne("userquest_mapper.findUserQuestByUserIdAndQuestId", userQuest);
+    }
+
+    @Override
+    public int updateUserQuestForAccept(UserQuestDTO userQuest) {
+        return sqlSessionTemplate.update("userquest_mapper.updateUserQuestForAccept", userQuest);
+    }
 
     @Override
     public List<UserQuestSummaryDTO> findUserQuestSummariesByUserId(int userId) {

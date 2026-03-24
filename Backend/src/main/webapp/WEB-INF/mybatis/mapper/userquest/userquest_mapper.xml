@@ -6,7 +6,7 @@
 <mapper namespace="userquest_mapper">
 	<insert id="saveUserQuest" parameterType="UserQuestDTO">
 		<selectKey keyProperty="userQuestId" resultType="int" order="BEFORE">
-			SELECT SEQ_LQ_USER_QUEST_PK.nextval FROM dual
+			SELECT SEQ_LQ_USER_QUEST_PK.nextval FROM DUAL
 		</selectKey>
 		INSERT INTO LQ_USER_QUEST (
 		user_quest_id,
@@ -28,207 +28,47 @@
 		sysdate )
 	</insert>
 
-	<select id="findLatestUserQuestByUserIdAndQuestId" parameterType="map" resultType="UserQuestDTO">
+	<select id="findUserQuestByUserIdAndQuestId" parameterType="UserQuestDTO" resultType="UserQuestDTO">
 		SELECT
 			USER_QUEST_ID,
 			USER_ID,
 			QUEST_ID,
 			STATUS,
 			STARTED_AT,
-			DUE_AT,
 			COMPLETED_AT,
 			CREATED_AT
-		FROM (
-			SELECT
-				USER_QUEST_ID,
-				USER_ID,
-				QUEST_ID,
-				STATUS,
-				STARTED_AT,
-				DUE_AT,
-				COMPLETED_AT,
-				CREATED_AT
-			FROM LQ_USER_QUEST
-			WHERE USER_ID = #{userId}
-			  AND QUEST_ID = #{questId}
-			ORDER BY USER_QUEST_ID DESC
-		)
-		WHERE ROWNUM = 1
+		FROM LQ_USER_QUEST
+		WHERE USER_ID = #{userId}
+		  AND QUEST_ID = #{questId}
 	</select>
 
 	<select id="findUserQuestSummariesByUserId" parameterType="int" resultType="UserQuestSummaryDTO">
 		SELECT
-			uq.USER_QUEST_ID,
-			uq.USER_ID,
-			uq.QUEST_ID,
-			uq.STATUS AS questStatus,
-			uq.STARTED_AT,
-			uq.DUE_AT,
-			uq.COMPLETED_AT,
-			uq.CREATED_AT,
-			q.TITLE,
-			q.DESCRIPTION,
-			q.CATEGORY,
-			q.REWARD_EXP,
-			q.REWARD_POINT,
-			q.TIME_LIMIT,
-			(
-				SELECT COUNT(*)
-				FROM LQ_QUEST_LOCATION ql
-				WHERE ql.QUEST_ID = uq.QUEST_ID
-			) AS totalLocationCount,
-			(
-				SELECT COUNT(*)
-				FROM LQ_USER_QUEST_PROGRESS uqp
-				WHERE uqp.USER_QUEST_ID = uq.USER_QUEST_ID
-				  AND NVL(uqp.IS_COMPLETED, 0) = 1
-			) AS completedLocationCount,
-			CASE
-				WHEN (
-					SELECT COUNT(*)
-					FROM LQ_QUEST_LOCATION ql
-					WHERE ql.QUEST_ID = uq.QUEST_ID
-				) = 0 THEN 0
-				ELSE ROUND((
-					SELECT COUNT(*)
-					FROM LQ_USER_QUEST_PROGRESS uqp
-					WHERE uqp.USER_QUEST_ID = uq.USER_QUEST_ID
-					  AND NVL(uqp.IS_COMPLETED, 0) = 1
-				) * 100 / (
-					SELECT COUNT(*)
-					FROM LQ_QUEST_LOCATION ql
-					WHERE ql.QUEST_ID = uq.QUEST_ID
-				))
-			END AS progressPercent
+			uq.USER_QUEST_ID as userQuestId,
+			uq.QUEST_ID as questId,
+			uq.STATUS as status,
+			uq.STARTED_AT as startedAt,
+			uq.COMPLETED_AT as completedAt,
+			q.STATUS as questStatus,
+			q.TITLE as title,
+			q.DESCRIPTION as description,
+			q.CATEGORY as category,
+			q.REWARD_EXP as rewardExp,
+			q.REWARD_POINT as rewardPoint,
+			q.TIME_LIMIT as timeLimit
 		FROM LQ_USER_QUEST uq
 		INNER JOIN LQ_QUEST q
-			ON uq.QUEST_ID = q.QUEST_ID
-		WHERE uq.USER_ID = #{userId}
-		  AND uq.STATUS != 'ABANDONED'
-		ORDER BY
-			CASE
-				WHEN uq.STATUS = 'IN_PROGRESS' THEN 1
-				WHEN uq.STATUS = 'SAVED' THEN 2
-				WHEN uq.STATUS = 'COMPLETED' THEN 3
-				ELSE 4
-			END,
-			NVL(uq.STARTED_AT, uq.CREATED_AT) DESC,
-			uq.USER_QUEST_ID DESC
+			ON q.QUEST_ID = uq.QUEST_ID
+		WHERE uq.USER_ID = #{_parameter}
+		  AND q.STATUS != 'DELETED'
+		ORDER BY NVL(uq.STARTED_AT, uq.CREATED_AT) DESC, uq.USER_QUEST_ID DESC
 	</select>
 
-	<select id="findUserQuestDetailByUserQuestId" parameterType="int" resultType="UserQuestDetailDTO">
-		SELECT
-			uq.USER_QUEST_ID,
-			uq.USER_ID,
-			uq.QUEST_ID,
-			uq.STATUS AS questStatus,
-			uq.STARTED_AT,
-			uq.DUE_AT,
-			uq.COMPLETED_AT,
-			uq.CREATED_AT,
-			q.TITLE,
-			q.DESCRIPTION,
-			q.CATEGORY,
-			q.REWARD_EXP,
-			q.REWARD_POINT,
-			q.TIME_LIMIT,
-			(
-				SELECT COUNT(*)
-				FROM LQ_QUEST_LOCATION ql
-				WHERE ql.QUEST_ID = uq.QUEST_ID
-			) AS totalLocationCount,
-			(
-				SELECT COUNT(*)
-				FROM LQ_USER_QUEST_PROGRESS uqp
-				WHERE uqp.USER_QUEST_ID = uq.USER_QUEST_ID
-				  AND NVL(uqp.IS_COMPLETED, 0) = 1
-			) AS completedLocationCount,
-			CASE
-				WHEN (
-					SELECT COUNT(*)
-					FROM LQ_QUEST_LOCATION ql
-					WHERE ql.QUEST_ID = uq.QUEST_ID
-				) = 0 THEN 0
-				ELSE ROUND((
-					SELECT COUNT(*)
-					FROM LQ_USER_QUEST_PROGRESS uqp
-					WHERE uqp.USER_QUEST_ID = uq.USER_QUEST_ID
-					  AND NVL(uqp.IS_COMPLETED, 0) = 1
-				) * 100 / (
-					SELECT COUNT(*)
-					FROM LQ_QUEST_LOCATION ql
-					WHERE ql.QUEST_ID = uq.QUEST_ID
-				))
-			END AS progressPercent
-		FROM LQ_USER_QUEST uq
-		INNER JOIN LQ_QUEST q
-			ON uq.QUEST_ID = q.QUEST_ID
-		WHERE uq.USER_QUEST_ID = #{userQuestId}
-	</select>
-
-	<select id="findUserQuestDetailLocationsByUserQuestId" parameterType="int" resultType="UserQuestDetailLocationDTO">
-		SELECT
-			uqp.USER_QUEST_PROGRESS_ID,
-			ql.QUEST_LOCATION_ID,
-			ql.LOCATION_ID,
-			ql.VISIT_ORDER,
-			l.NAME,
-			l.ZIP_CODE,
-			l.ADDRESS,
-			l.ADDRESS_DETAIL,
-			l.LATITUDE,
-			l.LONGITUDE,
-			l.LOCATION_TYPE,
-			l.DESCRIPTION,
-			NVL(uqp.IS_COMPLETED, 0) AS isCompleted,
-			uqp.COMPLETED_AT
-		FROM LQ_USER_QUEST uq
-		INNER JOIN LQ_QUEST_LOCATION ql
-			ON uq.QUEST_ID = ql.QUEST_ID
-		INNER JOIN LQ_LOCATION l
-			ON ql.LOCATION_ID = l.LOCATION_ID
-		LEFT JOIN LQ_USER_QUEST_PROGRESS uqp
-			ON uqp.USER_QUEST_ID = uq.USER_QUEST_ID
-		   AND uqp.QUEST_LOCATION_ID = ql.QUEST_LOCATION_ID
-		WHERE uq.USER_QUEST_ID = #{userQuestId}
-		ORDER BY ql.VISIT_ORDER ASC
-	</select>
-
-	<select id="countTotalLocationsByUserQuestId" parameterType="int" resultType="int">
-		SELECT COUNT(*)
-		FROM LQ_QUEST_LOCATION
-		WHERE QUEST_ID = (
-			SELECT QUEST_ID
-			FROM LQ_USER_QUEST
-			WHERE USER_QUEST_ID = #{userQuestId}
-		)
-	</select>
-
-	<select id="countCompletedLocationsByUserQuestId" parameterType="int" resultType="int">
-		SELECT COUNT(*)
-		FROM LQ_USER_QUEST_PROGRESS
-		WHERE USER_QUEST_ID = #{userQuestId}
-		  AND NVL(IS_COMPLETED, 0) = 1
-	</select>
-
-	<update id="updateUserQuestStatusAndCompletedAt" parameterType="map">
-		UPDATE LQ_USER_QUEST
-		SET STATUS = #{status},
-			COMPLETED_AT = #{completedAt}
-		WHERE USER_QUEST_ID = #{userQuestId}
-	</update>
-
-	<update id="updateUserQuestLifecycle" parameterType="map">
+	<update id="updateUserQuestForAccept" parameterType="UserQuestDTO">
 		UPDATE LQ_USER_QUEST
 		SET STATUS = #{status},
 			STARTED_AT = #{startedAt},
-			DUE_AT = #{dueAt},
 			COMPLETED_AT = #{completedAt}
 		WHERE USER_QUEST_ID = #{userQuestId}
 	</update>
-
-	<delete id="deleteUserQuest" parameterType="int">
-		DELETE FROM LQ_USER_QUEST
-		WHERE USER_QUEST_ID = #{userQuestId}
-	</delete>
 </mapper>

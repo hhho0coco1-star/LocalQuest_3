@@ -33,4 +33,9 @@ public interface UserQuestDAO {
     );
 
     public int deleteUserQuest(int userQuestId);
+    UserQuestDTO findUserQuestByUserIdAndQuestId(UserQuestDTO userQuest);
+
+    int updateUserQuestForAccept(UserQuestDTO userQuest);
+
+    List<UserQuestSummaryDTO> findUserQuestSummariesByUserId(int userId);
 }

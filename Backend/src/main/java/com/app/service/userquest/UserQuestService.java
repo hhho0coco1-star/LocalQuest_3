@@ -8,14 +8,12 @@ import org.springframework.web.multipart.MultipartFile;
 import com.app.dto.userquest.UserQuestDetailDTO;
 import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestOverviewDTO;
+
+import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestSummaryDTO;
 
 public interface UserQuestService {
     public int saveUserQuest(UserQuestDTO userQuest);
-
-    public Map<String, Object> acceptQuest(int userId, int questId);
-
-    public List<UserQuestSummaryDTO> getUserQuestSummaries(int userId);
 
     public UserQuestOverviewDTO getUserQuestOverview(int userId);
 
@@ -31,4 +29,9 @@ public interface UserQuestService {
         int questLocationId,
         MultipartFile receiptImage
     );
+    UserQuestSummaryDTO acceptQuest(int userId, int questId);
+
+    UserQuestSummaryDTO getUserQuestSummary(int userId, int questId);
+
+    List<UserQuestSummaryDTO> getUserQuestSummaries(int userId);
 }

@@ -1,5 +1,7 @@
 package com.app.service.location.impl;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,8 +17,19 @@ public class LocationServiceImpl implements LocationService {
     private LocationDAO dao;
 
     @Override
+    public List<LocationDTO> searchLocations(String keyword) {
+        return dao.searchLocations(keyword);
+    }
+
+    @Override
     @Transactional
     public int saveLocation(LocationDTO location) {
         return dao.saveLocation(location);
+    }
+
+    @Override
+    @Transactional
+    public int deleteUnusedLocationsByIds(List<Integer> locationIds) {
+        return dao.deleteUnusedLocationsByIds(locationIds);
     }
 }

@@ -9,5 +9,7 @@ public interface QuestReviewDAO {
     public int saveQuestReview(QuestReviewDTO questReview);
     public List<QuestReviewListItemDTO> selectQuestReviewsByQuestId(int questId);
     public int updateQuestReview(QuestReviewDTO questReview);
+    public int updateQuestReviewAsAdmin(QuestReviewDTO questReview);
     public int deleteQuestReview(int reviewId, int questId, int userId);
+    public int deleteQuestReviewAsAdmin(int reviewId, int questId);
 }

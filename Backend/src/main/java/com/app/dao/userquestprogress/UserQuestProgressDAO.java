@@ -10,4 +10,5 @@ public interface UserQuestProgressDAO {
     public int upsertCompletedProgress(int userQuestId, int questLocationId, java.util.Date completedAt);
 
     public int deleteProgressByUserQuestId(int userQuestId);
+    int deleteUserQuestProgressByUserQuestId(int userQuestId);
 }

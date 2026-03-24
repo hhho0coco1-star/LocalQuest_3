@@ -4,4 +4,6 @@ import com.app.dto.questlocation.QuestLocationDTO;
 
 public interface QuestLocationService {
     public int saveQuestLocation(QuestLocationDTO questLocation);
+
+    public int deleteQuestLocationsByQuestId(int questId);
 }

@@ -36,7 +36,19 @@ public class QuestReviewServiceImpl implements QuestReviewService {
 
     @Override
     @Transactional
+    public int updateQuestReviewAsAdmin(QuestReviewDTO questReview) {
+        return dao.updateQuestReviewAsAdmin(questReview);
+    }
+
+    @Override
+    @Transactional
     public int removeQuestReview(int reviewId, int questId, int userId) {
         return dao.deleteQuestReview(reviewId, questId, userId);
+    }
+
+    @Override
+    @Transactional
+    public int removeQuestReviewAsAdmin(int reviewId, int questId) {
+        return dao.deleteQuestReviewAsAdmin(reviewId, questId);
     }
 }

@@ -47,10 +47,25 @@
 		  AND USER_ID = #{userId}
 	</update>
 
+	<update id="updateQuestReviewAsAdmin" parameterType="QuestReviewDTO">
+		UPDATE LQ_QUEST_REVIEW
+		SET
+			RATING = #{rating},
+			CONTENT = #{content}
+		WHERE REVIEW_ID = #{reviewId}
+		  AND QUEST_ID = #{questId}
+	</update>
+
 	<delete id="deleteQuestReview" parameterType="QuestReviewDTO">
 		DELETE FROM LQ_QUEST_REVIEW
 		WHERE REVIEW_ID = #{reviewId}
 		  AND QUEST_ID = #{questId}
 		  AND USER_ID = #{userId}
+	</delete>
+
+	<delete id="deleteQuestReviewAsAdmin" parameterType="QuestReviewDTO">
+		DELETE FROM LQ_QUEST_REVIEW
+		WHERE REVIEW_ID = #{reviewId}
+		  AND QUEST_ID = #{questId}
 	</delete>
 </mapper>

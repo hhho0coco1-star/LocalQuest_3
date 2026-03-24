@@ -44,4 +44,9 @@ public class UserQuestProgressDAOImpl implements UserQuestProgressDAO {
     public int deleteProgressByUserQuestId(int userQuestId) {
         return sqlSessionTemplate.delete("userquestprogress_mapper.deleteProgressByUserQuestId", userQuestId);
     }
+
+    @Override
+    public int deleteUserQuestProgressByUserQuestId(int userQuestId) {
+        return sqlSessionTemplate.delete("userquestprogress_mapper.deleteUserQuestProgressByUserQuestId", userQuestId);
+    }
 }
