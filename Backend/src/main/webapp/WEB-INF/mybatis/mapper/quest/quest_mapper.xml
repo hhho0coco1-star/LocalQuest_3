@@ -163,7 +163,7 @@
                 COUNT(r.REVIEW_ID) DESC,
                 q.QUEST_ID DESC
         )
-        WHERE ROWNUM <= #{limit}
+        WHERE ROWNUM &lt;= #{_parameter, jdbcType=INTEGER}
     </select>
 
     <select id="selectQuestById" parameterType="int" resultType="Quest">
