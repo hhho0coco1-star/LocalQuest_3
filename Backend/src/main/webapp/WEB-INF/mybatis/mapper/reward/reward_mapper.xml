@@ -195,6 +195,7 @@
 							) AS TOTAL_COUNT
 						FROM (
 							SELECT
+								UR.USER_ID,
 								UR.NICKNAME,
 								ROW_NUMBER() OVER (ORDER BY NVL(UR.EXP, 0) DESC, UR.USER_ID ASC) AS RN
 							FROM LQ_USER UR

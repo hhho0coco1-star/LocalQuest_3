@@ -36,6 +36,33 @@ const Header = () => {
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [isPushBusy, setIsPushBusy] = useState(false);
 
+  const canTogglePush = isAuthenticated && isPushSupported && !isPushBusy;
+
+  const getPushErrorMessage = (error, fallbackMessage) =>
+    error?.response?.data?.message || fallbackMessage;
+
+  const withPushBusy = async (task, fallbackMessage) => {
+    if (!canTogglePush) {
+      return;
+    }
+
+    setIsPushBusy(true);
+    try {
+      await task();
+    } catch (error) {
+      alert(getPushErrorMessage(error, fallbackMessage));
+    } finally {
+      setIsPushBusy(false);
+    }
+  };
+
+  const getRegistrationAndSubscription = async () => {
+    const registration = await getServiceWorkerRegistration();
+    const subscription = await registration?.pushManager?.getSubscription();
+
+    return { registration, subscription };
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -48,8 +75,7 @@ const Header = () => {
       }
 
       try {
-        const registration = await getServiceWorkerRegistration();
-        const subscription = await registration?.pushManager?.getSubscription();
+        const { subscription } = await getRegistrationAndSubscription();
         const enabled = Boolean(subscription) && window.Notification.permission === 'granted';
 
         if (!cancelled) {
@@ -81,13 +107,7 @@ const Header = () => {
   };
 
   const handleEnablePush = async () => {
-    if (!isAuthenticated || !isPushSupported || isPushBusy) {
-      return;
-    }
-
-    setIsPushBusy(true);
-
-    try {
+    await withPushBusy(async () => {
       const configResponse = await pushApi.getConfig();
       const config = configResponse?.data || {};
 
@@ -96,7 +116,7 @@ const Header = () => {
         return;
       }
 
-      const registration = await getServiceWorkerRegistration();
+      const { registration, subscription: existingSubscription } = await getRegistrationAndSubscription();
       if (!registration) {
         alert('서비스워커를 등록하지 못했습니다.');
         return;
@@ -113,7 +133,7 @@ const Header = () => {
         return;
       }
 
-      let subscription = await registration.pushManager.getSubscription();
+      let subscription = existingSubscription;
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -132,24 +152,12 @@ const Header = () => {
 
       setIsPushEnabled(true);
       alert('푸시 알림이 활성화되었습니다.');
-    } catch (error) {
-      const message = error?.response?.data?.message || '푸시 알림 활성화 중 오류가 발생했습니다.';
-      alert(message);
-    } finally {
-      setIsPushBusy(false);
-    }
+    }, '푸시 알림 활성화 중 오류가 발생했습니다.');
   };
 
   const handleDisablePush = async () => {
-    if (!isAuthenticated || !isPushSupported || isPushBusy) {
-      return;
-    }
-
-    setIsPushBusy(true);
-
-    try {
-      const registration = await getServiceWorkerRegistration();
-      const subscription = await registration?.pushManager?.getSubscription();
+    await withPushBusy(async () => {
+      const { subscription } = await getRegistrationAndSubscription();
       const endpoint = subscription?.endpoint;
 
       if (subscription) {
@@ -171,12 +179,7 @@ const Header = () => {
       await pushApi.saveSettings({ pushAgree: false });
       setIsPushEnabled(false);
       alert('푸시 알림이 해제되었습니다.');
-    } catch (error) {
-      const message = error?.response?.data?.message || '푸시 알림 해제 중 오류가 발생했습니다.';
-      alert(message);
-    } finally {
-      setIsPushBusy(false);
-    }
+    }, '푸시 알림 해제 중 오류가 발생했습니다.');
   };
 
   return (

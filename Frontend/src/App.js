@@ -12,6 +12,7 @@ import QuestDetail from './pages/quest/QuestDetail/QuestDetail';
 import MyQuest from './pages/quest/MyQuest/MyQuest';
 import MyQuestDetail from './pages/quest/MyQuest/MyQuestDetail';
 import RewardPage from './pages/reward/rewardPage';
+import CustomerService from './pages/support/CustomerService';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 
@@ -47,6 +48,10 @@ function AppRoutes({ isAuthenticated }) {
           element={isAuthenticated ? <MyQuestDetail /> : <Navigate to="/login" replace />}
         />
         <Route path="/reward" element={<RewardPage />} />
+        <Route path="/support" element={<CustomerService />} />
+        <Route path="/support/notice" element={<CustomerService />} />
+        <Route path="/support/faq" element={<CustomerService />} />
+        <Route path="/support/contact" element={<CustomerService />} />
         <Route
           path="/"
           element={<Navigate to="/main" replace />}
