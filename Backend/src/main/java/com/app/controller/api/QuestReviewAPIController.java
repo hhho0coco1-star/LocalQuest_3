@@ -46,6 +46,24 @@ public class QuestReviewAPIController {
         }
     }
 
+    @GetMapping("/reviews/me")
+    public ResponseEntity<?> getMyQuestReviews(HttpSession session) {
+        Integer loginUserId = resolveLoginUserId(session);
+        if (loginUserId == null || loginUserId <= 0) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(messageBody("\uB85C\uADF8\uC778\uD55C\u0020\uC0AC\uC6A9\uC790\uB9CC\u0020\uB9AC\uBDF0\u0020\uBAA9\uB85D\uC744\u0020\uBCFC\u0020\uC218\u0020\uC788\uC2B5\uB2C8\uB2E4\u002E"));
+        }
+
+        try {
+            return ResponseEntity.ok(questReviewService.getQuestReviewsByUserId(loginUserId));
+        } catch (Exception exception) {
+            if (isQuestReviewStorageUnavailable(exception)) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+            throw exception;
+        }
+    }
+
     @PostMapping("/{questId}/reviews")
     public ResponseEntity<?> createQuestReview(
         @PathVariable("questId") int questId,

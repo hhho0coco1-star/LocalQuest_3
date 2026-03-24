@@ -21,6 +21,7 @@ export const questApi = {
       }
     ),
   getQuestReviews: (questId) => api.get(`/api/quests/${questId}/reviews`),
+  getMyQuestReviews: () => api.get('/api/quests/reviews/me'),
   createQuestReview: (questId, payload) => api.post(`/api/quests/${questId}/reviews`, payload),
   updateQuestReview: (questId, reviewId, payload) =>
     api.put(`/api/quests/${questId}/reviews/${reviewId}`, payload),

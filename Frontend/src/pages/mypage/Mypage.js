@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import { pushApi } from '../../api/PushApi';
+import { questApi } from '../../api/QuestApi';
 import { userApi } from '../../api/UserApi';
 import { clearAuth, updateUserProfile } from '../../store/authSlice';
 import './MyPage.css';
@@ -13,7 +14,7 @@ const MY_PAGE_TABS = [
     { key: 'profile', label: '개인정보 수정' },
     { key: 'exploreStats', label: '탐험 통계' },
     { key: 'inquiryHistory', label: '1:1 문의내역' },
-    { key: 'myReviews', label: '작성한 리뷰' },
+    { key: 'myReviews', label: '내 리뷰' },
     { key: 'withdraw', label: '회원 탈퇴' },
 ];
 
@@ -27,8 +28,8 @@ const TAB_PLACEHOLDER_CONTENT = {
         description: '1:1 문의내역 기능은 준비 중입니다.',
     },
     myReviews: {
-        title: '작성한 리뷰',
-        description: '작성한 리뷰 기능은 준비 중입니다.',
+        title: '내 리뷰',
+        description: '작성한 리뷰를 확인할 수 있습니다.',
     },
 };
 
@@ -46,6 +47,30 @@ function formatDateValue(value) {
     const month = String(parsed.getMonth() + 1).padStart(2, '0');
     const day = String(parsed.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+function formatReviewCreatedAt(value) {
+    if (!value) {
+        return '-';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+    }
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    const hour = String(parsed.getHours()).padStart(2, '0');
+    const minute = String(parsed.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hour}:${minute}`;
+}
+
+function renderStarText(ratingValue) {
+    const rating = Number(ratingValue) || 0;
+    const boundedRating = Math.max(0, Math.min(5, rating));
+    return `${'★'.repeat(boundedRating)}${'☆'.repeat(5 - boundedRating)} (${boundedRating})`;
 }
 
 function resolveGenderLabel(genderValue) {
@@ -122,6 +147,9 @@ function MyPage() {
     });
     const [feedbackMessage, setFeedbackMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [myReviews, setMyReviews] = useState([]);
+    const [isMyReviewsLoading, setIsMyReviewsLoading] = useState(false);
+    const [myReviewsError, setMyReviewsError] = useState('');
 
     useEffect(() => {
         let isCancelled = false;
@@ -196,6 +224,48 @@ function MyPage() {
             pushEnabled: initialPushEnabled,
         });
     }, [profile.nickname, initialPushEnabled]);
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const fetchMyReviews = async () => {
+            if (activeTab !== 'myReviews') {
+                return;
+            }
+
+            setIsMyReviewsLoading(true);
+            setMyReviewsError('');
+
+            try {
+                const response = await questApi.getMyQuestReviews();
+                if (isCancelled) {
+                    return;
+                }
+
+                setMyReviews(Array.isArray(response.data) ? response.data : []);
+            } catch (error) {
+                if (isCancelled) {
+                    return;
+                }
+
+                const message =
+                    error.response?.data?.message ??
+                    '내 리뷰 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+                setMyReviewsError(message);
+                setMyReviews([]);
+            } finally {
+                if (!isCancelled) {
+                    setIsMyReviewsLoading(false);
+                }
+            }
+        };
+
+        fetchMyReviews();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [activeTab]);
 
     const hasChanged = useMemo(() => {
         const trimmedNickname = formState.nickname.trim();
@@ -485,6 +555,30 @@ function MyPage() {
                                     </div>
                                 </form>
                             )
+                        ) : activeTab === 'myReviews' ? (
+                            <section className="mypage-review-panel">
+                                <h2>내 리뷰</h2>
+                                {isMyReviewsLoading ? (
+                                    <div className="mypage-loading">내 리뷰를 불러오는 중입니다.</div>
+                                ) : myReviewsError ? (
+                                    <p className="mypage-feedback-message is-error">{myReviewsError}</p>
+                                ) : myReviews.length === 0 ? (
+                                    <p className="mypage-review-empty">작성한 리뷰가 없습니다.</p>
+                                ) : (
+                                    <div className="mypage-review-list">
+                                        {myReviews.map((review) => (
+                                            <article key={review.reviewId} className="mypage-review-item">
+                                                <div className="mypage-review-head">
+                                                    <strong>{review.questTitle || `퀘스트 #${review.questId}`}</strong>
+                                                    <span>{formatReviewCreatedAt(review.createdAt)}</span>
+                                                </div>
+                                                <p className="mypage-review-rating">{renderStarText(review.rating)}</p>
+                                                <p className="mypage-review-content">{review.content || '-'}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
                         ) : activeTab === 'withdraw' ? (
                             <section className="mypage-withdraw-panel">
                                 <h2>회원 탈퇴</h2>

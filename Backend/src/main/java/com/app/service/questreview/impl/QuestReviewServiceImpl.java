@@ -29,6 +29,11 @@ public class QuestReviewServiceImpl implements QuestReviewService {
     }
 
     @Override
+    public List<QuestReviewListItemDTO> getQuestReviewsByUserId(int userId) {
+        return dao.selectQuestReviewsByUserId(userId);
+    }
+
+    @Override
     @Transactional
     public int updateQuestReview(QuestReviewDTO questReview) {
         return dao.updateQuestReview(questReview);
