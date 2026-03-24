@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
 <c:set var="path" value="${pageContext.request.contextPath}" />
@@ -185,23 +185,110 @@
     <div class="adm-b-modal-content adm-b-detail-modal">
         <div class="adm-b-modal-header">
             <h3><i class="fas fa-store"></i> 매장 상세</h3>
-            <span class="adm-b-close" onclick="closeBusinessDetailModal()">&times;</span>
+            <div class="adm-b-detail-header-actions">
+                <div class="adm-b-detail-tab-nav">
+                    <button type="button" class="adm-b-detail-tab is-active" data-detail-tab="basic" onclick="showBusinessDetailTab('basic')">매장 기본정보</button>
+                    <button type="button" class="adm-b-detail-tab" data-detail-tab="auth" onclick="showBusinessDetailTab('auth')">비지니스 정보</button>
+                </div>
+                <span class="adm-b-close" onclick="closeBusinessDetailModal()">&times;</span>
+            </div>
         </div>
         <div class="adm-b-modal-body">
-            <div class="adm-b-detail-grid">
-                <div class="adm-b-detail-item"><span class="adm-b-detail-label">매장번호</span><strong id="detailBusinessId">-</strong></div>
-                <div class="adm-b-detail-item"><span class="adm-b-detail-label">회원번호</span><strong id="detailUserId">-</strong></div>
-                <div class="adm-b-detail-item"><span class="adm-b-detail-label">매장명</span><strong id="detailBusinessName">-</strong></div>
-                <div class="adm-b-detail-item"><span class="adm-b-detail-label">우편번호</span><strong id="detailZipCode">-</strong></div>
-                <div class="adm-b-detail-item adm-b-detail-item-wide"><span class="adm-b-detail-label">주소</span><strong id="detailAddress">-</strong></div>
-                <div class="adm-b-detail-item adm-b-detail-item-wide"><span class="adm-b-detail-label">상세주소</span><strong id="detailAddressDetail">-</strong></div>
-                <div class="adm-b-detail-item"><span class="adm-b-detail-label">연락처</span><strong id="detailPhone">-</strong></div>
-                <div class="adm-b-detail-item"><span class="adm-b-detail-label">등록일</span><strong id="detailCreatedAt">-</strong></div>
-                <div class="adm-b-detail-item adm-b-detail-item-wide"><span class="adm-b-detail-label">설명</span><strong id="detailDescription">-</strong></div>
+            <div class="adm-b-detail-tab-panel is-active" data-detail-panel="basic">
+                <div class="adm-b-detail-grid">
+                    <div class="adm-b-detail-item"><span class="adm-b-detail-label">매장번호</span><strong id="detailBusinessId">-</strong></div>
+                    <div class="adm-b-detail-item"><span class="adm-b-detail-label">회원번호</span><strong id="detailUserId">-</strong></div>
+                    <div class="adm-b-detail-item"><span class="adm-b-detail-label">매장명</span><strong id="detailBusinessName">-</strong></div>
+                    <div class="adm-b-detail-item"><span class="adm-b-detail-label">우편번호</span><strong id="detailZipCode">-</strong></div>
+                    <div class="adm-b-detail-item adm-b-detail-item-wide"><span class="adm-b-detail-label">주소</span><strong id="detailAddress">-</strong></div>
+                    <div class="adm-b-detail-item adm-b-detail-item-wide"><span class="adm-b-detail-label">상세주소</span><strong id="detailAddressDetail">-</strong></div>
+                    <div class="adm-b-detail-item"><span class="adm-b-detail-label">연락처</span><strong id="detailPhone">-</strong></div>
+                    <div class="adm-b-detail-item"><span class="adm-b-detail-label">등록일</span><strong id="detailCreatedAt">-</strong></div>
+                    <div class="adm-b-detail-item adm-b-detail-item-wide"><span class="adm-b-detail-label">설명</span><strong id="detailDescription">-</strong></div>
+                </div>
+            </div>
+            <div class="adm-b-detail-tab-panel" data-detail-panel="auth">
+                <div id="businessAuthStatus" class="adm-b-auth-status">비지니스 정보를 불러오는 중입니다.</div>
+                <div class="adm-b-auth-summary-grid">
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">총 인증 건수</span>
+                        <strong id="detailAuthTotalCount">0</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">QR 인증 건수</span>
+                        <strong id="detailAuthQrCount">0</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">영수증 인증 건수</span>
+                        <strong id="detailAuthReceiptCount">0</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">누적 결제 금액</span>
+                        <strong id="detailAuthPaymentAmount">0원</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">누적 정산 금액</span>
+                        <strong id="detailAuthSettlementAmount">0원</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">최근 인증 일시</span>
+                        <strong id="detailAuthLastAt">-</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">인증 사용자 수</span>
+                        <strong id="detailAuthUserCount">0</strong>
+                    </div>
+                    <div class="adm-b-auth-summary-card">
+                        <span class="adm-b-auth-summary-label">인증 발생 장소 수</span>
+                        <strong id="detailAuthLocationCount">0</strong>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="adm-b-modal-footer">
+            <button type="button" class="adm-b-btn-qr" id="businessDetailQrBtn" data-business-id="0" onclick="openBusinessQrModal()">QR 보기</button>
             <button type="button" class="adm-b-btn-cancel" onclick="closeBusinessDetailModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<div id="businessQrModal" class="adm-b-modal">
+    <div class="adm-b-modal-content adm-b-qr-modal">
+        <div class="adm-b-modal-header">
+            <h3><i class="fas fa-qrcode"></i> 매장 QR 코드</h3>
+            <span class="adm-b-close" onclick="closeBusinessQrModal()">&times;</span>
+        </div>
+        <div class="adm-b-modal-body">
+            <div id="businessQrStatus" class="adm-b-qr-status">QR 정보를 불러오는 중입니다.</div>
+            <div class="adm-b-qr-layout">
+                <div class="adm-b-qr-preview">
+                    <div class="adm-b-qr-image-wrap">
+                        <img id="businessQrImage" class="adm-b-qr-image" alt="매장 QR 코드" />
+                    </div>
+                </div>
+                <div class="adm-b-qr-meta">
+                    <div class="adm-b-detail-item">
+                        <span class="adm-b-detail-label">매장명</span>
+                        <strong id="businessQrBusinessName">-</strong>
+                    </div>
+                    <div class="adm-b-detail-item">
+                        <span class="adm-b-detail-label">대표 장소명</span>
+                        <strong id="businessQrLocationName">-</strong>
+                    </div>
+                    <div class="adm-b-detail-item adm-b-detail-item-wide">
+                        <span class="adm-b-detail-label">주소</span>
+                        <strong id="businessQrAddress">-</strong>
+                    </div>
+                    <div class="adm-b-detail-item adm-b-detail-item-wide">
+                        <span class="adm-b-detail-label">인증키</span>
+                        <strong id="businessQrAuthKey">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="adm-b-modal-footer">
+            <button type="button" class="adm-b-btn-print" onclick="printBusinessQr()">출력</button>
+            <button type="button" class="adm-b-btn-cancel" onclick="closeBusinessQrModal()">닫기</button>
         </div>
     </div>
 </div>

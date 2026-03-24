@@ -18,6 +18,7 @@
         <typeAlias type="com.app.dto.inquiry.InquiryDTO" alias="InquiryDTO"/>
         <typeAlias type="com.app.dto.levelrange.LevelRangeDTO" alias="LevelRangeDTO"/>
         <typeAlias type="com.app.dto.location.LocationDTO" alias="LocationDTO"/>
+        <typeAlias type="com.app.dto.locationqr.LocationQrDTO" alias="LocationQrDTO"/>
         <typeAlias type="com.app.dto.notice.NoticeDTO" alias="NoticeDTO"/>
         <typeAlias type="com.app.dto.pointhistory.PointHistoryDTO" alias="PointHistoryDTO"/>
         <typeAlias type="com.app.dto.quest.QuestDTO" alias="QuestDTO"/>

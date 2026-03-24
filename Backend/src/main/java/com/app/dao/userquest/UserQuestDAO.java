@@ -12,5 +12,7 @@ public interface UserQuestDAO {
 
     int updateUserQuestForAccept(UserQuestDTO userQuest);
 
+    int completeUserQuest(UserQuestDTO userQuest);
+
     List<UserQuestSummaryDTO> findUserQuestSummariesByUserId(int userId);
 }

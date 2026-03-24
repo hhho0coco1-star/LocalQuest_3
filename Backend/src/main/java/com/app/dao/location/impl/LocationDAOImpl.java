@@ -22,6 +22,11 @@ public class LocationDAOImpl implements LocationDAO {
     }
 
     @Override
+    public LocationDTO findRepresentativeLocationByBusinessId(int businessId) {
+        return sqlSessionTemplate.selectOne("location_mapper.findRepresentativeLocationByBusinessId", businessId);
+    }
+
+    @Override
     public int saveLocation(LocationDTO location) {
         try {
             return sqlSessionTemplate.insert("location_mapper.saveLocation", location);
@@ -31,6 +36,11 @@ public class LocationDAOImpl implements LocationDAO {
             }
             throw e;
         }
+    }
+
+    @Override
+    public int updateRepresentativeLocation(LocationDTO location) {
+        return sqlSessionTemplate.update("location_mapper.updateRepresentativeLocation", location);
     }
 
     @Override

@@ -33,6 +33,11 @@ public class UserQuestDAOImpl implements UserQuestDAO {
     }
 
     @Override
+    public int completeUserQuest(UserQuestDTO userQuest) {
+        return sqlSessionTemplate.update("userquest_mapper.completeUserQuest", userQuest);
+    }
+
+    @Override
     public List<UserQuestSummaryDTO> findUserQuestSummariesByUserId(int userId) {
         return sqlSessionTemplate.selectList("userquest_mapper.findUserQuestSummariesByUserId", userId);
     }

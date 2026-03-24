@@ -34,6 +34,28 @@
 		WHERE ROWNUM &lt;= 50
 	</select>
 
+	<select id="findRepresentativeLocationByBusinessId" parameterType="int" resultType="LocationDTO">
+		SELECT *
+		FROM (
+			SELECT
+				LOCATION_ID as locationId,
+				BUSINESS_ID as businessId,
+				NAME as name,
+				ZIP_CODE as zipCode,
+				ADDRESS as address,
+				ADDRESS_DETAIL as addressDetail,
+				LATITUDE as latitude,
+				LONGITUDE as longitude,
+				LOCATION_TYPE as locationType,
+				DESCRIPTION as description,
+				CREATED_AT as createdAt
+			FROM LQ_LOCATION
+			WHERE BUSINESS_ID = #{businessId}
+			ORDER BY CREATED_AT DESC, LOCATION_ID DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
+
 	<insert id="saveLocation" parameterType="LocationDTO">
 		<selectKey keyProperty="locationId" resultType="int" order="BEFORE">
 			SELECT SEQ_LQ_LOCATION_PK.NEXTVAL FROM DUAL
@@ -93,6 +115,19 @@
 		#{description},
 		sysdate )
 	</insert>
+
+	<update id="updateRepresentativeLocation" parameterType="LocationDTO">
+		UPDATE LQ_LOCATION
+		SET
+			BUSINESS_ID = #{businessId},
+			NAME = #{name},
+			ZIP_CODE = #{zipCode},
+			ADDRESS = #{address},
+			ADDRESS_DETAIL = #{addressDetail},
+			LOCATION_TYPE = #{locationType},
+			DESCRIPTION = #{description}
+		WHERE LOCATION_ID = #{locationId}
+	</update>
 
 	<delete id="deleteUnusedLocationsByIds" parameterType="list">
 		DELETE FROM LQ_LOCATION l

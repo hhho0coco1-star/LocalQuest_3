@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { questApi } from '../../api/QuestApi';
@@ -345,8 +345,13 @@ function MainPage() {
 
     const bounds = new window.kakao.maps.LatLngBounds();
 
+    let singlePosition = null;
+
     mapQuestList.forEach((quest) => {
       const position = new window.kakao.maps.LatLng(quest.latitude, quest.longitude);
+      if (!singlePosition) {
+        singlePosition = position;
+      }
       bounds.extend(position);
 
       const marker = new window.kakao.maps.Marker({
@@ -382,8 +387,8 @@ function MainPage() {
       window.kakao.maps.event.addListener(marker, 'click', () => handleQuestSelect(quest));
     });
 
-    if (mapQuestList.length === 1) {
-      map.setCenter(bounds.getCenter());
+    if (mapQuestList.length === 1 && singlePosition) {
+      map.setCenter(singlePosition);
       map.setLevel(4);
     } else {
       map.setBounds(bounds);

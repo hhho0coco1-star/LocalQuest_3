@@ -221,6 +221,8 @@
 }
 
 .adm-b-btn-view:hover,
+.adm-b-btn-qr:hover,
+.adm-b-btn-print:hover,
 .adm-b-btn-edit:hover,
 .adm-b-btn-delete:hover,
 .adm-b-btn-contract:hover {
@@ -289,6 +291,10 @@
     width: min(720px, calc(100% - 32px));
 }
 
+.adm-b-qr-modal {
+    width: min(760px, calc(100% - 32px));
+}
+
 .adm-b-reject-modal {
     width: min(560px, calc(100% - 32px));
 }
@@ -304,6 +310,35 @@
 .adm-b-modal-header h3 {
     margin: 0;
     font-size: 1.1rem;
+}
+
+.adm-b-detail-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.adm-b-detail-tab-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.adm-b-detail-tab {
+    border: 1px solid #323248;
+    background: #1e1e2d;
+    color: #a1a5b7;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.86rem;
+}
+
+.adm-b-detail-tab.is-active {
+    background: #7239ea;
+    border-color: #7239ea;
+    color: #ffffff;
 }
 
 .adm-b-close {
@@ -328,6 +363,14 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.adm-b-detail-tab-panel {
+    display: none;
+}
+
+.adm-b-detail-tab-panel.is-active {
+    display: block;
 }
 
 .adm-b-input-group-wide,
@@ -367,6 +410,52 @@
     word-break: break-word;
 }
 
+.adm-b-auth-status {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(54, 163, 255, 0.1);
+    color: #9dd5ff;
+    border: 1px solid rgba(54, 163, 255, 0.2);
+    font-size: 0.92rem;
+}
+
+.adm-b-auth-status.is-error {
+    background: rgba(241, 65, 108, 0.12);
+    border-color: rgba(241, 65, 108, 0.22);
+    color: #ff9ab1;
+}
+
+.adm-b-auth-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.adm-b-auth-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #1e1e2d;
+    border: 1px solid #323248;
+    border-radius: 12px;
+    padding: 18px;
+    min-height: 112px;
+    box-sizing: border-box;
+}
+
+.adm-b-auth-summary-label {
+    color: #9292af;
+    font-size: 0.86rem;
+}
+
+.adm-b-auth-summary-card strong {
+    margin-top: auto;
+    font-size: 1.35rem;
+    color: #ffffff;
+    word-break: break-word;
+}
+
 .adm-b-modal-footer {
     display: flex;
     justify-content: flex-end;
@@ -375,6 +464,8 @@
     border-top: 1px solid #323248;
 }
 
+.adm-b-btn-qr,
+.adm-b-btn-print,
 .adm-b-btn-cancel,
 .adm-b-btn-submit {
     border: none;
@@ -382,6 +473,19 @@
     padding: 11px 18px;
     cursor: pointer;
     font-weight: 600;
+}
+
+.adm-b-btn-qr {
+    margin-right: auto;
+    background: rgba(0, 149, 255, 0.16);
+    color: #36a3ff;
+    border: 1px solid rgba(0, 149, 255, 0.24);
+}
+
+.adm-b-btn-print {
+    background: rgba(80, 205, 137, 0.14);
+    color: #50cd89;
+    border: 1px solid rgba(80, 205, 137, 0.24);
 }
 
 .adm-b-btn-cancel {
@@ -392,6 +496,67 @@
 .adm-b-btn-submit {
     background: #7239ea;
     color: #ffffff;
+}
+
+.adm-b-qr-status {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(54, 163, 255, 0.1);
+    color: #9dd5ff;
+    border: 1px solid rgba(54, 163, 255, 0.2);
+    font-size: 0.92rem;
+}
+
+.adm-b-qr-status.is-error {
+    background: rgba(241, 65, 108, 0.12);
+    border-color: rgba(241, 65, 108, 0.22);
+    color: #ff9ab1;
+}
+
+.adm-b-qr-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.adm-b-qr-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.adm-b-qr-image-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    border: 1px solid #323248;
+    background: #1e1e2d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.adm-b-qr-image {
+    display: none;
+    width: 100%;
+    height: auto;
+    background: #ffffff;
+    border-radius: 10px;
+}
+
+.adm-b-qr-image.is-ready {
+    display: block;
+}
+
+.adm-b-qr-meta {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
 }
 
 @media (max-width: 900px) {
@@ -405,6 +570,11 @@
         align-items: stretch;
     }
 
+    .adm-b-detail-header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
     .adm-b-search-box input {
         width: 100%;
     }
@@ -415,6 +585,8 @@
         padding: 20px;
     }
 
+    .adm-b-auth-summary-grid,
+    .adm-b-qr-layout,
     .adm-b-form-grid,
     .adm-b-detail-grid {
         grid-template-columns: 1fr;

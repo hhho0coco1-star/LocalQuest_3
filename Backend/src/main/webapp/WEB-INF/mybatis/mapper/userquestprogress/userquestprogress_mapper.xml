@@ -23,4 +23,63 @@
 		DELETE FROM LQ_USER_QUEST_PROGRESS
 		WHERE USER_QUEST_ID = #{_parameter}
 	</delete>
+
+	<select id="findQrVerificationTargets" parameterType="map" resultType="com.app.dto.locationqr.UserQuestQrVerificationTargetDTO">
+		SELECT
+			uqp.USER_QUEST_PROGRESS_ID as userQuestProgressId,
+			uqp.USER_QUEST_ID as userQuestId,
+			uq.QUEST_ID as questId,
+			q.TITLE as questTitle,
+			uq.STATUS as userQuestStatus,
+			uq.STARTED_AT as startedAt,
+			uq.COMPLETED_AT as completedAt,
+			q.TIME_LIMIT as timeLimit,
+			ql.QUEST_LOCATION_ID as questLocationId,
+			ql.LOCATION_ID as locationId,
+			ql.VISIT_ORDER as visitOrder,
+			l.NAME as locationName,
+			uqp.IS_COMPLETED as isCompleted,
+			uqp.COMPLETED_AT as progressCompletedAt,
+			progress_count.TOTAL_COUNT as totalCount,
+			progress_count.COMPLETED_COUNT as completedCount
+		FROM LQ_USER_QUEST_PROGRESS uqp
+		INNER JOIN LQ_USER_QUEST uq
+			ON uq.USER_QUEST_ID = uqp.USER_QUEST_ID
+		INNER JOIN LQ_QUEST_LOCATION ql
+			ON ql.QUEST_LOCATION_ID = uqp.QUEST_LOCATION_ID
+		INNER JOIN LQ_QUEST q
+			ON q.QUEST_ID = uq.QUEST_ID
+		LEFT JOIN LQ_LOCATION l
+			ON l.LOCATION_ID = ql.LOCATION_ID
+		INNER JOIN (
+			SELECT
+				USER_QUEST_ID,
+				COUNT(*) as TOTAL_COUNT,
+				SUM(CASE WHEN NVL(IS_COMPLETED, 0) = 1 THEN 1 ELSE 0 END) as COMPLETED_COUNT
+			FROM LQ_USER_QUEST_PROGRESS
+			GROUP BY USER_QUEST_ID
+		) progress_count
+			ON progress_count.USER_QUEST_ID = uqp.USER_QUEST_ID
+		WHERE uq.USER_ID = #{userId}
+		  AND ql.LOCATION_ID = #{locationId}
+		  AND uq.STATUS = 'IN_PROGRESS'
+		  AND NVL(q.STATUS, 'ACTIVE') != 'DELETED'
+		ORDER BY uq.USER_QUEST_ID DESC, ql.VISIT_ORDER ASC
+	</select>
+
+	<update id="completeUserQuestProgress" parameterType="UserQuestProgressDTO">
+		UPDATE LQ_USER_QUEST_PROGRESS
+		SET IS_COMPLETED = 1,
+			COMPLETED_AT = #{completedAt}
+		WHERE USER_QUEST_ID = #{userQuestId}
+		  AND QUEST_LOCATION_ID = #{questLocationId}
+		  AND NVL(IS_COMPLETED, 0) = 0
+	</update>
+
+	<select id="countIncompleteProgressByUserQuestId" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_USER_QUEST_PROGRESS
+		WHERE USER_QUEST_ID = #{_parameter}
+		  AND NVL(IS_COMPLETED, 0) = 0
+	</select>
 </mapper>

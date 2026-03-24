@@ -69,4 +69,12 @@
 			COMPLETED_AT = #{completedAt}
 		WHERE USER_QUEST_ID = #{userQuestId}
 	</update>
+
+	<update id="completeUserQuest" parameterType="UserQuestDTO">
+		UPDATE LQ_USER_QUEST
+		SET STATUS = #{status},
+			COMPLETED_AT = #{completedAt}
+		WHERE USER_QUEST_ID = #{userQuestId}
+		  AND STATUS != 'COMPLETED'
+	</update>
 </mapper>
