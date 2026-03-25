@@ -21,16 +21,36 @@ public class InquiryController {
 
     // 1. 문의 등록 (POST)
     @PostMapping
-    public ResponseEntity<String> register(@RequestBody InquiryDTO inquiryDTO) {
-        // 실제 운영 시 세션이나 토큰에서 userId를 꺼내 세팅해야 함
-        // inquiryDTO.setUserId(sessionUserId); 
-        
+    public ResponseEntity<?> register(@RequestBody InquiryDTO inquiryDTO, HttpSession session) {
+        Integer loginUserId = resolveLoginUserId(session);
+        if (loginUserId == null || loginUserId <= 0) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "로그인한 사용자만 문의를 등록할 수 있습니다."));
+        }
+
+        if (inquiryDTO == null) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "문의 등록 요청이 올바르지 않습니다."));
+        }
+
+        String title = trimToEmpty(inquiryDTO.getTitle());
+        String content = trimToEmpty(inquiryDTO.getContent());
+        if (title.isEmpty() || content.isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "문의 제목과 내용을 모두 입력해주세요."));
+        }
+
+        inquiryDTO.setUserId(loginUserId);
+        inquiryDTO.setTitle(title);
+        inquiryDTO.setContent(content);
+
         int result = inquiryService.registerInquiry(inquiryDTO);
-        
+
         if (result > 0) {
-            return ResponseEntity.ok("문의가 성공적으로 등록되었습니다.");
+            return ResponseEntity.ok(Map.of("message", "문의가 성공적으로 등록되었습니다."));
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("등록에 실패했습니다.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "문의 등록에 실패했습니다."));
         }
     }
 
@@ -109,5 +129,9 @@ public class InquiryController {
         }
 
         return null;
+    }
+
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 }
