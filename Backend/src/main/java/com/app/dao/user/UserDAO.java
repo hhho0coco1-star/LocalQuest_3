@@ -11,12 +11,15 @@ public interface UserDAO {
 	public int countByUserLoginId(String userLoginId);
 	public int countByNickname(String nickname);
 	public int countByEmail(String email);
+	public User findByUserId(int userId);
 	public User findByUserLoginId(String userLoginId);
 	public User findByEmail(String email);
 	public User findActiveUserByNameAndEmail(User user);
 	public User findActiveUserByUserLoginIdAndEmail(User user);
+	public int updateMyProfileByUserId(User user);
 	public int updatePasswordByUserId(User user);
 	public int updateSocialProfileByUserId(User user);
+	public int addRewardByUserId(Map<String, Object> rewardMap);
 	
 	// 1. 전체 회원 목록 조회
     // 2. 회원 검색 (아이디, 닉네임 등)

@@ -100,10 +100,33 @@ const authSlice = createSlice({
             safeRemove(sessionStorage, TOKEN_STORAGE_KEY);
             safeRemove(localStorage, AUTH_STORAGE_KEY);
             safeRemove(localStorage, TOKEN_STORAGE_KEY);
+        },
+        updateUserProfile: (state, action) => {
+            if (!state.isAuthenticated || !state.user) {
+                return;
+            }
+
+            const profilePatch = action.payload ?? {};
+            state.user = {
+                ...state.user,
+                ...profilePatch
+            };
+
+            const nextAuth = {
+                isAuthenticated: state.isAuthenticated,
+                accessToken: state.accessToken,
+                expiresIn: state.expiresIn,
+                user: state.user
+            };
+
+            safeWrite(sessionStorage, AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
+            if (state.accessToken) {
+                safeWrite(sessionStorage, TOKEN_STORAGE_KEY, state.accessToken);
+            }
         }
     }
 });
 
-export const { setAuth, clearAuth } = authSlice.actions;
+export const { setAuth, clearAuth, updateUserProfile } = authSlice.actions;
 export { AUTH_STORAGE_KEY, TOKEN_STORAGE_KEY };
 export default authSlice.reducer;

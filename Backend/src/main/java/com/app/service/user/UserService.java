@@ -21,6 +21,9 @@ public interface UserService {
 	public String getSocialFrontendRedirectUri();
 	public String findUserLoginId(FindUserIdRequest request);
 	public void sendTemporaryPasswordByEmail(FindPasswordRequest request);
+	public User getUserProfileById(int userId);
+	public User updateMyProfile(int userId, String nickname, String newPassword);
+	public boolean withdrawUser(int userId);
 	
 	// 1. 전체 회원 목록 가져오기
     // 2. 조건별 회원 검색하기 (아이디/닉네임 등)

@@ -18,6 +18,7 @@ import com.app.dto.quest.QuestDetailDTO;
 import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.questlocation.QuestLocationDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 import com.app.service.quest.QuestService;
 
 @Service
@@ -52,6 +53,11 @@ public class QuestServiceImpl implements QuestService {
     @Override
     public List<QuestMapDTO> getQuestMapList() {
         return questDAO.selectQuestMapList();
+    }
+
+    @Override
+    public List<QuestTopRatedDTO> getTopRatedQuests(int limit) {
+        return questDAO.selectTopRatedQuests(limit);
     }
 
     @Override

@@ -37,7 +37,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.mindrot.jbcrypt.BCrypt;
 
+import com.app.dao.push.PushDAO;
 import com.app.dao.user.UserDAO;
+import com.app.dto.push.UserNotificationSettingDTO;
 import com.app.dto.user.FindPasswordRequest;
 import com.app.dto.user.FindUserIdRequest;
 import com.app.dto.user.LoginRequest;
@@ -72,6 +74,9 @@ public class UserServiceImpl implements UserService{
 	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
 
+	@Autowired
+	private PushDAO pushDAO;
+
 
 
 
@@ -100,7 +105,7 @@ public class UserServiceImpl implements UserService{
 			request.getBirthDay()
 		);
 		if (birthDate == null) {
-			throw new IllegalArgumentException("올바른 생년월일을 입력해 주세요.");
+			throw new IllegalArgumentException("올바른 생년월일을 입력해주세요.");
 		}
 
 		User user = new User();
@@ -122,7 +127,50 @@ public class UserServiceImpl implements UserService{
 		user.setExp(0);
 		user.setPoint(0);
 
-		return userDAO.saveUser(user);
+		int saveResult = userDAO.saveUser(user);
+		if (saveResult != 1) {
+			throw new IllegalStateException("회원가입 처리 중 오류가 발생했습니다.");
+		}
+
+		User savedUser = userDAO.findByUserLoginId(user.getUserLoginId());
+		if (savedUser == null || savedUser.getUserId() <= 0) {
+			throw new IllegalStateException("회원가입 후 사용자 정보를 조회하지 못했습니다.");
+		}
+
+		saveInitialNotificationSetting(savedUser.getUserId(), Boolean.TRUE.equals(request.getMarketingAgree()));
+		return saveResult;
+	}
+
+	private void saveInitialNotificationSetting(int userId, boolean marketingAgree) {
+		if (userId <= 0) {
+			return;
+		}
+
+		UserNotificationSettingDTO existingSetting = pushDAO.findNotificationSettingByUserId(userId);
+		String agreeYn = marketingAgree ? "Y" : "N";
+
+		if (existingSetting == null) {
+			UserNotificationSettingDTO newSetting = new UserNotificationSettingDTO();
+			newSetting.setUserId(userId);
+			newSetting.setPushAgree(agreeYn);
+			newSetting.setMarketingAgree(agreeYn);
+			newSetting.setLunchPushAgree(agreeYn);
+			newSetting.setDinnerPushAgree(agreeYn);
+			newSetting.setWeekendPushAgree(agreeYn);
+			newSetting.setPreferredTimezone("Asia/Seoul");
+			pushDAO.insertNotificationSetting(newSetting);
+			return;
+		}
+
+		existingSetting.setPushAgree(agreeYn);
+		existingSetting.setMarketingAgree(agreeYn);
+		existingSetting.setLunchPushAgree(agreeYn);
+		existingSetting.setDinnerPushAgree(agreeYn);
+		existingSetting.setWeekendPushAgree(agreeYn);
+		if (trimToEmpty(existingSetting.getPreferredTimezone()).isEmpty()) {
+			existingSetting.setPreferredTimezone("Asia/Seoul");
+		}
+		pushDAO.updateNotificationSetting(existingSetting);
 	}
 
 	@Override
@@ -219,7 +267,7 @@ public class UserServiceImpl implements UserService{
 			socialUser = resolveGoogleSocialProfile(socialUser);
 		}
 		if (trimToEmpty(socialUser.email).isEmpty()) {
-			throw new IllegalStateException("소셜 계정의 이메일 정보를 확인할 수 없습니다. 제공자 계정 정보를 확인해 주세요.");
+			throw new IllegalStateException("소셜 계정의 이메일 정보를 확인할 수 없습니다. 제공자 동의 항목을 확인해주세요.");
 		}
 
 		User user = userDAO.findByEmail(socialUser.email);
@@ -234,7 +282,7 @@ public class UserServiceImpl implements UserService{
 		}
 
 		if (user.getStatus() != null && !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
-			throw new IllegalStateException("비활성화된 계정입니다. 관리자에게 문의해 주세요.");
+			throw new IllegalStateException("비활성화된 계정입니다. 관리자에게 문의해주세요.");
 		}
 
 		syncSocialBirthAndGender(user, socialUser);
@@ -287,12 +335,105 @@ public class UserServiceImpl implements UserService{
 
 		int updatedCount = userDAO.updatePasswordByUserId(updateTarget);
 		if (updatedCount != 1) {
-			throw new IllegalStateException("비밀번호 재설정 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+			throw new IllegalStateException("비밀번호 재설정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
 		}
 
 		sendTemporaryPasswordMail(user.getEmail(), user.getName(), temporaryPassword);
 	}
 
+	@Override
+	public User getUserProfileById(int userId) {
+		if (userId <= 0) {
+			return null;
+		}
+
+		User user = userDAO.findByUserId(userId);
+		if (user == null) {
+			return null;
+		}
+
+		if (user.getStatus() != null && !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+			return null;
+		}
+
+		return user;
+	}
+
+	@Override
+	@Transactional
+	public User updateMyProfile(int userId, String nickname, String newPassword) {
+		if (userId <= 0) {
+			throw new IllegalArgumentException("Invalid user information.");
+		}
+
+		User currentUser = userDAO.findByUserId(userId);
+		if (currentUser == null || (currentUser.getStatus() != null && !"ACTIVE".equalsIgnoreCase(currentUser.getStatus()))) {
+			throw new IllegalArgumentException("Cannot find active user.");
+		}
+
+		String normalizedNickname = trimToEmpty(nickname);
+		String normalizedPassword = trimToEmpty(newPassword);
+		String currentNickname = trimToEmpty(currentUser.getNickname());
+
+		if (normalizedNickname.isEmpty()) {
+			normalizedNickname = currentNickname;
+		}
+
+		boolean nicknameChanged = !normalizedNickname.equals(currentNickname);
+		if (nicknameChanged && !isNicknameAvailable(normalizedNickname)) {
+			throw new IllegalArgumentException("Nickname is already in use.");
+		}
+
+		boolean passwordChanged = !normalizedPassword.isEmpty();
+		if (!nicknameChanged && !passwordChanged) {
+			return currentUser;
+		}
+
+		User updateTarget = new User();
+		updateTarget.setUserId(userId);
+
+		if (nicknameChanged) {
+			updateTarget.setNickname(normalizedNickname);
+		}
+
+		if (passwordChanged) {
+			updateTarget.setPassword(BCrypt.hashpw(normalizedPassword, BCrypt.gensalt()));
+		}
+
+		int updatedCount = userDAO.updateMyProfileByUserId(updateTarget);
+		if (updatedCount != 1) {
+			throw new IllegalStateException("Failed to update profile.");
+		}
+
+		User updatedUser = userDAO.findByUserId(userId);
+		if (updatedUser == null || (updatedUser.getStatus() != null && !"ACTIVE".equalsIgnoreCase(updatedUser.getStatus()))) {
+			throw new IllegalStateException("Updated user profile is not available.");
+		}
+
+		return updatedUser;
+	}
+
+	@Override
+	@Transactional
+	public boolean withdrawUser(int userId) {
+		if (userId <= 0) {
+			return false;
+		}
+
+		User currentUser = userDAO.findByUserId(userId);
+		if (currentUser == null) {
+			return false;
+		}
+
+		if ("WITHDRAWN".equalsIgnoreCase(trimToEmpty(currentUser.getStatus()))) {
+			return true;
+		}
+
+		Map<String, Object> statusMap = new HashMap<>();
+		statusMap.put("userId", userId);
+		statusMap.put("newStatus", "WITHDRAWN");
+		return userDAO.updateUserStatus(statusMap) == 1;
+	}
 	private LoginResponse buildLoginResponse(User user) {
 		String accessToken = jwtTokenProvider.createAccessToken(user);
 		LoginResponse response = new LoginResponse();
@@ -1080,20 +1221,21 @@ public class UserServiceImpl implements UserService{
 		}
 
 		try {
-			Message message = new MimeMessage(session);
+			MimeMessage message = new MimeMessage(session);
 			message.setFrom(new InternetAddress(from));
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
-			message.setSubject("[LOCAL QUEST] 임시 비밀번호 안내");
-			message.setText(
-				String.format(
-					"%s님,%n%n임시 비밀번호를 발급해드립니다.%n%n임시 비밀번호: %s%n%n로그인 후 반드시 비밀번호를 변경해 주세요.%n감사합니다.%nLOCAL QUEST 드림",
-					trimToEmpty(name).isEmpty() ? "회원" : trimToEmpty(name),
-					temporaryPassword
-				)
+			String safeName = trimToEmpty(name).isEmpty() ? "회원" : trimToEmpty(name);
+			String mailSubject = "[LOCAL QUEST] 임시 비밀번호 안내";
+			String mailBody = String.format(
+				"%s님%n%n임시 비밀번호를 발급해드립니다.%n%n임시 비밀번호: %s%n%n로그인 후 반드시 비밀번호를 변경해주세요.%n감사합니다.%nLOCAL QUEST 드림",
+				safeName,
+				temporaryPassword
 			);
+			message.setSubject(mailSubject, "UTF-8");
+			message.setText(mailBody, "UTF-8");
 			Transport.send(message);
 		} catch (MessagingException e) {
-			throw new IllegalStateException("이메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+			throw new IllegalStateException("이메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
 		}
 	}
 
@@ -1106,7 +1248,7 @@ public class UserServiceImpl implements UserService{
 		String value = readConfig(envKey, propertyKey);
 		if (value.isEmpty()) {
 			throw new IllegalStateException(
-				String.format("메일 설정이 누락되었습니다. %s 또는 %s 값을 설정해 주세요.", envKey, propertyKey)
+				String.format("메일 설정이 누락되었습니다. %s 또는 %s 값을 설정해주세요.", envKey, propertyKey)
 			);
 		}
 		return value;
@@ -1181,7 +1323,7 @@ public class UserServiceImpl implements UserService{
         roleMap.put("userId", userId);
         roleMap.put("newRole", normalizedRole);
         
-        // 업데이트 결과 행 수가 1이면 성공(true) 반환
+        // 업데이트 결과값이 1이면 성공(true) 반환
         return userDAO.updateUserRole(roleMap) == 1;
     }
 
@@ -1207,5 +1349,3 @@ public class UserServiceImpl implements UserService{
         return "ACTIVE".equals(status) || "WITHDRAWN".equals(status) || "INACTIVE".equals(status);
     }
 }
-
-

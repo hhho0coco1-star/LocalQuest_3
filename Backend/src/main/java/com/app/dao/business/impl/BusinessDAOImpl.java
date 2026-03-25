@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.app.dao.business.BusinessDAO;
+import com.app.dto.business.BusinessDashboardDTO;
 import com.app.dto.business.BusinessDTO;
+import com.app.dto.business.BusinessHourlyAuthDTO;
 
 @Repository
 public class BusinessDAOImpl implements BusinessDAO {
@@ -36,6 +38,16 @@ public class BusinessDAOImpl implements BusinessDAO {
     @Override
     public Map<String, Object> getBusinessAuthSummary(int businessId) {
         return sqlSessionTemplate.selectOne(NAMESPACE + ".getBusinessAuthSummary", businessId);
+    }
+
+    @Override
+    public BusinessDashboardDTO getBusinessDashboardByBusinessId(int businessId) {
+        return sqlSessionTemplate.selectOne(NAMESPACE + ".getBusinessDashboardByBusinessId", businessId);
+    }
+
+    @Override
+    public List<BusinessHourlyAuthDTO> getBusinessHourlyAuthCounts(int businessId) {
+        return sqlSessionTemplate.selectList(NAMESPACE + ".getBusinessHourlyAuthCounts", businessId);
     }
 
     @Override

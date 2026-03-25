@@ -1,12 +1,17 @@
 package com.app.dao.userquest.impl;
 
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.app.dao.userquest.UserQuestDAO;
+import com.app.dto.userquest.UserQuestDetailDTO;
+import com.app.dto.userquest.UserQuestDetailLocationDTO;
 import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestSummaryDTO;
 
@@ -22,6 +27,13 @@ public class UserQuestDAOImpl implements UserQuestDAO {
         return result;
     }
 
+    @Override
+    public UserQuestDTO findLatestUserQuestByUserIdAndQuestId(int userId, int questId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("questId", questId);
+        return sqlSessionTemplate.selectOne("userquest_mapper.findLatestUserQuestByUserIdAndQuestId", params);
+    }
     @Override
     public UserQuestDTO findUserQuestByUserIdAndQuestId(UserQuestDTO userQuest) {
         return sqlSessionTemplate.selectOne("userquest_mapper.findUserQuestByUserIdAndQuestId", userQuest);
@@ -40,5 +52,67 @@ public class UserQuestDAOImpl implements UserQuestDAO {
     @Override
     public List<UserQuestSummaryDTO> findUserQuestSummariesByUserId(int userId) {
         return sqlSessionTemplate.selectList("userquest_mapper.findUserQuestSummariesByUserId", userId);
+    }
+
+    @Override
+    public UserQuestDetailDTO findUserQuestDetailByUserQuestId(int userQuestId) {
+        return sqlSessionTemplate.selectOne("userquest_mapper.findUserQuestDetailByUserQuestId", userQuestId);
+    }
+
+    @Override
+    public List<UserQuestDetailLocationDTO> findUserQuestDetailLocationsByUserQuestId(int userQuestId) {
+        return sqlSessionTemplate.selectList(
+            "userquest_mapper.findUserQuestDetailLocationsByUserQuestId",
+            userQuestId
+        );
+    }
+
+    @Override
+    public int countTotalLocationsByUserQuestId(int userQuestId) {
+        Integer count = sqlSessionTemplate.selectOne(
+            "userquest_mapper.countTotalLocationsByUserQuestId",
+            userQuestId
+        );
+        return count == null ? 0 : count;
+    }
+
+    @Override
+    public int countCompletedLocationsByUserQuestId(int userQuestId) {
+        Integer count = sqlSessionTemplate.selectOne(
+            "userquest_mapper.countCompletedLocationsByUserQuestId",
+            userQuestId
+        );
+        return count == null ? 0 : count;
+    }
+
+    @Override
+    public int updateUserQuestStatusAndCompletedAt(int userQuestId, String status, Date completedAt) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userQuestId", userQuestId);
+        params.put("status", status);
+        params.put("completedAt", completedAt);
+        return sqlSessionTemplate.update("userquest_mapper.updateUserQuestStatusAndCompletedAt", params);
+    }
+
+    @Override
+    public int updateUserQuestLifecycle(
+        int userQuestId,
+        String status,
+        java.time.LocalDateTime startedAt,
+        java.time.LocalDateTime dueAt,
+        Date completedAt
+    ) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userQuestId", userQuestId);
+        params.put("status", status);
+        params.put("startedAt", startedAt);
+        params.put("dueAt", dueAt);
+        params.put("completedAt", completedAt);
+        return sqlSessionTemplate.update("userquest_mapper.updateUserQuestLifecycle", params);
+    }
+
+    @Override
+    public int deleteUserQuest(int userQuestId) {
+        return sqlSessionTemplate.delete("userquest_mapper.deleteUserQuest", userQuestId);
     }
 }

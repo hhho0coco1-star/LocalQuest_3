@@ -51,6 +51,11 @@ public class LocationDAOImpl implements LocationDAO {
         return sqlSessionTemplate.delete("location_mapper.deleteUnusedLocationsByIds", locationIds);
     }
 
+    @Override
+    public String findActiveQrAuthKeyByLocationId(int locationId) {
+        return sqlSessionTemplate.selectOne("location_mapper.findActiveQrAuthKeyByLocationId", locationId);
+    }
+
     private boolean isLocationSequenceUnavailable(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {

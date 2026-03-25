@@ -1,0 +1,248 @@
+.business-page {
+  min-height: calc(100vh - 180px);
+  padding: 30px 18px 60px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #f4f7fb 0%, #edf2f9 100%);
+}
+
+.business-card {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid #d8e1ee;
+  background: #f7faff;
+  color: #0d2243;
+}
+
+.business-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.business-title-wrap h1 {
+  margin: 0;
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 900;
+}
+
+.business-title-wrap h1::before {
+  content: 'PARTNER CENTER';
+  display: block;
+  margin-bottom: 10px;
+  color: #f14662;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  font-weight: 800;
+}
+
+.business-subtitle {
+  margin: 10px 0 0;
+  color: #5f6f86;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.business-notice {
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid #d8e1ef;
+  background: #f3f6fb;
+  padding: 12px 14px;
+  color: #5f6f86;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.business-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.business-metric-card {
+  border-radius: 16px;
+  border: 1px solid #d6dfea;
+  background: #f8fbff;
+  padding: 14px 16px 16px;
+  min-height: 114px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.business-metric-card.is-highlight {
+  background: #0d1d42;
+  border-color: #0d1d42;
+}
+
+.business-metric-label {
+  margin: 0;
+  font-size: 12px;
+  color: #8293ab;
+  font-weight: 700;
+}
+
+.business-metric-card.is-highlight .business-metric-label {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.business-metric-value {
+  margin-top: 10px;
+  font-size: clamp(23px, 2vw, 39px);
+  line-height: 1.1;
+  color: #0f2242;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+
+.business-metric-card.is-highlight .business-metric-value {
+  color: #ffffff;
+}
+
+.business-main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 14px;
+}
+
+.business-chart-panel,
+.business-store-panel {
+  border: 1px solid #d2dbea;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.business-chart-panel h2,
+.business-store-panel h2 {
+  margin: 0 0 14px;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.business-chart-box {
+  height: 360px;
+  border-radius: 12px;
+  border: 1px solid #dce5f2;
+  background: linear-gradient(180deg, #f7faff 0%, #eff4fb 100%);
+  overflow: hidden;
+}
+
+.business-chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.business-grid-lines line {
+  stroke: #d9e2ef;
+  stroke-width: 1;
+}
+
+.business-chart-fill {
+  fill: rgba(242, 61, 93, 0.09);
+}
+
+.business-chart-line {
+  fill: none;
+  stroke: #ff3a61;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.business-chart-labels text {
+  fill: #7b8ca4;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.business-store-fields {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.business-field-row {
+  display: grid;
+  gap: 6px;
+}
+
+.business-field-label {
+  color: #7d8ca3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.business-field-value {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #d1dbe9;
+  border-radius: 11px;
+  background: #f3f6fb;
+  padding: 0 12px;
+  color: #1c2d4d;
+  font-size: 15px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.business-primary-btn {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #f23d5d;
+  padding: 12px 18px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  background: #f23d5d;
+  color: #ffffff;
+}
+
+@media (max-width: 1240px) {
+  .business-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .business-main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .business-page {
+    padding: 20px 12px 36px;
+  }
+
+  .business-card {
+    padding: 14px;
+  }
+
+  .business-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .business-chart-panel h2,
+  .business-store-panel h2 {
+    font-size: 22px;
+  }
+
+  .business-chart-box {
+    height: 300px;
+  }
+}
+
+@media (max-width: 640px) {
+  .business-grid {
+    grid-template-columns: 1fr;
+  }
+}

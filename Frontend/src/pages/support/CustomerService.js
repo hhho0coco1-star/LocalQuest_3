@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { inquiryApi } from '../../api/InquiryApi';
 import '../../styles/CustomerService.css';
 
 const faqData = [
@@ -56,28 +58,59 @@ const noticeData = [
   }
 ];
 
-const mockLoginUser = {
-  isLoggedIn: true,
-  memberId: 'user001',
-  memberName: '홍길동'
+const TAB_BY_PATH = {
+  '/support': 'notice',
+  '/support/notice': 'notice',
+  '/support/faq': 'faq',
+  '/support/contact': 'contact'
+};
+
+const PATH_BY_TAB = {
+  notice: '/support/notice',
+  faq: '/support/faq',
+  contact: '/support/contact'
+};
+
+const resolveTab = (location) => {
+  if (location.state?.tab) {
+    return location.state.tab;
+  }
+  return TAB_BY_PATH[location.pathname] || 'notice';
 };
 
 const CustomerService = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'notice');
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const authUser = useSelector((state) => state.auth.user);
+
+  const isInquiryUserReady = isAuthenticated && Number(authUser?.userId) > 0;
+  const inquiryMemberName = authUser?.name || authUser?.nickname || '회원';
+  const inquiryMemberId = authUser?.userLoginId || authUser?.email || (authUser?.userId ? `USER-${authUser.userId}` : '-');
+
+  const [activeTab, setActiveTab] = useState(resolveTab(location));
   const [openNoticeId, setOpenNoticeId] = useState(null);
   const [openFaqId, setOpenFaqId] = useState(null);
   const [inquiryForm, setInquiryForm] = useState({
     title: '',
     content: ''
   });
-  const [submittedInquiry, setSubmittedInquiry] = useState(null);
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
+  const [inquirySubmitError, setInquirySubmitError] = useState('');
+  const [inquirySubmitMessage, setInquirySubmitMessage] = useState('');
 
   useEffect(() => {
-    if (location.state?.tab) {
-      setActiveTab(location.state.tab);
+    setActiveTab(resolveTab(location));
+  }, [location]);
+
+  const handleTabClick = (tab) => {
+    const nextPath = PATH_BY_TAB[tab] || '/support';
+    setActiveTab(tab);
+
+    if (location.pathname !== nextPath) {
+      navigate(nextPath, { state: { tab } });
     }
-  }, [location.state]);
+  };
 
   const handleInquiryChange = (e) => {
     const { name, value } = e.target;
@@ -87,8 +120,17 @@ const CustomerService = () => {
     }));
   };
 
-  const handleInquirySubmit = (e) => {
+  const handleInquirySubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmittingInquiry) {
+      return;
+    }
+
+    if (!isInquiryUserReady) {
+      navigate(`/login?redirect=${encodeURIComponent('/support/contact')}`);
+      return;
+    }
 
     const trimmedTitle = inquiryForm.title.trim();
     const trimmedContent = inquiryForm.content.trim();
@@ -98,21 +140,28 @@ const CustomerService = () => {
       return;
     }
 
-    const inquiryPayload = {
-      memberId: mockLoginUser.memberId,
-      memberName: mockLoginUser.memberName,
-      title: trimmedTitle,
-      content: trimmedContent,
-      status: 'WAITING',
-      createdAt: new Date().toISOString()
-    };
+    setInquirySubmitError('');
+    setInquirySubmitMessage('');
 
-    console.log('1:1 문의 등록 데이터', inquiryPayload);
-    setSubmittedInquiry(inquiryPayload);
-    setInquiryForm({
-      title: '',
-      content: ''
-    });
+    try {
+      setIsSubmittingInquiry(true);
+      await inquiryApi.createInquiry({
+        title: trimmedTitle,
+        content: trimmedContent
+      });
+      setInquiryForm({
+        title: '',
+        content: ''
+      });
+      setInquirySubmitMessage('문의가 등록되었습니다. 마이페이지에서 답변 상태를 확인할 수 있습니다.');
+    } catch (error) {
+      const message =
+        error.response?.data?.message ??
+        '문의 등록에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      setInquirySubmitError(message);
+    } finally {
+      setIsSubmittingInquiry(false);
+    }
   };
 
   return (
@@ -125,19 +174,19 @@ const CustomerService = () => {
       <div className="cs-tab-menu">
         <button
           className={activeTab === 'notice' ? 'active' : ''}
-          onClick={() => setActiveTab('notice')}
+          onClick={() => handleTabClick('notice')}
         >
           공지사항
         </button>
         <button
           className={activeTab === 'faq' ? 'active' : ''}
-          onClick={() => setActiveTab('faq')}
+          onClick={() => handleTabClick('faq')}
         >
           자주 묻는 질문
         </button>
         <button
           className={activeTab === 'contact' ? 'active' : ''}
-          onClick={() => setActiveTab('contact')}
+          onClick={() => handleTabClick('contact')}
         >
           1:1 문의
         </button>
@@ -216,11 +265,11 @@ const CustomerService = () => {
             <h3>1:1 문의</h3>
             <p>문의 내용을 남겨주시면 관리자가 확인 후 답변할 수 있도록 전달됩니다.</p>
 
-            {mockLoginUser.isLoggedIn ? (
+            {isInquiryUserReady ? (
               <div className="inquiry-section">
                 <div className="inquiry-user-box">
-                  <strong>{mockLoginUser.memberName}</strong>
-                  <span>{mockLoginUser.memberId}</span>
+                  <strong>{inquiryMemberName}</strong>
+                  <span>{inquiryMemberId}</span>
                 </div>
 
                 <form className="inquiry-form" onSubmit={handleInquirySubmit}>
@@ -249,25 +298,21 @@ const CustomerService = () => {
                     onChange={handleInquiryChange}
                   />
 
-                  <button type="submit" className="inquiry-submit-btn">
-                    문의 등록
+                  <button type="submit" className="inquiry-submit-btn" disabled={isSubmittingInquiry}>
+                    {isSubmittingInquiry ? '등록 중...' : '문의 등록'}
                   </button>
                 </form>
-
-                {submittedInquiry && (
-                  <div className="inquiry-preview-box">
-                    <h4>등록 예정 문의 데이터</h4>
-                    <p><strong>작성자:</strong> {submittedInquiry.memberName} ({submittedInquiry.memberId})</p>
-                    <p><strong>제목:</strong> {submittedInquiry.title}</p>
-                    <p><strong>상태:</strong> {submittedInquiry.status}</p>
-                    <p><strong>내용:</strong> {submittedInquiry.content}</p>
-                  </div>
-                )}
+                {inquirySubmitError ? <p className="inquiry-status-message is-error">{inquirySubmitError}</p> : null}
+                {inquirySubmitMessage ? <p className="inquiry-status-message is-success">{inquirySubmitMessage}</p> : null}
               </div>
             ) : (
               <div className="inquiry-login-guide">
                 <p>1:1 문의는 로그인한 회원만 작성할 수 있습니다.</p>
-                <button type="button" className="inquiry-login-btn">
+                <button
+                  type="button"
+                  className="inquiry-login-btn"
+                  onClick={() => navigate(`/login?redirect=${encodeURIComponent('/support/contact')}`)}
+                >
                   로그인 하러 가기
                 </button>
               </div>

@@ -1,0 +1,267 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+           "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="push_mapper">
+
+    <select id="findNotificationSettingByUserId" parameterType="int" resultType="UserNotificationSettingDTO">
+        SELECT
+            SETTING_ID AS settingId,
+            USER_ID AS userId,
+            PUSH_AGREE AS pushAgree,
+            MARKETING_AGREE AS marketingAgree,
+            LUNCH_PUSH_AGREE AS lunchPushAgree,
+            DINNER_PUSH_AGREE AS dinnerPushAgree,
+            WEEKEND_PUSH_AGREE AS weekendPushAgree,
+            PREFERRED_TIMEZONE AS preferredTimezone,
+            UPDATED_AT AS updatedAt,
+            CREATED_AT AS createdAt
+        FROM LQ_USER_NOTIFICATION_SETTING
+        WHERE USER_ID = #{value}
+    </select>
+
+    <insert id="insertNotificationSetting" parameterType="UserNotificationSettingDTO">
+        INSERT INTO LQ_USER_NOTIFICATION_SETTING (
+            SETTING_ID,
+            USER_ID,
+            PUSH_AGREE,
+            MARKETING_AGREE,
+            LUNCH_PUSH_AGREE,
+            DINNER_PUSH_AGREE,
+            WEEKEND_PUSH_AGREE,
+            PREFERRED_TIMEZONE,
+            UPDATED_AT,
+            CREATED_AT
+        ) VALUES (
+            SEQ_LQ_USER_NOTIFICATION_SETTING_PK.NEXTVAL,
+            #{userId},
+            #{pushAgree},
+            #{marketingAgree},
+            #{lunchPushAgree},
+            #{dinnerPushAgree},
+            #{weekendPushAgree},
+            #{preferredTimezone},
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+    <update id="updateNotificationSetting" parameterType="UserNotificationSettingDTO">
+        UPDATE LQ_USER_NOTIFICATION_SETTING
+        SET
+            PUSH_AGREE = #{pushAgree},
+            MARKETING_AGREE = #{marketingAgree},
+            LUNCH_PUSH_AGREE = #{lunchPushAgree},
+            DINNER_PUSH_AGREE = #{dinnerPushAgree},
+            WEEKEND_PUSH_AGREE = #{weekendPushAgree},
+            PREFERRED_TIMEZONE = #{preferredTimezone},
+            UPDATED_AT = SYSDATE
+        WHERE USER_ID = #{userId}
+    </update>
+
+    <select id="findSubscriptionByUserAndEndpoint" parameterType="map" resultType="PushSubscriptionDTO">
+        SELECT
+            SUBSCRIPTION_ID AS subscriptionId,
+            USER_ID AS userId,
+            ENDPOINT AS endpoint,
+            P256DH_KEY AS p256dhKey,
+            AUTH_KEY AS authKey,
+            DEVICE_TYPE AS deviceType,
+            BROWSER_NAME AS browserName,
+            USER_AGENT AS userAgent,
+            IS_ACTIVE AS isActive,
+            LAST_SUCCESS_AT AS lastSuccessAt,
+            LAST_FAIL_AT AS lastFailAt,
+            FAIL_COUNT AS failCount,
+            CREATED_AT AS createdAt,
+            UPDATED_AT AS updatedAt
+        FROM LQ_PUSH_SUBSCRIPTION
+        WHERE USER_ID = #{userId}
+          AND ENDPOINT = #{endpoint}
+    </select>
+
+    <insert id="insertSubscription" parameterType="PushSubscriptionDTO">
+        INSERT INTO LQ_PUSH_SUBSCRIPTION (
+            SUBSCRIPTION_ID,
+            USER_ID,
+            ENDPOINT,
+            P256DH_KEY,
+            AUTH_KEY,
+            DEVICE_TYPE,
+            BROWSER_NAME,
+            USER_AGENT,
+            IS_ACTIVE,
+            FAIL_COUNT,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            SEQ_LQ_PUSH_SUBSCRIPTION_PK.NEXTVAL,
+            #{userId},
+            #{endpoint},
+            #{p256dhKey},
+            #{authKey},
+            #{deviceType},
+            #{browserName},
+            #{userAgent},
+            #{isActive},
+            #{failCount},
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+    <update id="updateSubscription" parameterType="PushSubscriptionDTO">
+        UPDATE LQ_PUSH_SUBSCRIPTION
+        SET
+            P256DH_KEY = #{p256dhKey},
+            AUTH_KEY = #{authKey},
+            DEVICE_TYPE = #{deviceType},
+            BROWSER_NAME = #{browserName},
+            USER_AGENT = #{userAgent},
+            IS_ACTIVE = #{isActive},
+            FAIL_COUNT = #{failCount},
+            UPDATED_AT = SYSDATE
+        WHERE SUBSCRIPTION_ID = #{subscriptionId}
+    </update>
+
+    <update id="deactivateSubscriptionByUserAndEndpoint" parameterType="map">
+        UPDATE LQ_PUSH_SUBSCRIPTION
+        SET
+            IS_ACTIVE = 'N',
+            UPDATED_AT = SYSDATE
+        WHERE USER_ID = #{userId}
+          AND ENDPOINT = #{endpoint}
+          AND IS_ACTIVE = 'Y'
+    </update>
+
+    <select id="findActiveSubscriptionsByUserId" parameterType="int" resultType="PushSubscriptionDTO">
+        SELECT
+            SUBSCRIPTION_ID AS subscriptionId,
+            USER_ID AS userId,
+            ENDPOINT AS endpoint,
+            P256DH_KEY AS p256dhKey,
+            AUTH_KEY AS authKey,
+            DEVICE_TYPE AS deviceType,
+            BROWSER_NAME AS browserName,
+            USER_AGENT AS userAgent,
+            IS_ACTIVE AS isActive,
+            LAST_SUCCESS_AT AS lastSuccessAt,
+            LAST_FAIL_AT AS lastFailAt,
+            FAIL_COUNT AS failCount,
+            CREATED_AT AS createdAt,
+            UPDATED_AT AS updatedAt
+        FROM LQ_PUSH_SUBSCRIPTION
+        WHERE USER_ID = #{value}
+          AND IS_ACTIVE = 'Y'
+        ORDER BY SUBSCRIPTION_ID DESC
+    </select>
+
+    <select id="findDispatchTargets" parameterType="string" resultType="PushDispatchTargetDTO">
+        SELECT
+            PS.USER_ID AS userId,
+            PS.SUBSCRIPTION_ID AS subscriptionId,
+            PS.ENDPOINT AS endpoint,
+            PS.P256DH_KEY AS p256dhKey,
+            PS.AUTH_KEY AS authKey,
+            UNS.PREFERRED_TIMEZONE AS preferredTimezone
+        FROM LQ_PUSH_SUBSCRIPTION PS
+        JOIN LQ_USER_NOTIFICATION_SETTING UNS
+          ON PS.USER_ID = UNS.USER_ID
+        JOIN LQ_USER U
+          ON U.USER_ID = PS.USER_ID
+        WHERE PS.IS_ACTIVE = 'Y'
+          AND UNS.PUSH_AGREE = 'Y'
+          AND U.STATUS = 'ACTIVE'
+        <choose>
+            <when test="_parameter == 'LUNCH'">
+                AND UNS.LUNCH_PUSH_AGREE = 'Y'
+            </when>
+            <when test="_parameter == 'DINNER'">
+                AND UNS.DINNER_PUSH_AGREE = 'Y'
+            </when>
+            <when test="_parameter == 'WEEKEND'">
+                AND UNS.WEEKEND_PUSH_AGREE = 'Y'
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countTodaySuccessForSubscription" parameterType="map" resultType="int">
+        SELECT COUNT(1)
+        FROM LQ_NOTIFICATION_LOG
+        WHERE SUBSCRIPTION_ID = #{subscriptionId}
+          AND NOTIFICATION_TYPE = #{notificationType}
+          AND SEND_STATUS = 'SUCCESS'
+          AND TRUNC(SENT_AT) = TRUNC(SYSDATE)
+    </select>
+
+    <select id="nextNotificationLogId" resultType="long">
+        SELECT SEQ_LQ_NOTIFICATION_LOG_PK.NEXTVAL
+        FROM DUAL
+    </select>
+
+    <insert id="insertNotificationLog" parameterType="NotificationLogDTO">
+        INSERT INTO LQ_NOTIFICATION_LOG (
+            NOTIFICATION_ID,
+            USER_ID,
+            SUBSCRIPTION_ID,
+            NOTIFICATION_TYPE,
+            TITLE,
+            BODY,
+            TARGET_URL,
+            SEND_STATUS,
+            FAIL_REASON,
+            SENT_AT,
+            CLICKED_AT,
+            CREATED_AT
+        ) VALUES (
+            #{notificationId},
+            #{userId},
+            #{subscriptionId},
+            #{notificationType},
+            #{title},
+            #{body},
+            #{targetUrl},
+            #{sendStatus},
+            #{failReason},
+            #{sentAt},
+            #{clickedAt},
+            SYSDATE
+        )
+    </insert>
+
+    <update id="markNotificationClicked" parameterType="long">
+        UPDATE LQ_NOTIFICATION_LOG
+        SET CLICKED_AT = SYSDATE
+        WHERE NOTIFICATION_ID = #{value}
+          AND CLICKED_AT IS NULL
+    </update>
+
+    <update id="markSubscriptionSuccess" parameterType="long">
+        UPDATE LQ_PUSH_SUBSCRIPTION
+        SET
+            LAST_SUCCESS_AT = SYSDATE,
+            FAIL_COUNT = 0,
+            IS_ACTIVE = 'Y',
+            UPDATED_AT = SYSDATE
+        WHERE SUBSCRIPTION_ID = #{value}
+    </update>
+
+    <update id="markSubscriptionFailure" parameterType="map">
+        UPDATE LQ_PUSH_SUBSCRIPTION
+        SET
+            LAST_FAIL_AT = SYSDATE,
+            FAIL_COUNT = NVL(FAIL_COUNT, 0) + 1,
+            IS_ACTIVE = CASE
+                WHEN #{forceDeactivate} = 'Y' THEN 'N'
+                WHEN NVL(FAIL_COUNT, 0) + 1 >= 5 THEN 'N'
+                ELSE IS_ACTIVE
+            END,
+            UPDATED_AT = SYSDATE
+        WHERE SUBSCRIPTION_ID = #{subscriptionId}
+    </update>
+
+</mapper>

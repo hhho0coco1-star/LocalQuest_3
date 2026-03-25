@@ -76,6 +76,29 @@
 		WHERE BUSINESS_ID = #{businessId}
 	</select>
 
+	<select id="getBusinessDashboardByBusinessId" parameterType="int" resultType="BusinessDashboardDTO">
+		SELECT
+			COUNT(*) AS totalAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS qrAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS receiptAuthCount,
+			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS totalPaymentAmount,
+			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS totalSettlementAmount,
+			MAX(CREATED_AT) AS lastAuthAt,
+			COUNT(DISTINCT USER_ID) AS authUserCount,
+			COUNT(DISTINCT LOCATION_ID) AS authLocationCount
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
+	</select>
+
+	<select id="getBusinessHourlyAuthCounts" parameterType="int" resultType="BusinessHourlyAuthDTO">
+		SELECT
+			TO_NUMBER(TO_CHAR(CREATED_AT, 'HH24')) AS hourOfDay,
+			COUNT(*) AS authCount
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
+		GROUP BY TO_CHAR(CREATED_AT, 'HH24')
+		ORDER BY TO_CHAR(CREATED_AT, 'HH24')
+	</select>
 	<insert id="saveBusiness" parameterType="BusinessDTO">
 		INSERT INTO LQ_BUSINESS (
 		business_id,

@@ -9,6 +9,7 @@
 			r.REVIEW_ID as reviewId,
 			r.USER_ID as userId,
 			r.QUEST_ID as questId,
+			q.TITLE as questTitle,
 			r.RATING as rating,
 			r.CONTENT as content,
 			r.CREATED_AT as createdAt,
@@ -16,7 +17,28 @@
 		FROM LQ_QUEST_REVIEW r
 		INNER JOIN LQ_USER u
 			ON r.USER_ID = u.USER_ID
+		INNER JOIN LQ_QUEST q
+			ON r.QUEST_ID = q.QUEST_ID
 		WHERE r.QUEST_ID = #{questId}
+		ORDER BY r.CREATED_AT DESC, r.REVIEW_ID DESC
+	</select>
+
+	<select id="selectQuestReviewsByUserId" parameterType="int" resultType="com.app.dto.questreview.QuestReviewListItemDTO">
+		SELECT
+			r.REVIEW_ID as reviewId,
+			r.USER_ID as userId,
+			r.QUEST_ID as questId,
+			q.TITLE as questTitle,
+			r.RATING as rating,
+			r.CONTENT as content,
+			r.CREATED_AT as createdAt,
+			NVL(u.NICKNAME, u.NAME) as authorName
+		FROM LQ_QUEST_REVIEW r
+		INNER JOIN LQ_USER u
+			ON r.USER_ID = u.USER_ID
+		INNER JOIN LQ_QUEST q
+			ON r.QUEST_ID = q.QUEST_ID
+		WHERE r.USER_ID = #{userId}
 		ORDER BY r.CREATED_AT DESC, r.REVIEW_ID DESC
 	</select>
 

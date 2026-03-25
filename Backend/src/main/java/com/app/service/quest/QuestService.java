@@ -7,6 +7,7 @@ import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestDetailDTO;
 import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 
 public interface QuestService {
     List<QuestDTO> getAdminQuestList();
@@ -16,6 +17,8 @@ public interface QuestService {
     List<String> getQuestCategories();
 
     List<QuestMapDTO> getQuestMapList();
+
+    List<QuestTopRatedDTO> getTopRatedQuests(int limit);
 
     QuestDTO getQuestById(int questId);
 
