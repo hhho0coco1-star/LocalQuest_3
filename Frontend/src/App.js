@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -24,6 +25,16 @@ const resolveSafeRedirectPath = (value) => {
 
   return value.startsWith('/') ? value : '/main';
 };
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function AppRoutes({ isAuthenticated }) {
   const location = useLocation();
@@ -81,6 +92,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <AppRoutes isAuthenticated={isAuthenticated} />
     </Router>
   );
