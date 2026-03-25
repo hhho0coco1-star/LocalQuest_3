@@ -185,7 +185,7 @@ public class UserQuestServiceImpl implements UserQuestService {
             throw new NoSuchElementException("\uC720\uD6A8\uD55C \u0051\u0052 \uCF54\uB4DC\uAC00 \uC544\uB2D9\uB2C8\uB2E4\u002E");
         }
 
-        List<UserQuestQrVerificationTargetDTO> tardgets =
+        List<UserQuestQrVerificationTargetDTO> targets =
             userQuestProgressDAO.findQrVerificationTargets(userId, locationQr.getLocationId());
 
         QrVerificationResponseDTO response = new QrVerificationResponseDTO();
@@ -209,7 +209,7 @@ public class UserQuestServiceImpl implements UserQuestService {
             QrVerificationQuestResultDTO result = new QrVerificationQuestResultDTO();
             result.setUserQuestId(target.getUserQuestId());
             result.setQuestId(target.getQuestId());
-            result.setQuestTitle(target.getQuestTitled());
+            result.setQuestTitle(target.getQuestTitle());
             result.setLocationId(target.getLocationId());
             result.setLocationName(target.getLocationName());
             result.setVisitOrder(target.getVisitOrder());
