@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.app.dao.location.LocationDAO;
 import com.app.dao.quest.QuestDAO;
 import com.app.dao.receipt.ReceiptDAO;
 import com.app.dao.user.UserDAO;
@@ -52,6 +54,10 @@ public class UserQuestServiceImpl implements UserQuestService {
     private static final String USER_QUEST_STATUS_IN_PROGRESS = "IN_PROGRESS";
     private static final String USER_QUEST_STATUS_COMPLETED = "COMPLETED";
     private static final String USER_QUEST_STATUS_ABANDONED = "ABANDONED";
+    private static final String LOCATION_TYPE_VISIT = "VISIT";
+    private static final String LOCATION_TYPE_EXPERIENCE = "EXPERIENCE";
+    private static final String LOCATION_TYPE_PURCHASE = "PURCHASE";
+    private static final double GPS_VERIFY_RADIUS_METERS = 120.0;
 
     @Autowired
     private UserQuestDAO userQuestDAO;
@@ -61,6 +67,9 @@ public class UserQuestServiceImpl implements UserQuestService {
 
     @Autowired
     private QuestDAO questDAO;
+
+    @Autowired
+    private LocationDAO locationDAO;
 
     @Autowired
     private ReceiptDAO receiptDAO;
@@ -470,6 +479,80 @@ public class UserQuestServiceImpl implements UserQuestService {
         return response;
     }
 
+    @Override
+    @Transactional
+    public Map<String, Object> verifyGpsAndCompleteLocation(
+        int userId,
+        int userQuestId,
+        int questLocationId,
+        Double latitude,
+        Double longitude
+    ) {
+        if (latitude == null || longitude == null) {
+            throw new IllegalArgumentException("현재 위치 정보를 확인할 수 없습니다.");
+        }
+
+        VerificationContext context = requireVerificationContext(userId, userQuestId, questLocationId);
+        UserQuestDetailLocationDTO targetLocation = context.getTargetLocation();
+        ensureLocationType(targetLocation, LOCATION_TYPE_VISIT);
+
+        if (targetLocation.getLatitude() == null || targetLocation.getLongitude() == null) {
+            throw new IllegalStateException("GPS 인증을 위한 장소 좌표가 없습니다.");
+        }
+
+        double distanceMeters = calculateDistanceMeters(
+            latitude,
+            longitude,
+            targetLocation.getLatitude(),
+            targetLocation.getLongitude()
+        );
+
+        if (distanceMeters > GPS_VERIFY_RADIUS_METERS) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("verified", false);
+            response.put("distanceMeters", Math.round(distanceMeters));
+            response.put("message", "방문 위치가 확인되지 않았습니다.");
+            response.put("reason", "목표 장소 반경 " + (int) GPS_VERIFY_RADIUS_METERS + "m 이내에서 다시 시도해 주세요.");
+            response.put("detail", context.getDetail());
+            return response;
+        }
+
+        return completeLocationVerification(userId, userQuestId, questLocationId, "GPS 인증이 완료되었습니다.");
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> verifyQrAndCompleteLocation(
+        int userId,
+        int userQuestId,
+        int questLocationId,
+        String qrAuthKey
+    ) {
+        if (qrAuthKey == null || qrAuthKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("QR 인증값을 입력해 주세요.");
+        }
+
+        VerificationContext context = requireVerificationContext(userId, userQuestId, questLocationId);
+        UserQuestDetailLocationDTO targetLocation = context.getTargetLocation();
+        ensureLocationType(targetLocation, LOCATION_TYPE_EXPERIENCE);
+
+        String savedAuthKey = locationDAO.findActiveQrAuthKeyByLocationId(targetLocation.getLocationId());
+        if (savedAuthKey == null || savedAuthKey.trim().isEmpty()) {
+            throw new IllegalStateException("등록된 QR 인증 정보가 없습니다.");
+        }
+
+        if (!savedAuthKey.trim().equalsIgnoreCase(qrAuthKey.trim())) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("verified", false);
+            response.put("message", "QR 인증에 실패했습니다.");
+            response.put("reason", "QR 인증값이 올바르지 않습니다.");
+            response.put("detail", context.getDetail());
+            return response;
+        }
+
+        return completeLocationVerification(userId, userQuestId, questLocationId, "QR 인증이 완료되었습니다.");
+    }
+
     private UserQuestDetailLocationDTO findTargetLocation(UserQuestDetailDTO detail, int questLocationId) {
         if (detail.getLocations() == null) {
             return null;
@@ -481,6 +564,126 @@ public class UserQuestServiceImpl implements UserQuestService {
             }
         }
         return null;
+    }
+
+    private VerificationContext requireVerificationContext(int userId, int userQuestId, int questLocationId) {
+        UserQuestDetailDTO detail = getUserQuestDetail(userId, userQuestId);
+        if (detail == null) {
+            throw new IllegalArgumentException("퀘스트 정보를 찾을 수 없습니다.");
+        }
+
+        if (USER_QUEST_STATUS_ABANDONED.equalsIgnoreCase(detail.getQuestStatus())) {
+            throw new IllegalArgumentException("취소된 퀘스트는 인증할 수 없습니다.");
+        }
+
+        UserQuestDetailLocationDTO targetLocation = findTargetLocation(detail, questLocationId);
+        if (targetLocation == null) {
+            throw new IllegalArgumentException("인증할 장소 정보를 찾을 수 없습니다.");
+        }
+
+        Integer userQuestProgressId = targetLocation.getUserQuestProgressId();
+        if (userQuestProgressId == null) {
+            throw new IllegalStateException("퀘스트 진행 정보가 없습니다.");
+        }
+
+        if (targetLocation.getIsCompleted() == 1) {
+            return new VerificationContext(detail, targetLocation, userQuestProgressId, true);
+        }
+
+        return new VerificationContext(detail, targetLocation, userQuestProgressId, false);
+    }
+
+    private void ensureLocationType(UserQuestDetailLocationDTO targetLocation, String expectedLocationType) {
+        String actualLocationType = normalizeLocationType(targetLocation.getLocationType());
+        if (!expectedLocationType.equals(actualLocationType)) {
+            throw new IllegalArgumentException("선택한 장소의 인증 방식과 요청이 일치하지 않습니다.");
+        }
+    }
+
+    private String normalizeLocationType(String locationType) {
+        if (locationType == null || locationType.trim().isEmpty()) {
+            return LOCATION_TYPE_VISIT;
+        }
+        return locationType.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private Map<String, Object> completeLocationVerification(
+        int userId,
+        int userQuestId,
+        int questLocationId,
+        String successMessage
+    ) {
+        VerificationContext context = requireVerificationContext(userId, userQuestId, questLocationId);
+        if (context.isAlreadyCompleted()) {
+            Map<String, Object> alreadyCompleted = new HashMap<>();
+            alreadyCompleted.put("verified", true);
+            alreadyCompleted.put("message", "이미 인증이 완료된 장소입니다.");
+            alreadyCompleted.put("detail", context.getDetail());
+            return alreadyCompleted;
+        }
+
+        Date completedAt = new Date();
+        userQuestProgressDAO.upsertCompletedProgress(userQuestId, questLocationId, completedAt);
+        userQuestDAO.updateUserQuestStatusAndCompletedAt(userQuestId, USER_QUEST_STATUS_IN_PROGRESS, null);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("verified", true);
+        response.put("message", successMessage);
+        response.put("detail", getUserQuestDetail(userId, userQuestId));
+        return response;
+    }
+
+    private double calculateDistanceMeters(
+        double latitude1,
+        double longitude1,
+        double latitude2,
+        double longitude2
+    ) {
+        double earthRadiusMeters = 6371000.0;
+        double latDistance = Math.toRadians(latitude2 - latitude1);
+        double lonDistance = Math.toRadians(longitude2 - longitude1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+            + Math.cos(Math.toRadians(latitude1))
+            * Math.cos(Math.toRadians(latitude2))
+            * Math.sin(lonDistance / 2)
+            * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadiusMeters * c;
+    }
+
+    private static class VerificationContext {
+        private final UserQuestDetailDTO detail;
+        private final UserQuestDetailLocationDTO targetLocation;
+        private final Integer userQuestProgressId;
+        private final boolean alreadyCompleted;
+
+        private VerificationContext(
+            UserQuestDetailDTO detail,
+            UserQuestDetailLocationDTO targetLocation,
+            Integer userQuestProgressId,
+            boolean alreadyCompleted
+        ) {
+            this.detail = detail;
+            this.targetLocation = targetLocation;
+            this.userQuestProgressId = userQuestProgressId;
+            this.alreadyCompleted = alreadyCompleted;
+        }
+
+        private UserQuestDetailDTO getDetail() {
+            return detail;
+        }
+
+        private UserQuestDetailLocationDTO getTargetLocation() {
+            return targetLocation;
+        }
+
+        private Integer getUserQuestProgressId() {
+            return userQuestProgressId;
+        }
+
+        private boolean isAlreadyCompleted() {
+            return alreadyCompleted;
+        }
     }
 
     private void applyQuestReward(UserQuestDetailDTO detail) {

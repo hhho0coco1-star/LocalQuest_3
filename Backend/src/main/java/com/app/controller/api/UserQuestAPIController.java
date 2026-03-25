@@ -120,4 +120,62 @@ public class UserQuestAPIController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Collections.singletonMap("message", e.getMessage()));
         }
     }
+
+    @PostMapping("/me/{userQuestId}/locations/{questLocationId}/gps-verification")
+    public ResponseEntity<?> verifyGps(
+        HttpSession session,
+        @PathVariable int userQuestId,
+        @PathVariable int questLocationId,
+        @RequestParam("latitude") Double latitude,
+        @RequestParam("longitude") Double longitude
+    ) {
+        if (session == null || session.getAttribute(SessionAuthKeys.USER_ID) == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login required");
+        }
+
+        int userId = ((Number) session.getAttribute(SessionAuthKeys.USER_ID)).intValue();
+        try {
+            return ResponseEntity.ok(
+                userQuestService.verifyGpsAndCompleteLocation(
+                    userId,
+                    userQuestId,
+                    questLocationId,
+                    latitude,
+                    longitude
+                )
+            );
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Collections.singletonMap("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/me/{userQuestId}/locations/{questLocationId}/qr-verification")
+    public ResponseEntity<?> verifyQr(
+        HttpSession session,
+        @PathVariable int userQuestId,
+        @PathVariable int questLocationId,
+        @RequestParam("qrAuthKey") String qrAuthKey
+    ) {
+        if (session == null || session.getAttribute(SessionAuthKeys.USER_ID) == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login required");
+        }
+
+        int userId = ((Number) session.getAttribute(SessionAuthKeys.USER_ID)).intValue();
+        try {
+            return ResponseEntity.ok(
+                userQuestService.verifyQrAndCompleteLocation(
+                    userId,
+                    userQuestId,
+                    questLocationId,
+                    qrAuthKey
+                )
+            );
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Collections.singletonMap("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
 }

@@ -29,6 +29,22 @@ public interface UserQuestService {
         int questLocationId,
         MultipartFile receiptImage
     );
+
+    public Map<String, Object> verifyGpsAndCompleteLocation(
+        int userId,
+        int userQuestId,
+        int questLocationId,
+        Double latitude,
+        Double longitude
+    );
+
+    public Map<String, Object> verifyQrAndCompleteLocation(
+        int userId,
+        int userQuestId,
+        int questLocationId,
+        String qrAuthKey
+    );
+
     Map<String, Object> acceptQuest(int userId, int questId);
 
     UserQuestSummaryDTO getUserQuestSummary(int userId, int questId);

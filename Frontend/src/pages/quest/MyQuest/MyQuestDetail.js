@@ -41,6 +41,22 @@ const getQuestStatusLabel = (status) => {
 const hasValidCoordinates = (location) =>
   Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
 
+const normalizeLocationType = (locationType) => {
+  if (!locationType) return 'VISIT';
+  return String(locationType).trim().toUpperCase();
+};
+
+const getVerificationLabel = (locationType) => {
+  switch (normalizeLocationType(locationType)) {
+    case 'EXPERIENCE':
+      return 'QR 인증';
+    case 'PURCHASE':
+      return '영수증 인증';
+    default:
+      return 'GPS 인증';
+  }
+};
+
 const loadKakaoMapSdk = (appKey) =>
   new Promise((resolve, reject) => {
     if (!appKey) {
@@ -103,11 +119,16 @@ function MyQuestDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedQrLocation, setSelectedQrLocation] = useState(null);
   const [selectedReceiptFile, setSelectedReceiptFile] = useState(null);
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState('');
   const [receiptError, setReceiptError] = useState('');
   const [receiptUploads, setReceiptUploads] = useState({});
   const [isSubmittingReceipt, setIsSubmittingReceipt] = useState(false);
+  const [qrAuthKey, setQrAuthKey] = useState('');
+  const [qrError, setQrError] = useState('');
+  const [isSubmittingQr, setIsSubmittingQr] = useState(false);
+  const [isSubmittingGps, setIsSubmittingGps] = useState(false);
   const [receiptFailure, setReceiptFailure] = useState(null);
   const [isCompletingQuest, setIsCompletingQuest] = useState(false);
   const [isCancelingQuest, setIsCancelingQuest] = useState(false);
@@ -221,7 +242,25 @@ function MyQuestDetail() {
     setSelectedLocation(location);
   };
 
+  const closeQrModal = (options = {}) => {
+    const { force = false } = options;
+    if (isSubmittingQr && !force) return;
+    setSelectedQrLocation(null);
+    setQrAuthKey('');
+    setQrError('');
+  };
+
+  const openQrModal = (location) => {
+    closeQrModal({ force: true });
+    setReceiptFailure(null);
+    setSelectedQrLocation(location);
+  };
+
   const closeReceiptFailureModal = () => setReceiptFailure(null);
+
+  const openVerificationFailure = (locationName, message, reason = '') => {
+    setReceiptFailure({ locationName, message, reason });
+  };
 
   const openMapModal = (location) => {
     if (!hasValidCoordinates(location)) return;
@@ -290,6 +329,92 @@ function MyQuestDetail() {
     } finally {
       setIsSubmittingReceipt(false);
     }
+  };
+
+  const handleGpsVerification = async (location) => {
+    if (!location || isSubmittingGps) return;
+    if (!navigator.geolocation) {
+      openVerificationFailure(location.name, '이 기기에서는 위치 인증을 지원하지 않습니다.');
+      return;
+    }
+
+    try {
+      setIsSubmittingGps(true);
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const response = await questApi.verifyQuestGps(
+        userQuestId,
+        location.questLocationId,
+        position.coords.latitude,
+        position.coords.longitude
+      );
+      const result = response.data || {};
+      if (result.verified) {
+        if (result.detail) setDetail(result.detail);
+        alert(result.message || 'GPS 인증이 완료되었습니다.');
+        return;
+      }
+      openVerificationFailure(location.name, result.message || 'GPS 인증에 실패했습니다.', result.reason || '');
+    } catch (gpsError) {
+      const message = gpsError.response?.data?.message || '현재 위치를 확인하는 중 오류가 발생했습니다.';
+      openVerificationFailure(location.name, message);
+    } finally {
+      setIsSubmittingGps(false);
+    }
+  };
+
+  const handleQrSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedQrLocation || isSubmittingQr) return;
+    if (!qrAuthKey.trim()) {
+      setQrError('QR 인증값을 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsSubmittingQr(true);
+      setQrError('');
+      const response = await questApi.verifyQuestQr(
+        userQuestId,
+        selectedQrLocation.questLocationId,
+        qrAuthKey.trim()
+      );
+      const result = response.data || {};
+      if (result.verified) {
+        if (result.detail) setDetail(result.detail);
+        closeQrModal({ force: true });
+        alert(result.message || 'QR 인증이 완료되었습니다.');
+        return;
+      }
+
+      const failureLocationName = selectedQrLocation.name;
+      closeQrModal({ force: true });
+      openVerificationFailure(failureLocationName, result.message || 'QR 인증에 실패했습니다.', result.reason || '');
+    } catch (qrSubmitError) {
+      const message = qrSubmitError.response?.data?.message || 'QR 인증 중 오류가 발생했습니다.';
+      setQrError(message);
+    } finally {
+      setIsSubmittingQr(false);
+    }
+  };
+
+  const handleVerifyClick = (location) => {
+    const locationType = normalizeLocationType(location?.locationType);
+    if (locationType === 'PURCHASE') {
+      openReceiptModal(location);
+      return;
+    }
+    if (locationType === 'EXPERIENCE') {
+      openQrModal(location);
+      return;
+    }
+    handleGpsVerification(location);
   };
 
   const handleCompleteQuest = async () => {
@@ -481,7 +606,8 @@ function MyQuestDetail() {
                             <span className="my-quest-detail-completed-at">완료일 {formatDateTime(location.completedAt)}</span>
                           ) : (
                             <div className="my-quest-detail-verification">
-                              <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); openReceiptModal(location); }}>{uploadedReceipt ? '영수증 다시 올리기' : '인증하기'}</button>
+                              <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationType(location.locationType) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationType)} 하기`}</button>
+                              <span className="my-quest-detail-type-note">{getVerificationLabel(location.locationType)}</span>
                               {uploadedReceipt ? <span className="my-quest-detail-uploaded-note">영수증 업로드됨: {uploadedReceipt.fileName}</span> : null}
                             </div>
                           )}
@@ -512,6 +638,36 @@ function MyQuestDetail() {
               <div className="my-quest-receipt-actions">
                 <button type="button" className="my-quest-receipt-cancel" onClick={closeReceiptModal} disabled={isSubmittingReceipt}>취소</button>
                 <button type="submit" className="my-quest-receipt-submit" disabled={isSubmittingReceipt}>{isSubmittingReceipt ? '인증 확인 중...' : '영수증 업로드'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {selectedQrLocation ? (
+        <div className="my-quest-receipt-modal-overlay" onClick={() => closeQrModal()}>
+          <div className="my-quest-receipt-result-modal my-quest-qr-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="my-quest-receipt-modal-head">
+              <div>
+                <span className="my-quest-receipt-chip">QR 인증</span>
+                <h2>{selectedQrLocation.name}</h2>
+              </div>
+              <button type="button" className="my-quest-receipt-close" onClick={() => closeQrModal()}>x</button>
+            </div>
+            <p className="my-quest-receipt-copy">현장 QR에 표시된 인증값을 입력하면 체험형 장소 인증이 완료됩니다.</p>
+            <form className="my-quest-review-form" onSubmit={handleQrSubmit}>
+              <input
+                className="my-quest-qr-input"
+                type="text"
+                value={qrAuthKey}
+                onChange={(event) => setQrAuthKey(event.target.value)}
+                placeholder="QR 인증값 입력"
+                autoFocus
+              />
+              {qrError ? <p className="my-quest-receipt-error">{qrError}</p> : null}
+              <div className="my-quest-receipt-actions">
+                <button type="button" className="my-quest-receipt-cancel" onClick={() => closeQrModal()} disabled={isSubmittingQr}>취소</button>
+                <button type="submit" className="my-quest-receipt-submit" disabled={isSubmittingQr}>{isSubmittingQr ? '확인 중..' : 'QR 인증하기'}</button>
               </div>
             </form>
           </div>

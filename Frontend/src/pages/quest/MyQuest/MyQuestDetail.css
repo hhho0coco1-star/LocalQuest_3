@@ -177,6 +177,12 @@
   font-weight: 700;
 }
 
+.my-quest-detail-type-note {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .my-quest-receipt-modal-overlay {
   position: fixed;
   inset: 0;
@@ -368,6 +374,25 @@
 .my-quest-receipt-submit {
   background: #0f766e;
   color: #ffffff;
+}
+
+.my-quest-qr-modal {
+  width: min(100%, 480px);
+}
+
+.my-quest-qr-input {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 18px;
+  color: #0f172a;
+  font: inherit;
+}
+
+.my-quest-qr-input:focus {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
 }
 
 .my-quest-review-modal-overlay {

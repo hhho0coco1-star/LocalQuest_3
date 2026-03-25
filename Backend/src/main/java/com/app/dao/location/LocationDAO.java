@@ -10,4 +10,6 @@ public interface LocationDAO {
     public int saveLocation(LocationDTO location);
 
     public int deleteUnusedLocationsByIds(List<Integer> locationIds);
+
+    String findActiveQrAuthKeyByLocationId(int locationId);
 }
