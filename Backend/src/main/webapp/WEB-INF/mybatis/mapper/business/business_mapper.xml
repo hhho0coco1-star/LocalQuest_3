@@ -68,16 +68,7 @@
 			SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END) AS receiptAuthCount,
 			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS totalPaymentAmount,
 			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS totalSettlementAmount,
-			(
-				SELECT latest.CREATED_AT
-				FROM (
-					SELECT CREATED_AT
-					FROM LQ_BUSINESS_AUTH_LOG
-					WHERE BUSINESS_ID = #{businessId}
-					ORDER BY CREATED_AT DESC
-				) latest
-				WHERE ROWNUM = 1
-			) AS lastAuthAt,
+			MAX(CREATED_AT) AS lastAuthAt,
 			COUNT(DISTINCT USER_ID) AS authUserCount,
 			COUNT(DISTINCT LOCATION_ID) AS authLocationCount
 		FROM LQ_BUSINESS_AUTH_LOG

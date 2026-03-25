@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.app.dto.business.BusinessDTO;
 import com.app.dto.business.BusinessDashboardDTO;
@@ -20,6 +22,7 @@ import com.app.service.user.auth.JwtTokenProvider;
 @RestController
 @RequestMapping("/api/businesses")
 public class BusinessAPIController {
+    private static final Logger log = LoggerFactory.getLogger(BusinessAPIController.class);
 
     @Autowired
     private BusinessService businessService;
@@ -33,15 +36,23 @@ public class BusinessAPIController {
     ) {
         Integer userId = jwtTokenProvider.resolveUserIdFromAuthorizationHeader(authorizationHeader);
         if (userId == null || userId.intValue() <= 0) {
+            log.warn("Business dashboard unauthorized request. userId={}", userId);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Collections.singletonMap("message", "Unauthorized"));
         }
 
         BusinessDTO business = businessService.getBusinessByUserId(userId.intValue());
         if (business == null) {
+            log.warn("Business dashboard business not found. userId={}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Collections.singletonMap("message", "Business not found"));
         }
+
+        log.info(
+            "Business dashboard request accepted. userId={}, businessId={}",
+            userId,
+            business.getBusinessId()
+        );
 
         BusinessDashboardDTO dashboard = new BusinessDashboardDTO();
         dashboard.setHourlyAuthCounts(Collections.emptyList());
@@ -60,10 +71,33 @@ public class BusinessAPIController {
             );
         } catch (Exception e) {
             if (!isAuthLogUnavailable(e)) {
+                log.error(
+                    "Business dashboard load failed. userId={}, businessId={}",
+                    userId,
+                    business.getBusinessId(),
+                    e
+                );
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Collections.singletonMap("message", "Failed to load business dashboard"));
             }
+            log.warn(
+                "Business auth log table unavailable. userId={}, businessId={}, reason={}",
+                userId,
+                business.getBusinessId(),
+                e.getMessage()
+            );
         }
+
+        int hourlyPointCount = dashboard.getHourlyAuthCounts() == null ? 0 : dashboard.getHourlyAuthCounts().size();
+        log.info(
+            "Business dashboard loaded. userId={}, businessId={}, totalAuthCount={}, qrAuthCount={}, receiptAuthCount={}, hourlyPoints={}",
+            userId,
+            business.getBusinessId(),
+            dashboard.getTotalAuthCount(),
+            dashboard.getQrAuthCount(),
+            dashboard.getReceiptAuthCount(),
+            hourlyPointCount
+        );
 
         BusinessOverviewDTO response = new BusinessOverviewDTO();
         response.setBusiness(business);
@@ -78,7 +112,6 @@ public class BusinessAPIController {
             if (message != null) {
                 String upper = message.toUpperCase(Locale.ROOT);
                 if (upper.contains("LQ_BUSINESS_AUTH_LOG")
-                    || upper.contains("BUSINESS_MAPPER.GETBUSINESSDASHBOARDBYBUSINESSID")
                     || upper.contains("ORA-00942")
                     || upper.contains("TABLE OR VIEW DOES NOT EXIST")) {
                     return true;
