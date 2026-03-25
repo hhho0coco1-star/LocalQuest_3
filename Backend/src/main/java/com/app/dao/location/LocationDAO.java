@@ -14,4 +14,6 @@ public interface LocationDAO {
     public int updateRepresentativeLocation(LocationDTO location);
 
     public int deleteUnusedLocationsByIds(List<Integer> locationIds);
+
+    String findActiveQrAuthKeyByLocationId(int locationId);
 }

@@ -141,4 +141,12 @@
 			WHERE ql.LOCATION_ID = l.LOCATION_ID
 		)
 	</delete>
+
+	<select id="findActiveQrAuthKeyByLocationId" parameterType="int" resultType="string">
+		SELECT QR_AUTH_KEY
+		FROM LQ_LOCATION_QR
+		WHERE LOCATION_ID = #{_parameter}
+		  AND NVL(IS_ACTIVE, 0) = 1
+		  AND ROWNUM = 1
+	</select>
 </mapper>

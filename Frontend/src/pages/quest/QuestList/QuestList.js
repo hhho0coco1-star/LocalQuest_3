@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import QuestCard from '../../../components/quest/QuestCard';
@@ -28,6 +28,8 @@ function QuestList() {
   const [questList, setQuestList] = useState([]);
   const [acceptedQuestIds, setAcceptedQuestIds] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState(ALL_FILTER);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [acceptingQuestId, setAcceptingQuestId] = useState(null);
@@ -129,14 +131,46 @@ function QuestList() {
     }
   };
 
-  const filterOptions = [ALL_FILTER, ...new Set(questList.map((quest) => quest.category))];
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    setSearchKeyword(searchInput.trim());
+  };
+
+  const handleSearchReset = () => {
+    setSearchInput('');
+    setSearchKeyword('');
+  };
+
+  const filterOptions = useMemo(
+    () => [ALL_FILTER, ...new Set(questList.map((quest) => quest.category))],
+    [questList]
+  );
+
   const visibleQuestList = isAuthenticated
     ? questList.filter((quest) => !acceptedQuestIds.includes(Number(quest.id)))
     : questList;
+
+  const searchedQuestList = useMemo(() => {
+    if (!searchKeyword) {
+      return visibleQuestList;
+    }
+
+    const normalizedKeyword = searchKeyword.toLowerCase();
+    return visibleQuestList.filter((quest) => {
+      const title = (quest.title || '').toLowerCase();
+      const description = (quest.description || '').toLowerCase();
+      const category = (quest.category || '').toLowerCase();
+
+      return title.includes(normalizedKeyword) ||
+        description.includes(normalizedKeyword) ||
+        category.includes(normalizedKeyword);
+    });
+  }, [searchKeyword, visibleQuestList]);
+
   const filteredQuestList =
     selectedFilter === ALL_FILTER
-      ? visibleQuestList
-      : visibleQuestList.filter((quest) => quest.category === selectedFilter);
+      ? searchedQuestList
+      : searchedQuestList.filter((quest) => quest.category === selectedFilter);
 
   return (
     <div className="quest-list-page">
@@ -154,20 +188,40 @@ function QuestList() {
         </section>
 
         <section className="quest-list-toolbar">
-          <div>
+          <div className="quest-list-toolbar-copy">
             <h2>{selectedFilter === ALL_FILTER ? '전체 퀘스트' : `${selectedFilter} 퀘스트`}</h2>
+            <p>
+              {searchKeyword
+                ? `"${searchKeyword}" 검색 결과입니다.`
+                : '제목, 설명, 카테고리로 원하는 퀘스트를 빠르게 찾아보세요.'}
+            </p>
           </div>
-          <div className="quest-list-filters">
-            {filterOptions.map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                className={selectedFilter === filter ? 'active' : ''}
-                onClick={() => setSelectedFilter(filter)}
-              >
-                {filter}
+          <div className="quest-list-toolbar-actions">
+            <form className="quest-list-search" onSubmit={handleSearchSubmit}>
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="퀘스트 검색"
+                aria-label="퀘스트 검색"
+              />
+              <button type="submit">검색</button>
+              <button type="button" className="ghost" onClick={handleSearchReset}>
+                초기화
               </button>
-            ))}
+            </form>
+            <div className="quest-list-filters">
+              {filterOptions.map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  className={selectedFilter === filter ? 'active' : ''}
+                  onClick={() => setSelectedFilter(filter)}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -194,7 +248,7 @@ function QuestList() {
           ) : (
             <div className="quest-list-empty">
               <h3>표시할 퀘스트가 없습니다.</h3>
-              <p>이미 수락했거나 완료한 퀘스트는 목록에서 숨겨집니다.</p>
+              <p>검색어나 카테고리를 바꿔서 다시 확인해보세요.</p>
             </div>
           )}
         </section>

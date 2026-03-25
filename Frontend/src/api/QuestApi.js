@@ -10,6 +10,14 @@ export const questApi = {
   getMyQuestDetail: (userQuestId) => api.get(`/api/user-quests/me/${userQuestId}`),
   completeMyQuest: (userQuestId) => api.post(`/api/user-quests/me/${userQuestId}/complete`),
   cancelMyQuest: (userQuestId) => api.post(`/api/user-quests/me/${userQuestId}/cancel`),
+  verifyQuestGps: (userQuestId, questLocationId, latitude, longitude) =>
+    api.post(`/api/user-quests/me/${userQuestId}/locations/${questLocationId}/gps-verification`, null, {
+      params: { latitude, longitude },
+    }),
+  verifyQuestQr: (userQuestId, questLocationId, qrAuthKey) =>
+    api.post(`/api/user-quests/me/${userQuestId}/locations/${questLocationId}/qr-verification`, null, {
+      params: { qrAuthKey },
+    }),
   verifyQuestReceipt: (userQuestId, questLocationId, formData) =>
     api.post(
       `/api/user-quests/me/${userQuestId}/locations/${questLocationId}/receipt-verification`,
