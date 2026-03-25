@@ -41,13 +41,13 @@ const getQuestStatusLabel = (status) => {
 const hasValidCoordinates = (location) =>
   Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
 
-const normalizeLocationType = (locationType) => {
-  if (!locationType) return 'VISIT';
-  return String(locationType).trim().toUpperCase();
+const normalizeLocationCategory = (locationCategory) => {
+  if (!locationCategory) return 'VISIT';
+  return String(locationCategory).trim().toUpperCase();
 };
 
-const getVerificationLabel = (locationType) => {
-  switch (normalizeLocationType(locationType)) {
+const getVerificationLabel = (locationCategory) => {
+  switch (normalizeLocationCategory(locationCategory)) {
     case 'EXPERIENCE':
       return 'QR 인증';
     case 'PURCHASE':
@@ -405,12 +405,12 @@ function MyQuestDetail() {
   };
 
   const handleVerifyClick = (location) => {
-    const locationType = normalizeLocationType(location?.locationType);
-    if (locationType === 'PURCHASE') {
+    const locationCategory = normalizeLocationCategory(location?.locationCategory);
+    if (locationCategory === 'PURCHASE') {
       openReceiptModal(location);
       return;
     }
-    if (locationType === 'EXPERIENCE') {
+    if (locationCategory === 'EXPERIENCE') {
       openQrModal(location);
       return;
     }
@@ -535,7 +535,6 @@ function MyQuestDetail() {
           <section className="quest-detail-card">
             <div className="quest-detail-head">
               <div>
-                <span className="quest-detail-category">{detail.category}</span>
                 <h1>{detail.title}</h1>
                 <p>{detail.description}</p>
               </div>
@@ -606,8 +605,8 @@ function MyQuestDetail() {
                             <span className="my-quest-detail-completed-at">완료일 {formatDateTime(location.completedAt)}</span>
                           ) : (
                             <div className="my-quest-detail-verification">
-                              <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationType(location.locationType) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationType)} 하기`}</button>
-                              <span className="my-quest-detail-type-note">{getVerificationLabel(location.locationType)}</span>
+                              <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationCategory)} 하기`}</button>
+                              <span className="my-quest-detail-type-note">{getVerificationLabel(location.locationCategory)}</span>
                               {uploadedReceipt ? <span className="my-quest-detail-uploaded-note">영수증 업로드됨: {uploadedReceipt.fileName}</span> : null}
                             </div>
                           )}

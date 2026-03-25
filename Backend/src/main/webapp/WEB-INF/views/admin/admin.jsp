@@ -894,14 +894,6 @@
                     } else {
                         if (res.trim() === "fail:title_empty") {
                             alert("퀘스트 제목을 입력해 주세요.");
-                        } else if (res.trim() === "fail:category_empty") {
-                            alert("카테고리를 선택해 주세요.");
-                        } else if (res.trim() === "fail:category_invalid") {
-                            alert("선택한 카테고리가 DB에 없습니다. 카테고리 테이블 데이터를 먼저 등록해 주세요.");
-                        } else if (res.trim() === "fail:category_not_ready") {
-                            alert("퀘스트 카테고리 데이터가 없습니다. LQ_QUEST_CATEGORY 테이블에 카테고리를 먼저 등록해 주세요.");
-                        } else if (res.trim() === "fail:category_table_missing") {
-                            alert("퀘스트 카테고리 테이블을 찾을 수 없습니다. DB 스키마를 먼저 확인해 주세요.");
                         } else if (res.trim() === "fail:description_empty") {
                             alert("퀘스트 설명을 입력해 주세요.");
                         } else if (res.trim() === "fail:invalid_id") {
@@ -963,7 +955,6 @@
             $('#modalQuestId').val(data.id); 
             $('#modalQuestStatus').val(data.status || 'ACTIVE');
             $('#m_title').val(data.title);
-            $('#m_category').val(data.category);
             $('#m_exp').val(data.exp);
             $('#m_point').val(data.point);
             $('#m_desc').val(data.desc);
@@ -990,7 +981,6 @@
             editQuestModal({
                 id: $card.data('id'),
                 title: $.trim($card.find('.adm-q-card-title').text()),
-                category: $.trim($questCard.find('.adm-q-category').text()),
                 exp: $card.data('exp'),
                 point: $card.data('point'),
                 desc: $.trim($card.find('.adm-q-card-desc').text()),

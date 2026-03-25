@@ -32,7 +32,6 @@ function QuestCard({
         <span className={`quest-card-badge quest-card-badge-${difficultyClassName}`}>
           {difficultyLabel}
         </span>
-        <span className="quest-card-category">{quest.category}</span>
       </div>
 
       <div className="quest-card-content">

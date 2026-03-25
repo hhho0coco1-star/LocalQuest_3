@@ -578,6 +578,8 @@ public class UserQuestServiceImpl implements UserQuestService {
             return alreadyCompleted;
         }
 
+        ensureLocationCategory(targetLocation, LOCATION_TYPE_PURCHASE);
+
         String savedFilePath = saveReceiptImage(receiptImage, userQuestId, questLocationId);
         Map<String, Object> ocrResult = requestReceiptVerification(savedFilePath, targetLocation.getName());
 
@@ -585,7 +587,6 @@ public class UserQuestServiceImpl implements UserQuestService {
         saveReceipt(
             detail.getUserId(),
             userQuestProgressId,
-            detail.getCategory(),
             verified ? "SUCCESS" : "FAILED",
             savedFilePath,
             extractFileName(savedFilePath),
@@ -630,7 +631,7 @@ public class UserQuestServiceImpl implements UserQuestService {
 
         VerificationContext context = requireVerificationContext(userId, userQuestId, questLocationId);
         UserQuestDetailLocationDTO targetLocation = context.getTargetLocation();
-        ensureLocationType(targetLocation, LOCATION_TYPE_VISIT);
+        ensureLocationCategory(targetLocation, LOCATION_TYPE_VISIT);
 
         if (targetLocation.getLatitude() == null || targetLocation.getLongitude() == null) {
             throw new IllegalStateException("GPS 인증을 위한 장소 좌표가 없습니다.");
@@ -670,7 +671,7 @@ public class UserQuestServiceImpl implements UserQuestService {
 
         VerificationContext context = requireVerificationContext(userId, userQuestId, questLocationId);
         UserQuestDetailLocationDTO targetLocation = context.getTargetLocation();
-        ensureLocationType(targetLocation, LOCATION_TYPE_EXPERIENCE);
+        ensureLocationCategory(targetLocation, LOCATION_TYPE_EXPERIENCE);
 
         String savedAuthKey = locationDAO.findActiveQrAuthKeyByLocationId(targetLocation.getLocationId());
         if (savedAuthKey == null || savedAuthKey.trim().isEmpty()) {
@@ -729,18 +730,18 @@ public class UserQuestServiceImpl implements UserQuestService {
         return new VerificationContext(detail, targetLocation, userQuestProgressId, false);
     }
 
-    private void ensureLocationType(UserQuestDetailLocationDTO targetLocation, String expectedLocationType) {
-        String actualLocationType = normalizeLocationType(targetLocation.getLocationType());
-        if (!expectedLocationType.equals(actualLocationType)) {
+    private void ensureLocationCategory(UserQuestDetailLocationDTO targetLocation, String expectedLocationCategory) {
+        String actualLocationCategory = normalizeLocationCategory(targetLocation.getLocationCategory());
+        if (!expectedLocationCategory.equals(actualLocationCategory)) {
             throw new IllegalArgumentException("선택한 장소의 인증 방식과 요청이 일치하지 않습니다.");
         }
     }
 
-    private String normalizeLocationType(String locationType) {
-        if (locationType == null || locationType.trim().isEmpty()) {
+    private String normalizeLocationCategory(String locationCategory) {
+        if (locationCategory == null || locationCategory.trim().isEmpty()) {
             return LOCATION_TYPE_VISIT;
         }
-        return locationType.trim().toUpperCase(Locale.ROOT);
+        return locationCategory.trim().toUpperCase(Locale.ROOT);
     }
 
     private Map<String, Object> completeLocationVerification(
@@ -870,7 +871,6 @@ public class UserQuestServiceImpl implements UserQuestService {
     private void saveReceipt(
         int userId,
         int userQuestProgressId,
-        String category,
         String verifyStatus,
         String filePath,
         String fileUploadName,
@@ -879,7 +879,6 @@ public class UserQuestServiceImpl implements UserQuestService {
         ReceiptDTO receipt = new ReceiptDTO();
         receipt.setUserId(userId);
         receipt.setUserQuestProgressId(userQuestProgressId);
-        receipt.setCategory(category);
         receipt.setVerifyStatus(verifyStatus);
         receipt.setFilePath(filePath);
         receipt.setFileUploadName(fileUploadName);

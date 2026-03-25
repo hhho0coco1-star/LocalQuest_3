@@ -85,7 +85,6 @@
             uq.CREATED_AT AS createdAt,
             q.TITLE AS title,
             q.DESCRIPTION AS description,
-            q.CATEGORY AS category,
             q.REWARD_EXP AS rewardExp,
             q.REWARD_POINT AS rewardPoint,
             q.TIME_LIMIT AS timeLimit,
@@ -146,7 +145,6 @@
             uq.CREATED_AT AS createdAt,
             q.TITLE AS title,
             q.DESCRIPTION AS description,
-            q.CATEGORY AS category,
             q.REWARD_EXP AS rewardExp,
             q.REWARD_POINT AS rewardPoint,
             q.TIME_LIMIT AS timeLimit,
@@ -197,6 +195,7 @@
             l.LATITUDE AS latitude,
             l.LONGITUDE AS longitude,
             l.LOCATION_TYPE AS locationType,
+            l.LOCATION_CATEGORY AS locationCategory,
             l.DESCRIPTION AS description,
             NVL(uqp.IS_COMPLETED, 0) AS isCompleted,
             uqp.COMPLETED_AT AS completedAt

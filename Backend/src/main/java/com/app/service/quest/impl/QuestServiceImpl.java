@@ -46,11 +46,6 @@ public class QuestServiceImpl implements QuestService {
     }
 
     @Override
-    public List<String> getQuestCategories() {
-        return questDAO.selectQuestCategories();
-    }
-
-    @Override
     public List<QuestMapDTO> getQuestMapList() {
         return questDAO.selectQuestMapList();
     }
@@ -76,7 +71,6 @@ public class QuestServiceImpl implements QuestService {
         questDetail.setQuestId(quest.getQuestId());
         questDetail.setTitle(quest.getTitle());
         questDetail.setDescription(quest.getDescription());
-        questDetail.setCategory(quest.getCategory());
         questDetail.setRewardExp(quest.getRewardExp());
         questDetail.setRewardPoint(quest.getRewardPoint());
         questDetail.setTimeLimit(quest.getTimeLimit());
@@ -187,6 +181,7 @@ public class QuestServiceImpl implements QuestService {
                 location.setLatitude(locationInfo.getLatitude() == null ? 0D : locationInfo.getLatitude());
                 location.setLongitude(locationInfo.getLongitude() == null ? 0D : locationInfo.getLongitude());
                 location.setLocationType(locationInfo.getLocationType());
+                location.setLocationCategory(locationInfo.getLocationCategory());
                 location.setDescription(locationInfo.getDescription());
 
                 try {

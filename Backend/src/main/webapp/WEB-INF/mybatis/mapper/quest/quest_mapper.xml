@@ -5,18 +5,11 @@
 
 <mapper namespace="quest_mapper">
 
-    <select id="selectQuestCategories" resultType="string">
-        SELECT CATEGORY_NAME
-        FROM LQ_QUEST_CATEGORY
-        ORDER BY QUEST_CATEGORY_ID ASC
-    </select>
-
     <select id="selectAdminAllQuests" resultType="Quest">
         SELECT
             QUEST_ID as questId,
             TITLE as title,
             DESCRIPTION as description,
-            CATEGORY as category,
             REWARD_EXP as rewardExp,
             REWARD_POINT as rewardPoint,
             TIME_LIMIT as timeLimit,
@@ -31,7 +24,6 @@
             q.QUEST_ID as questId,
             q.TITLE as title,
             q.DESCRIPTION as description,
-            q.CATEGORY as category,
             q.REWARD_EXP as rewardExp,
             q.REWARD_POINT as rewardPoint,
             NVL(qr.AVERAGE_RATING, 0) as averageRating,
@@ -58,7 +50,6 @@
             QUEST_ID as questId,
             TITLE as title,
             DESCRIPTION as description,
-            CATEGORY as category,
             REWARD_EXP as rewardExp,
             REWARD_POINT as rewardPoint,
             TIME_LIMIT as timeLimit,
@@ -74,7 +65,6 @@
             q.QUEST_ID as questId,
             q.TITLE as title,
             q.DESCRIPTION as description,
-            q.CATEGORY as category,
             q.REWARD_EXP as rewardExp,
             q.REWARD_POINT as rewardPoint,
             q.TIME_LIMIT as timeLimit,
@@ -87,7 +77,8 @@
             l.ADDRESS_DETAIL as addressDetail,
             l.LATITUDE as latitude,
             l.LONGITUDE as longitude,
-            l.LOCATION_TYPE as locationType
+            l.LOCATION_TYPE as locationType,
+            l.LOCATION_CATEGORY as locationCategory
         FROM LQ_QUEST q
         INNER JOIN LQ_QUEST_LOCATION ql
             ON q.QUEST_ID = ql.QUEST_ID
@@ -111,7 +102,6 @@
                 q.QUEST_ID as questId,
                 q.TITLE as title,
                 q.DESCRIPTION as description,
-                q.CATEGORY as category,
                 q.REWARD_EXP as rewardExp,
                 q.REWARD_POINT as rewardPoint,
                 q.TIME_LIMIT as timeLimit,
@@ -125,6 +115,7 @@
                 l.LATITUDE as latitude,
                 l.LONGITUDE as longitude,
                 l.LOCATION_TYPE as locationType,
+                l.LOCATION_CATEGORY as locationCategory,
                 ROUND(NVL(AVG(r.RATING), 0), 1) as reviewAverage,
                 COUNT(r.REVIEW_ID) as reviewCount
             FROM LQ_QUEST q
@@ -144,7 +135,6 @@
                 q.QUEST_ID,
                 q.TITLE,
                 q.DESCRIPTION,
-                q.CATEGORY,
                 q.REWARD_EXP,
                 q.REWARD_POINT,
                 q.TIME_LIMIT,
@@ -157,7 +147,8 @@
                 l.ADDRESS_DETAIL,
                 l.LATITUDE,
                 l.LONGITUDE,
-                l.LOCATION_TYPE
+                l.LOCATION_TYPE,
+                l.LOCATION_CATEGORY
             ORDER BY
                 ROUND(NVL(AVG(r.RATING), 0), 1) DESC,
                 COUNT(r.REVIEW_ID) DESC,
@@ -171,7 +162,6 @@
             q.QUEST_ID as questId,
             q.TITLE as title,
             q.DESCRIPTION as description,
-            q.CATEGORY as category,
             q.REWARD_EXP as rewardExp,
             q.REWARD_POINT as rewardPoint,
             NVL(qr.AVERAGE_RATING, 0) as averageRating,
@@ -197,7 +187,6 @@
             QUEST_ID as questId,
             TITLE as title,
             DESCRIPTION as description,
-            CATEGORY as category,
             REWARD_EXP as rewardExp,
             REWARD_POINT as rewardPoint,
             TIME_LIMIT as timeLimit,
@@ -219,6 +208,7 @@
             l.LATITUDE as latitude,
             l.LONGITUDE as longitude,
             l.LOCATION_TYPE as locationType,
+            l.LOCATION_CATEGORY as locationCategory,
             l.DESCRIPTION as description
         FROM LQ_QUEST_LOCATION ql
         INNER JOIN LQ_LOCATION l
@@ -231,7 +221,6 @@
         UPDATE LQ_QUEST
         SET TITLE = #{title},
             DESCRIPTION = #{description},
-            CATEGORY = #{category},
             REWARD_EXP = #{rewardExp},
             REWARD_POINT = #{rewardPoint},
             TIME_LIMIT = #{timeLimit}
@@ -265,11 +254,11 @@
 			SELECT SEQ_LQ_QUEST_PK.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO LQ_QUEST (
-		QUEST_ID, TITLE, DESCRIPTION, CATEGORY, REWARD_EXP, REWARD_POINT, TIME_LIMIT, STATUS
+		QUEST_ID, TITLE, DESCRIPTION, REWARD_EXP, REWARD_POINT, TIME_LIMIT, STATUS
 		)
 		VALUES (
 		#{questId}, #{title}, #{description},
-		#{category}, #{rewardExp}, #{rewardPoint}, #{timeLimit}, NVL(#{status}, 'ACTIVE')
+		#{rewardExp}, #{rewardPoint}, #{timeLimit}, NVL(#{status}, 'ACTIVE')
 		)
 	</insert>
 
@@ -279,7 +268,6 @@
 		q.QUEST_ID as questId,
 		q.TITLE as title,
 		q.DESCRIPTION as description,
-		q.CATEGORY as category,
 		q.REWARD_EXP as rewardExp,
 		q.REWARD_POINT as rewardPoint,
 		NVL(qr.AVERAGE_RATING, 0) as averageRating,
@@ -313,7 +301,6 @@
 		QUEST_ID as questId,
 		TITLE as title,
 		DESCRIPTION as description,
-		CATEGORY as category,
 		REWARD_EXP as rewardExp,
 		REWARD_POINT as rewardPoint,
 		TIME_LIMIT as timeLimit,

@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.NoSuchElementException;
@@ -217,16 +216,6 @@ public class AdminController {
             questList = java.util.Collections.emptyList();
             questLoadError = "퀘스트 목록 조회 중 오류가 발생했습니다.";
         }
-        List<String> questCategoryList;
-        try {
-            questCategoryList = questService.getQuestCategories();
-            if (questCategoryList == null || questCategoryList.isEmpty()) {
-                questCategoryList = Arrays.asList("DAILY", "MAIN", "SUB", "EVENT");
-            }
-        } catch (Exception e) {
-            questCategoryList = Arrays.asList("DAILY", "MAIN", "SUB", "EVENT");
-        }
-        
         model.addAttribute("questList", questList);
         model.addAttribute("activeQuestList", activeQuestList);
         model.addAttribute("inactiveQuestList", inactiveQuestList);
@@ -234,7 +223,6 @@ public class AdminController {
         model.addAttribute("activeQuestCount", activeQuestList.size());
         model.addAttribute("inactiveQuestCount", inactiveQuestList.size());
         model.addAttribute("deletedQuestCount", deletedQuestList.size());
-        model.addAttribute("questCategoryList", questCategoryList);
         model.addAttribute("questLoadError", questLoadError);
         
         // 3. 검색 조건 유지
@@ -320,23 +308,8 @@ public class AdminController {
             if (quest.getTitle() == null || quest.getTitle().trim().isEmpty()) {
                 return "fail:title_empty";
             }
-            if (quest.getCategory() == null || quest.getCategory().trim().isEmpty()) {
-                return "fail:category_empty";
-            }
             if (quest.getDescription() == null || quest.getDescription().trim().isEmpty()) {
                 return "fail:description_empty";
-            }
-            List<String> questCategoryList = null;
-            try {
-                questCategoryList = questService.getQuestCategories();
-            } catch (Exception e) {
-                return "fail:category_table_missing";
-            }
-            if (questCategoryList == null || questCategoryList.isEmpty()) {
-                return "fail:category_not_ready";
-            }
-            if (!questCategoryList.contains(quest.getCategory())) {
-                return "fail:category_invalid";
             }
 
             List<QuestLocationInfoDTO> locations = parseQuestLocations(locationsJson);
@@ -389,23 +362,8 @@ public class AdminController {
             if (quest.getTitle() == null || quest.getTitle().trim().isEmpty()) {
                 return "fail:title_empty";
             }
-            if (quest.getCategory() == null || quest.getCategory().trim().isEmpty()) {
-                return "fail:category_empty";
-            }
             if (quest.getDescription() == null || quest.getDescription().trim().isEmpty()) {
                 return "fail:description_empty";
-            }
-            List<String> questCategoryList = null;
-            try {
-                questCategoryList = questService.getQuestCategories();
-            } catch (Exception e) {
-                return "fail:category_table_missing";
-            }
-            if (questCategoryList == null || questCategoryList.isEmpty()) {
-                return "fail:category_not_ready";
-            }
-            if (!questCategoryList.contains(quest.getCategory())) {
-                return "fail:category_invalid";
             }
 
             List<QuestLocationInfoDTO> locations = parseQuestLocations(locationsJson);

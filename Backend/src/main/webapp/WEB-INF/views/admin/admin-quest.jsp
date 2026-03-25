@@ -136,7 +136,6 @@
                             <c:forEach var="quest" items="${activeQuestList}">
                                 <div class="adm-q-card ${quest.status}">
                                     <div class="adm-q-card-header">
-                                        <span class="adm-q-category">${quest.category}</span>
                                         <span class="adm-q-status-badge">${quest.status}</span>
                                     </div>
 
@@ -148,7 +147,7 @@
                                         data-status="${quest.status}"
                                         onclick="openQuestEditFromCard(this)"
                                         style="cursor:pointer;"
-                                        title="?대┃?섏뿬 ?섏젙">
+                                        title="클릭하여 수정">
                                         <h3 class="adm-q-card-title">${quest.title}</h3>
                                         <p class="adm-q-card-desc">${quest.description}</p>
                                     </div>
@@ -166,16 +165,16 @@
                                             <i class="fas fa-hourglass-half time-icon quest-timer-icon"></i>
                                             <span class="quest-timer-text">
                                                 <c:choose>
-                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}遺??쒗븳</c:when>
-                                                    <c:otherwise>?쒗븳 ?놁쓬</c:otherwise>
+                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}분 제한</c:when>
+                                                    <c:otherwise>제한 없음</c:otherwise>
                                                 </c:choose>
                                             </span>
                                         </div>
                                     </div>
 
                                     <div class="adm-q-card-footer">
-                                        <button class="btn-q-stop" onclick="updateQuestStatus(${quest.questId}, 'INACTIVE')">鍮꾪솢?깊솕</button>
-                                        <button class="btn-q-delete" onclick="updateQuestStatus(${quest.questId}, 'DELETED')">??젣</button>
+                                        <button class="btn-q-stop" onclick="updateQuestStatus(${quest.questId}, 'INACTIVE')">비활성화</button>
+                                        <button class="btn-q-delete" onclick="updateQuestStatus(${quest.questId}, 'DELETED')">삭제</button>
                                     </div>
                                 </div>
                             </c:forEach>
@@ -204,7 +203,6 @@
                             <c:forEach var="quest" items="${inactiveQuestList}">
                                 <div class="adm-q-card ${quest.status}">
                                     <div class="adm-q-card-header">
-                                        <span class="adm-q-category">${quest.category}</span>
                                         <span class="adm-q-status-badge">${quest.status}</span>
                                     </div>
 
@@ -216,7 +214,7 @@
                                         data-status="${quest.status}"
                                         onclick="openQuestEditFromCard(this)"
                                         style="cursor:pointer;"
-                                        title="?대┃?섏뿬 ?섏젙">
+                                        title="클릭하여 수정">
                                         <h3 class="adm-q-card-title">${quest.title}</h3>
                                         <p class="adm-q-card-desc">${quest.description}</p>
                                     </div>
@@ -234,16 +232,16 @@
                                             <i class="fas fa-hourglass-half time-icon quest-timer-icon"></i>
                                             <span class="quest-timer-text">
                                                 <c:choose>
-                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}遺??쒗븳</c:when>
-                                                    <c:otherwise>?쒗븳 ?놁쓬</c:otherwise>
+                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}분 제한</c:when>
+                                                    <c:otherwise>제한 없음</c:otherwise>
                                                 </c:choose>
                                             </span>
                                         </div>
                                     </div>
 
                                     <div class="adm-q-card-footer">
-                                        <button class="btn-q-start" onclick="updateQuestStatus(${quest.questId}, 'ACTIVE')">?쒖꽦??/button>
-                                        <button class="btn-q-delete" onclick="updateQuestStatus(${quest.questId}, 'DELETED')">??젣</button>
+                                        <button class="btn-q-start" onclick="updateQuestStatus(${quest.questId}, 'ACTIVE')">활성화</button>
+                                        <button class="btn-q-delete" onclick="updateQuestStatus(${quest.questId}, 'DELETED')">삭제</button>
                                     </div>
                                 </div>
                             </c:forEach>
@@ -272,7 +270,6 @@
                             <c:forEach var="quest" items="${deletedQuestList}">
                                 <div class="adm-q-card ${quest.status}">
                                     <div class="adm-q-card-header">
-                                        <span class="adm-q-category">${quest.category}</span>
                                         <span class="adm-q-status-badge">${quest.status}</span>
                                     </div>
 
@@ -284,7 +281,7 @@
                                         data-status="${quest.status}"
                                         onclick="openQuestEditFromCard(this)"
                                         style="cursor:pointer;"
-                                        title="?대┃?섏뿬 ?섏젙">
+                                        title="클릭하여 수정">
                                         <h3 class="adm-q-card-title">${quest.title}</h3>
                                         <p class="adm-q-card-desc">${quest.description}</p>
                                     </div>
@@ -302,15 +299,15 @@
                                             <i class="fas fa-hourglass-half time-icon quest-timer-icon"></i>
                                             <span class="quest-timer-text">
                                                 <c:choose>
-                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}遺??쒗븳</c:when>
-                                                    <c:otherwise>?쒗븳 ?놁쓬</c:otherwise>
+                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}분 제한</c:when>
+                                                    <c:otherwise>제한 없음</c:otherwise>
                                                 </c:choose>
                                             </span>
                                         </div>
                                     </div>
 
                                     <div class="adm-q-card-footer">
-                                        <button class="btn-q-start" onclick="updateQuestStatus(${quest.questId}, 'ACTIVE')">蹂듦뎄</button>
+                                        <button class="btn-q-start" onclick="updateQuestStatus(${quest.questId}, 'ACTIVE')">복구</button>
                                     </div>
                                 </div>
                             </c:forEach>
@@ -330,7 +327,6 @@
                 <c:forEach var="quest" items="${questList}">
                     <div class="adm-q-card ${quest.status}">
                         <div class="adm-q-card-header">
-                            <span class="adm-q-category">${quest.category}</span>
                             <span class="adm-q-status-badge">${quest.status}</span>
                         </div>
 
@@ -406,15 +402,6 @@
                 <div class="input-group">
                     <label>퀘스트 제목</label>
                     <input type="text" id="m_title" name="title" placeholder="퀘스트 제목을 입력하세요." required>
-                </div>
-                <div class="input-group">
-                    <label>카테고리</label>
-                    <select id="m_category" name="category" required>
-                        <option value="">카테고리 선택</option>
-                        <c:forEach var="categoryName" items="${questCategoryList}">
-                            <option value="${categoryName}">${categoryName}</option>
-                        </c:forEach>
-                    </select>
                 </div>
                 <div class="input-group">
                     <label>보상 경험치(EXP)</label>

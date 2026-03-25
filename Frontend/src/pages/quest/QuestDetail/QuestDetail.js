@@ -87,7 +87,6 @@ const toQuestDetailModel = (quest) => {
 
   return {
     title: quest.title,
-    category: quest.category,
     difficulty: getDifficultyText(quest.rewardExp),
     locationSummary:
       locations.length > 0
@@ -314,7 +313,6 @@ function QuestDetail() {
           <section className="quest-detail-card">
             <div className="quest-detail-head">
               <div>
-                <span className="quest-detail-category">{quest.category}</span>
                 <h1>{quest.title}</h1>
                 <p>{quest.description}</p>
               </div>

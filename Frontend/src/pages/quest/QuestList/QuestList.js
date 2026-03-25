@@ -5,15 +5,12 @@ import QuestCard from '../../../components/quest/QuestCard';
 import { questApi } from '../../../api/QuestApi';
 import './QuestList.css';
 
-const ALL_FILTER = '전체';
-
 const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '제한 없음');
 
 const toQuestCardModel = (quest) => ({
   id: Number(quest.questId),
   title: quest.title,
   description: quest.description,
-  category: quest.category,
   difficultyKey: quest.rewardExp >= 300 ? 'hard' : quest.rewardExp >= 180 ? 'normal' : 'easy',
   difficultyLabel: quest.rewardExp >= 300 ? '어려움' : quest.rewardExp >= 180 ? '보통' : '쉬움',
   location: '위치 정보 준비 중',
@@ -27,7 +24,6 @@ function QuestList() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [questList, setQuestList] = useState([]);
   const [acceptedQuestIds, setAcceptedQuestIds] = useState([]);
-  const [selectedFilter, setSelectedFilter] = useState(ALL_FILTER);
   const [searchInput, setSearchInput] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(true);
@@ -141,11 +137,6 @@ function QuestList() {
     setSearchKeyword('');
   };
 
-  const filterOptions = useMemo(
-    () => [ALL_FILTER, ...new Set(questList.map((quest) => quest.category))],
-    [questList]
-  );
-
   const visibleQuestList = isAuthenticated
     ? questList.filter((quest) => !acceptedQuestIds.includes(Number(quest.id)))
     : questList;
@@ -159,18 +150,10 @@ function QuestList() {
     return visibleQuestList.filter((quest) => {
       const title = (quest.title || '').toLowerCase();
       const description = (quest.description || '').toLowerCase();
-      const category = (quest.category || '').toLowerCase();
 
-      return title.includes(normalizedKeyword) ||
-        description.includes(normalizedKeyword) ||
-        category.includes(normalizedKeyword);
+      return title.includes(normalizedKeyword) || description.includes(normalizedKeyword);
     });
   }, [searchKeyword, visibleQuestList]);
-
-  const filteredQuestList =
-    selectedFilter === ALL_FILTER
-      ? searchedQuestList
-      : searchedQuestList.filter((quest) => quest.category === selectedFilter);
 
   return (
     <div className="quest-list-page">
@@ -182,18 +165,18 @@ function QuestList() {
           </div>
 
           <div className="quest-list-summary-card">
-            <strong>{filteredQuestList.length}</strong>
+            <strong>{searchedQuestList.length}</strong>
             <span>진행 가능한 퀘스트</span>
           </div>
         </section>
 
         <section className="quest-list-toolbar">
           <div className="quest-list-toolbar-copy">
-            <h2>{selectedFilter === ALL_FILTER ? '전체 퀘스트' : `${selectedFilter} 퀘스트`}</h2>
+            <h2>전체 퀘스트</h2>
             <p>
               {searchKeyword
                 ? `"${searchKeyword}" 검색 결과입니다.`
-                : '제목, 설명, 카테고리로 원하는 퀘스트를 빠르게 찾아보세요.'}
+                : '제목과 설명으로 원하는 퀘스트를 빠르게 찾아보세요.'}
             </p>
           </div>
           <div className="quest-list-toolbar-actions">
@@ -210,18 +193,6 @@ function QuestList() {
                 초기화
               </button>
             </form>
-            <div className="quest-list-filters">
-              {filterOptions.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={selectedFilter === filter ? 'active' : ''}
-                  onClick={() => setSelectedFilter(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -234,8 +205,8 @@ function QuestList() {
             <div className="quest-list-empty">
               <h3>{error}</h3>
             </div>
-          ) : filteredQuestList.length > 0 ? (
-            filteredQuestList.map((quest) => (
+          ) : searchedQuestList.length > 0 ? (
+            searchedQuestList.map((quest) => (
               <QuestCard
                 key={quest.id}
                 quest={quest}
@@ -248,7 +219,7 @@ function QuestList() {
           ) : (
             <div className="quest-list-empty">
               <h3>표시할 퀘스트가 없습니다.</h3>
-              <p>검색어나 카테고리를 바꿔서 다시 확인해보세요.</p>
+              <p>검색어를 바꿔서 다시 확인해보세요.</p>
             </div>
           )}
         </section>
