@@ -98,6 +98,7 @@
                 <option value="">모든 상태</option>
                 <option value="ACTIVE" ${currentStatus == 'ACTIVE' ? 'selected' : ''}>활성화</option>
                 <option value="INACTIVE" ${currentStatus == 'INACTIVE' ? 'selected' : ''}>비활성화</option>
+                <option value="DELETED" ${currentStatus == 'DELETED' ? 'selected' : ''}>삭제됨</option>
             </select>
 
             <div class="adm-q-search-box">
@@ -118,7 +119,212 @@
         <div class="adm-q-empty">${questLoadError}</div>
     </c:if>
 
-    <div class="adm-q-grid">
+    <div class="adm-q-sections">
+        <c:if test="${empty currentStatus or currentStatus == 'ACTIVE'}">
+            <section class="adm-q-section adm-q-section-active">
+                <div class="adm-q-section-header">
+                    <div>
+                        <h3 class="adm-q-section-title">활성 퀘스트</h3>
+                        <p class="adm-q-section-subtitle">현재 사용자에게 노출되고 진행 가능한 퀘스트입니다.</p>
+                    </div>
+                    <span class="adm-q-section-count">${activeQuestCount}</span>
+                </div>
+
+                <c:choose>
+                    <c:when test="${not empty activeQuestList}">
+                        <div class="adm-q-grid">
+                            <c:forEach var="quest" items="${activeQuestList}">
+                                <div class="adm-q-card ${quest.status}">
+                                    <div class="adm-q-card-header">
+                                        <span class="adm-q-category">${quest.category}</span>
+                                        <span class="adm-q-status-badge">${quest.status}</span>
+                                    </div>
+
+                                    <div class="adm-q-card-body"
+                                        data-id="${quest.questId}"
+                                        data-exp="${quest.rewardExp}"
+                                        data-point="${quest.rewardPoint}"
+                                        data-time-limit="${quest.timeLimit}"
+                                        data-status="${quest.status}"
+                                        onclick="openQuestEditFromCard(this)"
+                                        style="cursor:pointer;"
+                                        title="?대┃?섏뿬 ?섏젙">
+                                        <h3 class="adm-q-card-title">${quest.title}</h3>
+                                        <p class="adm-q-card-desc">${quest.description}</p>
+                                    </div>
+
+                                    <div class="adm-q-reward">
+                                        <div class="reward-item">
+                                            <i class="fas fa-star exp-icon"></i>
+                                            <span>${quest.rewardExp} EXP</span>
+                                        </div>
+                                        <div class="reward-item">
+                                            <i class="fas fa-coins point-icon"></i>
+                                            <span>${quest.rewardPoint} PT</span>
+                                        </div>
+                                        <div class="reward-item">
+                                            <i class="fas fa-hourglass-half time-icon quest-timer-icon"></i>
+                                            <span class="quest-timer-text">
+                                                <c:choose>
+                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}遺??쒗븳</c:when>
+                                                    <c:otherwise>?쒗븳 ?놁쓬</c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="adm-q-card-footer">
+                                        <button class="btn-q-stop" onclick="updateQuestStatus(${quest.questId}, 'INACTIVE')">鍮꾪솢?깊솕</button>
+                                        <button class="btn-q-delete" onclick="updateQuestStatus(${quest.questId}, 'DELETED')">??젣</button>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="adm-q-empty adm-q-section-empty">활성 퀘스트가 없습니다.</div>
+                    </c:otherwise>
+                </c:choose>
+            </section>
+        </c:if>
+
+        <c:if test="${empty currentStatus or currentStatus == 'INACTIVE'}">
+            <section class="adm-q-section adm-q-section-inactive">
+                <div class="adm-q-section-header">
+                    <div>
+                        <h3 class="adm-q-section-title">비활성 퀘스트</h3>
+                        <p class="adm-q-section-subtitle">운영을 중지했지만 필요할 때 다시 활성화할 수 있는 퀘스트입니다.</p>
+                    </div>
+                    <span class="adm-q-section-count">${inactiveQuestCount}</span>
+                </div>
+
+                <c:choose>
+                    <c:when test="${not empty inactiveQuestList}">
+                        <div class="adm-q-grid">
+                            <c:forEach var="quest" items="${inactiveQuestList}">
+                                <div class="adm-q-card ${quest.status}">
+                                    <div class="adm-q-card-header">
+                                        <span class="adm-q-category">${quest.category}</span>
+                                        <span class="adm-q-status-badge">${quest.status}</span>
+                                    </div>
+
+                                    <div class="adm-q-card-body"
+                                        data-id="${quest.questId}"
+                                        data-exp="${quest.rewardExp}"
+                                        data-point="${quest.rewardPoint}"
+                                        data-time-limit="${quest.timeLimit}"
+                                        data-status="${quest.status}"
+                                        onclick="openQuestEditFromCard(this)"
+                                        style="cursor:pointer;"
+                                        title="?대┃?섏뿬 ?섏젙">
+                                        <h3 class="adm-q-card-title">${quest.title}</h3>
+                                        <p class="adm-q-card-desc">${quest.description}</p>
+                                    </div>
+
+                                    <div class="adm-q-reward">
+                                        <div class="reward-item">
+                                            <i class="fas fa-star exp-icon"></i>
+                                            <span>${quest.rewardExp} EXP</span>
+                                        </div>
+                                        <div class="reward-item">
+                                            <i class="fas fa-coins point-icon"></i>
+                                            <span>${quest.rewardPoint} PT</span>
+                                        </div>
+                                        <div class="reward-item">
+                                            <i class="fas fa-hourglass-half time-icon quest-timer-icon"></i>
+                                            <span class="quest-timer-text">
+                                                <c:choose>
+                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}遺??쒗븳</c:when>
+                                                    <c:otherwise>?쒗븳 ?놁쓬</c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="adm-q-card-footer">
+                                        <button class="btn-q-start" onclick="updateQuestStatus(${quest.questId}, 'ACTIVE')">?쒖꽦??/button>
+                                        <button class="btn-q-delete" onclick="updateQuestStatus(${quest.questId}, 'DELETED')">??젣</button>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="adm-q-empty adm-q-section-empty">비활성 퀘스트가 없습니다.</div>
+                    </c:otherwise>
+                </c:choose>
+            </section>
+        </c:if>
+
+        <c:if test="${empty currentStatus or currentStatus == 'DELETED'}">
+            <section class="adm-q-section adm-q-section-deleted">
+                <div class="adm-q-section-header">
+                    <div>
+                        <h3 class="adm-q-section-title">삭제된 퀘스트</h3>
+                        <p class="adm-q-section-subtitle">운영 목록에서는 제외되지만 관리 이력 확인이 필요한 퀘스트입니다.</p>
+                    </div>
+                    <span class="adm-q-section-count">${deletedQuestCount}</span>
+                </div>
+
+                <c:choose>
+                    <c:when test="${not empty deletedQuestList}">
+                        <div class="adm-q-grid">
+                            <c:forEach var="quest" items="${deletedQuestList}">
+                                <div class="adm-q-card ${quest.status}">
+                                    <div class="adm-q-card-header">
+                                        <span class="adm-q-category">${quest.category}</span>
+                                        <span class="adm-q-status-badge">${quest.status}</span>
+                                    </div>
+
+                                    <div class="adm-q-card-body"
+                                        data-id="${quest.questId}"
+                                        data-exp="${quest.rewardExp}"
+                                        data-point="${quest.rewardPoint}"
+                                        data-time-limit="${quest.timeLimit}"
+                                        data-status="${quest.status}"
+                                        onclick="openQuestEditFromCard(this)"
+                                        style="cursor:pointer;"
+                                        title="?대┃?섏뿬 ?섏젙">
+                                        <h3 class="adm-q-card-title">${quest.title}</h3>
+                                        <p class="adm-q-card-desc">${quest.description}</p>
+                                    </div>
+
+                                    <div class="adm-q-reward">
+                                        <div class="reward-item">
+                                            <i class="fas fa-star exp-icon"></i>
+                                            <span>${quest.rewardExp} EXP</span>
+                                        </div>
+                                        <div class="reward-item">
+                                            <i class="fas fa-coins point-icon"></i>
+                                            <span>${quest.rewardPoint} PT</span>
+                                        </div>
+                                        <div class="reward-item">
+                                            <i class="fas fa-hourglass-half time-icon quest-timer-icon"></i>
+                                            <span class="quest-timer-text">
+                                                <c:choose>
+                                                    <c:when test="${not empty quest.timeLimit}">${quest.timeLimit}遺??쒗븳</c:when>
+                                                    <c:otherwise>?쒗븳 ?놁쓬</c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="adm-q-card-footer">
+                                        <button class="btn-q-start" onclick="updateQuestStatus(${quest.questId}, 'ACTIVE')">蹂듦뎄</button>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="adm-q-empty adm-q-section-empty">삭제된 퀘스트가 없습니다.</div>
+                    </c:otherwise>
+                </c:choose>
+            </section>
+        </c:if>
+    </div>
+
+    <div class="adm-q-grid" style="display:none;">
         <c:choose>
             <c:when test="${not empty questList}">
                 <c:forEach var="quest" items="${questList}">

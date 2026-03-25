@@ -7,6 +7,8 @@ public interface LocationQrDAO {
 
     public LocationQrDTO findActiveLocationQrByAuthKey(String qrAuthKey);
 
+    public LocationQrDTO findLatestLocationQrByAuthKey(String qrAuthKey);
+
     public int saveLocationQr(LocationQrDTO locationQr);
 
     public int updateLocationQr(LocationQrDTO locationQr);

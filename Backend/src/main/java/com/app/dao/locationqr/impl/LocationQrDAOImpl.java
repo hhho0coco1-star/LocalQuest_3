@@ -26,6 +26,11 @@ public class LocationQrDAOImpl implements LocationQrDAO {
     }
 
     @Override
+    public LocationQrDTO findLatestLocationQrByAuthKey(String qrAuthKey) {
+        return sqlSessionTemplate.selectOne("locationqr_mapper.findLatestLocationQrByAuthKey", qrAuthKey);
+    }
+
+    @Override
     public int saveLocationQr(LocationQrDTO locationQr) {
         try {
             return sqlSessionTemplate.insert("locationqr_mapper.saveLocationQr", locationQr);

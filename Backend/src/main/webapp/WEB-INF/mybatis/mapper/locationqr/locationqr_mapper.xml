@@ -39,6 +39,23 @@
 		WHERE ROWNUM = 1
 	</select>
 
+	<select id="findLatestLocationQrByAuthKey" parameterType="string" resultType="LocationQrDTO">
+		SELECT *
+		FROM (
+			SELECT
+				QR_ID as qrId,
+				LOCATION_ID as locationId,
+				QR_AUTH_KEY as qrAuthKey,
+				QR_IMAGE_URL as qrImageUrl,
+				IS_ACTIVE as isActive,
+				CREATED_AT as createdAt
+			FROM LQ_LOCATION_QR
+			WHERE QR_AUTH_KEY = #{qrAuthKey}
+			ORDER BY QR_ID DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
+
 	<insert id="saveLocationQr" parameterType="LocationQrDTO">
 		<selectKey keyProperty="qrId" resultType="int" order="BEFORE">
 			SELECT SEQ_LQ_LOCATION_QR_PK.NEXTVAL FROM DUAL

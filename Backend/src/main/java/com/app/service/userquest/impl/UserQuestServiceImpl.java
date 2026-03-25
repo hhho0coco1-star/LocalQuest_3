@@ -35,6 +35,8 @@ public class UserQuestServiceImpl implements UserQuestService {
     private static final String USER_QUEST_STATUS_IN_PROGRESS = "IN_PROGRESS";
     private static final String USER_QUEST_STATUS_COMPLETED = "COMPLETED";
     private static final String USER_QUEST_STATUS_ABANDONED = "ABANDONED";
+    private static final String SUSPENDED_BUSINESS_QR_MESSAGE =
+        "\uC6B4\uC601\uC911\uC9C0\uB41C \uB9E4\uC7A5\uC785\uB2C8\uB2E4. \u0051\u0052 \uC778\uC99D\uC744 \uC9C4\uD589\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
 
     @Autowired
     private UserQuestDAO userQuestDAO;
@@ -133,6 +135,10 @@ public class UserQuestServiceImpl implements UserQuestService {
         String normalizedQrAuthKey = qrAuthKey.trim();
         LocationQrDTO locationQr = locationQrDAO.findActiveLocationQrByAuthKey(normalizedQrAuthKey);
         if (locationQr == null || locationQr.getLocationId() <= 0) {
+            LocationQrDTO inactiveQr = locationQrDAO.findLatestLocationQrByAuthKey(normalizedQrAuthKey);
+            if (inactiveQr != null && inactiveQr.getLocationId() > 0 && Integer.valueOf(0).equals(inactiveQr.getIsActive())) {
+                throw new IllegalStateException(SUSPENDED_BUSINESS_QR_MESSAGE);
+            }
             throw new NoSuchElementException("\uC720\uD6A8\uD55C \u0051\u0052 \uCF54\uB4DC\uAC00 \uC544\uB2D9\uB2C8\uB2E4\u002E");
         }
 

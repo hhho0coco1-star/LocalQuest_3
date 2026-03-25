@@ -183,6 +183,15 @@
     transition: 0.2s ease;
 }
 
+.adm-b-actions button:disabled {
+    background: rgba(146, 146, 175, 0.12);
+    color: #7f8297;
+    border-color: rgba(146, 146, 175, 0.18);
+    cursor: not-allowed;
+    opacity: 0.6;
+    filter: none;
+}
+
 .adm-b-actions.is-answered button:not(.adm-b-btn-view) {
     display: none;
 }
@@ -255,6 +264,21 @@
 .adm-b-status.CLOSED {
     background: rgba(241, 65, 108, 0.12);
     color: #f1416c;
+}
+
+.adm-b-status.ACTIVE {
+    background: rgba(80, 205, 137, 0.12);
+    color: #50cd89;
+}
+
+.adm-b-status.INACTIVE {
+    background: rgba(241, 65, 108, 0.12);
+    color: #f1416c;
+}
+
+.adm-b-status.UNKNOWN {
+    background: rgba(146, 146, 175, 0.12);
+    color: #a1a5b7;
 }
 
 .adm-b-empty {
@@ -480,6 +504,13 @@
     background: rgba(0, 149, 255, 0.16);
     color: #36a3ff;
     border: 1px solid rgba(0, 149, 255, 0.24);
+}
+
+.adm-b-btn-qr:disabled {
+    background: rgba(146, 146, 175, 0.12);
+    color: #7f8297;
+    border-color: rgba(146, 146, 175, 0.18);
+    cursor: not-allowed;
 }
 
 .adm-b-btn-print {

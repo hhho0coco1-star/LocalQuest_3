@@ -52,6 +52,7 @@ public class BusinessServiceImpl implements BusinessService {
     @Override
     @Transactional
     public boolean deleteBusiness(int businessId) {
-        return dao.deleteBusiness(businessId) > 0;
+        // Hard delete is intentionally disabled; use suspend/resume instead.
+        return false;
     }
 }

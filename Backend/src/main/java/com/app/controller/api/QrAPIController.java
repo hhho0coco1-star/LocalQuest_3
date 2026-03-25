@@ -38,6 +38,8 @@ public class QrAPIController {
             return ResponseEntity.ok(userQuestService.verifyLocationQr(loginUserId, qrAuthKey));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(messageBody(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(messageBody(e.getMessage()));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageBody(e.getMessage()));
         } catch (Exception e) {

@@ -789,6 +789,72 @@
         /**
          * [기존 함수 보완] 등록/수정 통합 제출
          */
+        function updateQuestStatus(questId, status, actionType) {
+            const normalizedStatus = String(status || '').toUpperCase();
+            const currentFilterStatus = String($('#filterStatus').val() || '').toUpperCase();
+            const clickEvent = typeof event !== 'undefined' ? event : window.event;
+            const $sourceButton = clickEvent
+                ? $(clickEvent.currentTarget || clickEvent.target || clickEvent.srcElement)
+                : $();
+            const $sourceSection = $sourceButton.closest('.adm-q-section');
+
+            let resolvedAction = String(actionType || '').toLowerCase();
+            if (!resolvedAction) {
+                if (normalizedStatus === 'DELETED') {
+                    resolvedAction = 'delete';
+                } else if ($sourceSection.hasClass('adm-q-section-deleted') || currentFilterStatus === 'DELETED') {
+                    resolvedAction = 'restore';
+                } else if (normalizedStatus === 'INACTIVE') {
+                    resolvedAction = 'deactivate';
+                } else {
+                    resolvedAction = 'activate';
+                }
+            }
+
+            let confirmMessage = '\uD018\uC2A4\uD2B8 \uC0C1\uD0DC\uB97C \uBCC0\uACBD\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+            let successMessage = '\uD018\uC2A4\uD2B8 \uC0C1\uD0DC\uAC00 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+            let failMessage = '\uD018\uC2A4\uD2B8 \uC0C1\uD0DC \uBCC0\uACBD\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+
+            if (resolvedAction === 'delete') {
+                confirmMessage = '\uD018\uC2A4\uD2B8\uB97C \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uC0AD\uC81C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            } else if (resolvedAction === 'restore') {
+                confirmMessage = '\uC0AD\uC81C\uB41C \uD018\uC2A4\uD2B8\uB97C \uBCF5\uAD6C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uBCF5\uAD6C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uBCF5\uAD6C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            } else if (resolvedAction === 'deactivate') {
+                confirmMessage = '\uD018\uC2A4\uD2B8\uB97C \uBE44\uD65C\uC131\uD654\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uBE44\uD65C\uC131\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            } else if (resolvedAction === 'activate') {
+                confirmMessage = '\uD018\uC2A4\uD2B8\uB97C \uD65C\uC131\uD654\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uD65C\uC131\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uD65C\uC131\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            }
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            $.ajax({
+                url: ctx + "/admin/quests/updateStatus",
+                type: "POST",
+                data: { questId: questId, status: normalizedStatus },
+                success: function(res) {
+                    if (res === "success") {
+                        alert(successMessage);
+                        searchQuest();
+                    } else {
+                        alert(failMessage);
+                    }
+                },
+                error: function(xhr) {
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
+                }
+            });
+        }
+
         function submitQuest() {
             const form = $('#questForm')[0];
             const questId = $('#modalQuestId').val();
@@ -1075,6 +1141,98 @@
             });
         }
 
+        function normalizeBusinessOperationStatus(value) {
+            const rawStatus = value && typeof value === 'object'
+                ? value.operationStatus
+                : value;
+            const normalizedStatus = String(rawStatus || '').toUpperCase();
+
+            if (normalizedStatus === 'ACTIVE' || normalizedStatus === 'INACTIVE') {
+                return normalizedStatus;
+            }
+
+            return 'UNKNOWN';
+        }
+
+        function getBusinessOperationStatusText(status) {
+            if (status === 'ACTIVE') {
+                return '\uC6B4\uC601\uC911';
+            }
+            if (status === 'INACTIVE') {
+                return '\uC6B4\uC601\uC911\uC9C0';
+            }
+            return '\uC0C1\uD0DC\uD655\uC778\uBD88\uAC00';
+        }
+
+        function syncBusinessOperationUi(value) {
+            const status = normalizeBusinessOperationStatus(value);
+            const isActive = status === 'ACTIVE';
+            const $statusBadge = $('#detailOperationStatus');
+            const $qrButton = $('#businessDetailQrBtn');
+
+            $statusBadge
+                .removeClass('ACTIVE INACTIVE UNKNOWN')
+                .addClass(status)
+                .text(getBusinessOperationStatusText(status));
+
+            $qrButton
+                .attr('data-operation-status', status)
+                .prop('disabled', !isActive)
+                .text(isActive ? '\u0051\u0052 \uBCF4\uAE30' : getBusinessOperationStatusText(status));
+        }
+
+        function changeBusinessOperation(businessId, currentStatus) {
+            const normalizedCurrentStatus = normalizeBusinessOperationStatus(currentStatus);
+            if (!(businessId > 0)) {
+                alert('\uB9E4\uC7A5 \uC815\uBCF4\uB97C \uB2E4\uC2DC \uD655\uC778\uD574 \uC8FC\uC138\uC694.');
+                return;
+            }
+
+            if (normalizedCurrentStatus === 'UNKNOWN') {
+                alert('\uB9E4\uC7A5 \uC6B4\uC601 \uC0C1\uD0DC\uB97C \uD655\uC778\uD560 \uC218 \uC5C6\uC5B4 \uCC98\uB9AC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
+                return;
+            }
+
+            const shouldSuspend = normalizedCurrentStatus === 'ACTIVE';
+            const endpoint = shouldSuspend ? '/admin/store-info/suspend' : '/admin/store-info/resume';
+            const confirmMessage = shouldSuspend
+                ? '\uC774 \uB9E4\uC7A5\uC744 \uC6B4\uC601\uC911\uC9C0\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?'
+                : '\uC774 \uB9E4\uC7A5\uC758 \uC6B4\uC601\uC744 \uC7AC\uAC1C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+            const successMessage = shouldSuspend
+                ? '\uB9E4\uC7A5\uC744 \uC6B4\uC601\uC911\uC9C0\uD588\uC2B5\uB2C8\uB2E4.'
+                : '\uB9E4\uC7A5 \uC6B4\uC601\uC744 \uC7AC\uAC1C\uD588\uC2B5\uB2C8\uB2E4.';
+            const failMessage = shouldSuspend
+                ? '\uB9E4\uC7A5 \uC6B4\uC601\uC911\uC9C0\uB97C \uCC98\uB9AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
+                : '\uB9E4\uC7A5 \uC6B4\uC601 \uC7AC\uAC1C\uB97C \uCC98\uB9AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            $.ajax({
+                url: ctx + endpoint,
+                type: "POST",
+                dataType: "json",
+                data: { businessId: businessId },
+                success: function(res) {
+                    const result = res && res.result ? res.result : 'error';
+                    if (result === 'success') {
+                        if (Number($('#businessDetailQrBtn').attr('data-business-id')) === businessId) {
+                            syncBusinessOperationUi(res);
+                        }
+                        alert(successMessage);
+                        loadBusinessAdmin('business');
+                        return;
+                    }
+
+                    alert(res && res.message ? res.message : failMessage);
+                },
+                error: function(xhr) {
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
+                }
+            });
+        }
+
         function openBusinessModal(businessId) {
             if ($('#businessForm').length === 0) return;
 
@@ -1169,6 +1327,7 @@
                 $('#detailDescription').text(data.description || '-');
                 $('#detailCreatedAt').text(data.createdAt || '-');
                 $('#businessDetailQrBtn').attr('data-business-id', data.businessId || 0);
+                syncBusinessOperationUi(data);
                 resetBusinessAuthSummary();
                 showBusinessDetailTab('basic');
                 resetBusinessQrModal();
@@ -1178,6 +1337,7 @@
 
         function closeBusinessDetailModal() {
             $('#businessDetailQrBtn').attr('data-business-id', 0);
+            syncBusinessOperationUi('UNKNOWN');
             resetBusinessAuthSummary();
             showBusinessDetailTab('basic');
             closeBusinessQrModal();
@@ -1488,6 +1648,10 @@ function deleteBusiness(businessId) {
     });
 }
 
+function deleteBusiness(businessId) {
+    alert('\uB9E4\uC7A5 \uC644\uC804\uC0AD\uC81C\uB294 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC6B4\uC601\uC911\uC9C0 \uB610\uB294 \uC6B4\uC601\uC7AC\uAC1C \uAE30\uB2A5\uC744 \uC0AC\uC6A9\uD574 \uC8FC\uC138\uC694.');
+}
+
         function viewBusinessInquiryDetail(inquiryId) {
             loadBusinessInquiryDetail(inquiryId, function(data) {
                 $('#detailInquiryId').text(data.inquiryId || '-');
@@ -1553,6 +1717,76 @@ function deleteBusiness(businessId) {
                 },
                 error: function(xhr) {
                     let message = '\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+                    if (xhr && xhr.status === 404) {
+                        message = '\uD574\uB2F9 \uB9E4\uC7A5 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
+                    }
+                    $('#businessQrStatus')
+                        .addClass('is-error')
+                        .text(message);
+                }
+            });
+        }
+
+        function openBusinessQrModal() {
+            const businessId = Number($('#businessDetailQrBtn').attr('data-business-id')) || 0;
+            const operationStatus = normalizeBusinessOperationStatus($('#businessDetailQrBtn').attr('data-operation-status'));
+            if (!(businessId > 0)) {
+                alert('\uB9E4\uC7A5 \uC0C1\uC138 \uC815\uBCF4\uB97C \uBA3C\uC800 \uD655\uC778\uD574 \uC8FC\uC138\uC694.');
+                return;
+            }
+            if (operationStatus !== 'ACTIVE') {
+                alert(
+                    operationStatus === 'INACTIVE'
+                        ? '\uC6B4\uC601\uC911\uC9C0\uB41C \uB9E4\uC7A5\uC740 \u0051\u0052\uC744 \uBCFC \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.'
+                        : '\uB9E4\uC7A5 \uC6B4\uC601 \uC0C1\uD0DC\uB97C \uBA3C\uC800 \uD655\uC778\uD574 \uC8FC\uC138\uC694.'
+                );
+                return;
+            }
+
+            resetBusinessQrModal();
+            $('#businessQrModal').fadeIn(200);
+
+            $.ajax({
+                url: ctx + "/admin/store-info/qr",
+                type: "GET",
+                dataType: "json",
+                data: { businessId: businessId },
+                success: function(res) {
+                    if (!res || !res.imageUrl) {
+                        $('#businessQrStatus')
+                            .addClass('is-error')
+                            .text('\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+                        return;
+                    }
+
+                    if (res.active === false) {
+                        syncBusinessOperationUi('INACTIVE');
+                        $('#businessQrStatus')
+                            .addClass('is-error')
+                            .text('\uC6B4\uC601\uC911\uC9C0\uB41C \uB9E4\uC7A5\uC785\uB2C8\uB2E4. \u0051\u0052 \uC0AC\uC6A9 \uC804\uC5D0 \uBA3C\uC800 \uC6B4\uC601\uC744 \uC7AC\uAC1C\uD574 \uC8FC\uC138\uC694.');
+                        return;
+                    }
+
+                    const addressText = [res.address || '', res.addressDetail || '']
+                        .filter(function(value) { return !!value; })
+                        .join(' ');
+
+                    $('#businessQrStatus')
+                        .removeClass('is-error')
+                        .text('\uB9E4\uC7A5 \u0051\u0052 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.');
+                    $('#businessQrBusinessName').text(res.businessName || '-');
+                    $('#businessQrLocationName').text(res.locationName || '-');
+                    $('#businessQrAddress').text(addressText || '-');
+                    $('#businessQrAuthKey').text(res.qrAuthKey || '-');
+                    $('#businessQrImage')
+                        .addClass('is-ready')
+                        .attr('src', res.imageUrl + '&_ts=' + Date.now());
+                },
+                error: function(xhr) {
+                    let message = '\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
                     if (xhr && xhr.status === 404) {
                         message = '\uD574\uB2F9 \uB9E4\uC7A5 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
                     }

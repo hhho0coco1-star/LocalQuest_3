@@ -42,13 +42,13 @@ public class LocationQrServiceImpl implements LocationQrService {
     @Override
     @Transactional
     public BusinessQrInfoDTO getOrCreateBusinessQrInfo(int businessId) {
-        BusinessDTO business = businessService.getBusinessById(businessId);
+        BusinessDTO business = requireBusiness(businessId);
         if (business == null) {
             throw new NoSuchElementException("매장 정보를 찾을 수 없습니다.");
         }
 
         LocationDTO representativeLocation = ensureRepresentativeLocation(business);
-        LocationQrDTO locationQr = ensureLocationQr(representativeLocation.getLocationId());
+        LocationQrDTO locationQr = ensureLocationQr(representativeLocation.getLocationId(), false);
 
         BusinessQrInfoDTO qrInfo = new BusinessQrInfoDTO();
         qrInfo.setBusinessId(business.getBusinessId());
@@ -62,6 +62,35 @@ public class LocationQrServiceImpl implements LocationQrService {
         qrInfo.setQrAuthKey(locationQr.getQrAuthKey());
         qrInfo.setActive(locationQr.getIsActive() == null || locationQr.getIsActive() == 1);
         return qrInfo;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BusinessQrInfoDTO getBusinessOperationInfo(int businessId) {
+        BusinessDTO business = requireBusiness(businessId);
+        return getBusinessQrInfoInternal(business, false, false);
+    }
+
+    @Override
+    @Transactional
+    public BusinessQrInfoDTO suspendBusinessOperation(int businessId) {
+        BusinessDTO business = requireBusiness(businessId);
+        LocationDTO representativeLocation = ensureRepresentativeLocation(business);
+        LocationQrDTO locationQr = ensureLocationQr(representativeLocation.getLocationId(), false);
+
+        if (isQrActive(locationQr)) {
+            locationQr.setIsActive(0);
+            locationQrDAO.updateLocationQr(locationQr);
+        }
+
+        return buildBusinessQrInfo(business, representativeLocation, locationQr);
+    }
+
+    @Override
+    @Transactional
+    public BusinessQrInfoDTO resumeBusinessOperation(int businessId) {
+        BusinessDTO business = requireBusiness(businessId);
+        return getBusinessQrInfoInternal(business, true, true);
     }
 
     @Override
@@ -106,6 +135,50 @@ public class LocationQrServiceImpl implements LocationQrService {
             .toUriString();
     }
 
+    private BusinessDTO requireBusiness(int businessId) {
+        BusinessDTO business = businessService.getBusinessById(businessId);
+        if (business == null) {
+            throw new NoSuchElementException("Store information was not found.");
+        }
+        return business;
+    }
+
+    private BusinessQrInfoDTO getBusinessQrInfoInternal(
+        BusinessDTO business,
+        boolean createMissingResources,
+        boolean reactivateInactiveQr) {
+        LocationDTO representativeLocation = createMissingResources
+            ? ensureRepresentativeLocation(business)
+            : locationService.findRepresentativeLocationByBusinessId(business.getBusinessId());
+
+        LocationQrDTO locationQr = null;
+        if (representativeLocation != null) {
+            locationQr = createMissingResources
+                ? ensureLocationQr(representativeLocation.getLocationId(), reactivateInactiveQr)
+                : locationQrDAO.findLatestLocationQrByLocationId(representativeLocation.getLocationId());
+        }
+
+        return buildBusinessQrInfo(business, representativeLocation, locationQr);
+    }
+
+    private BusinessQrInfoDTO buildBusinessQrInfo(
+        BusinessDTO business,
+        LocationDTO representativeLocation,
+        LocationQrDTO locationQr) {
+        BusinessQrInfoDTO qrInfo = new BusinessQrInfoDTO();
+        qrInfo.setBusinessId(business.getBusinessId());
+        qrInfo.setBusinessName(business.getBusinessName());
+        qrInfo.setLocationId(representativeLocation != null ? representativeLocation.getLocationId() : 0);
+        qrInfo.setLocationName(representativeLocation != null ? representativeLocation.getName() : business.getBusinessName());
+        qrInfo.setZipCode(representativeLocation != null ? representativeLocation.getZipCode() : business.getZipCode());
+        qrInfo.setAddress(representativeLocation != null ? representativeLocation.getAddress() : business.getAddress());
+        qrInfo.setAddressDetail(representativeLocation != null ? representativeLocation.getAddressDetail() : business.getAddressDetail());
+        qrInfo.setQrId(locationQr != null ? locationQr.getQrId() : 0);
+        qrInfo.setQrAuthKey(locationQr != null ? locationQr.getQrAuthKey() : null);
+        qrInfo.setActive(isQrActive(locationQr));
+        return qrInfo;
+    }
+
     private LocationDTO ensureRepresentativeLocation(BusinessDTO business) {
         LocationDTO representativeLocation = locationService.findRepresentativeLocationByBusinessId(business.getBusinessId());
         if (representativeLocation == null) {
@@ -137,7 +210,7 @@ public class LocationQrServiceImpl implements LocationQrService {
         return representativeLocation;
     }
 
-    private LocationQrDTO ensureLocationQr(int locationId) {
+    private LocationQrDTO ensureLocationQr(int locationId, boolean reactivateInactiveQr) {
         LocationQrDTO existingQr = locationQrDAO.findLatestLocationQrByLocationId(locationId);
         if (existingQr == null) {
             LocationQrDTO newQr = new LocationQrDTO();
@@ -150,16 +223,25 @@ public class LocationQrServiceImpl implements LocationQrService {
         }
 
         boolean needsRefresh = existingQr.getQrAuthKey() == null || existingQr.getQrAuthKey().trim().isEmpty();
-        boolean inactive = existingQr.getIsActive() != null && existingQr.getIsActive() != 1;
+        boolean inactive = !isQrActive(existingQr);
 
-        if (needsRefresh || inactive) {
-            existingQr.setQrAuthKey(needsRefresh ? generateQrAuthKey() : existingQr.getQrAuthKey());
+        if (needsRefresh) {
+            existingQr.setQrAuthKey(generateQrAuthKey());
             existingQr.setQrImageUrl(null);
+            locationQrDAO.updateLocationQr(existingQr);
+        }
+
+        if (reactivateInactiveQr && inactive) {
             existingQr.setIsActive(1);
+            existingQr.setQrImageUrl(null);
             locationQrDAO.updateLocationQr(existingQr);
         }
 
         return existingQr;
+    }
+
+    private boolean isQrActive(LocationQrDTO locationQr) {
+        return locationQr == null || locationQr.getIsActive() == null || locationQr.getIsActive() == 1;
     }
 
     private String generateQrAuthKey() {

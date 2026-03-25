@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.app.dto.business.BusinessDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
 import com.app.dto.location.LocationDTO;
+import com.app.dto.locationqr.BusinessQrInfoDTO;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
@@ -28,6 +30,7 @@ import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
 import com.app.service.businessinquiry.BusinessInquiryService;
 import com.app.service.location.LocationService;
+import com.app.service.locationqr.LocationQrService;
 import com.app.service.quest.QuestService;
 import com.app.service.reward.RewardItemService;
 import com.app.service.user.UserService;
@@ -57,6 +60,9 @@ public class AdminController {
 
 	@Autowired
 	private BusinessInquiryService businessInquiryService;
+
+	@Autowired
+	private LocationQrService locationQrService;
 
 	// 관리자 메인 페이지
 	@GetMapping("")
@@ -157,6 +163,9 @@ public class AdminController {
         // 2. 관리자 전체 목록을 조회한 뒤 필터링합니다.
         // status/keyword가 비어 있으면 전체 목록을 보여줍니다.
         List<QuestDTO> questList;
+        List<QuestDTO> activeQuestList = Collections.emptyList();
+        List<QuestDTO> inactiveQuestList = Collections.emptyList();
+        List<QuestDTO> deletedQuestList = Collections.emptyList();
         String questLoadError = null;
         try {
             List<QuestDTO> allQuests = questService.getAdminQuestList();
@@ -164,6 +173,9 @@ public class AdminController {
                 questList = Collections.emptyList();
             } else {
                 List<QuestDTO> filteredQuestList = new ArrayList<>();
+                List<QuestDTO> groupedActiveQuestList = new ArrayList<>();
+                List<QuestDTO> groupedInactiveQuestList = new ArrayList<>();
+                List<QuestDTO> groupedDeletedQuestList = new ArrayList<>();
                 String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
 
                 for (QuestDTO quest : allQuests) {
@@ -171,11 +183,7 @@ public class AdminController {
                         continue;
                     }
 
-                    String questStatus = quest.getStatus();
-                    if (questStatus == null || questStatus.trim().isEmpty()) {
-                        questStatus = "ACTIVE";
-                        quest.setStatus(questStatus);
-                    }
+                    String questStatus = normalizeQuestStatus(quest);
 
                     if (normalizedStatus != null && !normalizedStatus.equalsIgnoreCase(questStatus)) {
                         continue;
@@ -189,9 +197,20 @@ public class AdminController {
                     }
 
                     filteredQuestList.add(quest);
+
+                    if ("DELETED".equalsIgnoreCase(questStatus)) {
+                        groupedDeletedQuestList.add(quest);
+                    } else if ("INACTIVE".equalsIgnoreCase(questStatus)) {
+                        groupedInactiveQuestList.add(quest);
+                    } else {
+                        groupedActiveQuestList.add(quest);
+                    }
                 }
 
                 questList = filteredQuestList;
+                activeQuestList = groupedActiveQuestList;
+                inactiveQuestList = groupedInactiveQuestList;
+                deletedQuestList = groupedDeletedQuestList;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -209,6 +228,12 @@ public class AdminController {
         }
         
         model.addAttribute("questList", questList);
+        model.addAttribute("activeQuestList", activeQuestList);
+        model.addAttribute("inactiveQuestList", inactiveQuestList);
+        model.addAttribute("deletedQuestList", deletedQuestList);
+        model.addAttribute("activeQuestCount", activeQuestList.size());
+        model.addAttribute("inactiveQuestCount", inactiveQuestList.size());
+        model.addAttribute("deletedQuestCount", deletedQuestList.size());
         model.addAttribute("questCategoryList", questCategoryList);
         model.addAttribute("questLoadError", questLoadError);
         
@@ -217,6 +242,19 @@ public class AdminController {
         model.addAttribute("currentKeyword", normalizedKeyword);
         
         return "admin/admin-quest";
+    }
+
+    private String normalizeQuestStatus(QuestDTO quest) {
+        if (quest == null || quest.getStatus() == null || quest.getStatus().trim().isEmpty()) {
+            if (quest != null) {
+                quest.setStatus("ACTIVE");
+            }
+            return "ACTIVE";
+        }
+
+        String normalizedStatus = quest.getStatus().trim().toUpperCase(Locale.ROOT);
+        quest.setStatus(normalizedStatus);
+        return normalizedStatus;
     }
     /**
      * 2. 퀘스트 상태 변경 (비동기 처리)
@@ -580,6 +618,7 @@ public class AdminController {
 
         try {
             businessList = businessService.getBusinessList(businessParams);
+            populateBusinessOperationInfo(businessList);
         } catch (Exception e) {
             businessError = e.getClass().getSimpleName() + ": " + e.getMessage();
             e.printStackTrace();
@@ -625,6 +664,9 @@ public class AdminController {
         result.put("phone", business.getPhone());
         result.put("description", business.getDescription());
         result.put("createdAt", business.getCreatedAt() != null ? business.getCreatedAt().toString() : null);
+        applyBusinessOperationInfo(business);
+        result.put("operationActive", business.getOperationActive());
+        result.put("operationStatus", business.getOperationStatus());
 
         return result;
     }
@@ -746,7 +788,81 @@ public class AdminController {
             return "error";
         }
     }
-    
+
+    @PostMapping("/store-info/suspend")
+    @ResponseBody
+    public Map<String, Object> suspendBusinessOperation(@RequestParam int businessId) {
+        try {
+            BusinessQrInfoDTO qrInfo = locationQrService.suspendBusinessOperation(businessId);
+            return createBusinessOperationResponse("success", "Business operation suspended.", qrInfo);
+        } catch (NoSuchElementException e) {
+            return createBusinessOperationResponse("fail", e.getMessage(), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return createBusinessOperationResponse("error", "Failed to suspend business operation.", null);
+        }
+    }
+
+    @PostMapping("/store-info/resume")
+    @ResponseBody
+    public Map<String, Object> resumeBusinessOperation(@RequestParam int businessId) {
+        try {
+            BusinessQrInfoDTO qrInfo = locationQrService.resumeBusinessOperation(businessId);
+            return createBusinessOperationResponse("success", "Business operation resumed.", qrInfo);
+        } catch (NoSuchElementException e) {
+            return createBusinessOperationResponse("fail", e.getMessage(), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return createBusinessOperationResponse("error", "Failed to resume business operation.", null);
+        }
+    }
+
+    private void populateBusinessOperationInfo(List<BusinessDTO> businessList) {
+        if (businessList == null || businessList.isEmpty()) {
+            return;
+        }
+
+        for (BusinessDTO business : businessList) {
+            applyBusinessOperationInfo(business);
+        }
+    }
+
+    private void applyBusinessOperationInfo(BusinessDTO business) {
+        if (business == null) {
+            return;
+        }
+
+        try {
+            BusinessQrInfoDTO operationInfo = locationQrService.getBusinessOperationInfo(business.getBusinessId());
+            boolean active = operationInfo.isActive();
+            business.setOperationActive(active);
+            business.setOperationStatus(active ? "ACTIVE" : "INACTIVE");
+        } catch (Exception e) {
+            e.printStackTrace();
+            business.setOperationActive(null);
+            business.setOperationStatus("UNKNOWN");
+        }
+    }
+
+    private Map<String, Object> createBusinessOperationResponse(
+        String result,
+        String message,
+        BusinessQrInfoDTO qrInfo) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("result", result);
+        response.put("message", message);
+
+        if (qrInfo != null) {
+            response.put("businessId", qrInfo.getBusinessId());
+            response.put("locationId", qrInfo.getLocationId());
+            response.put("qrId", qrInfo.getQrId());
+            response.put("operationActive", qrInfo.isActive());
+            response.put("operationStatus", qrInfo.isActive() ? "ACTIVE" : "INACTIVE");
+        }
+
+        return response;
+    }
+
 }
 
 
