@@ -18,6 +18,7 @@ const Header = () => {
   const adminPageUrl = buildBackendUrl('/admin');
 
   const userRole = user?.role ?? 'GUEST';
+  const normalizedRole = userRole.replace(/^ROLE_/, '');
   const displayName =
     user?.nickname ?? user?.name ?? user?.userLoginId ?? user?.userId ?? '사용자';
 
@@ -230,13 +231,13 @@ const Header = () => {
                 <Link to="/reward" className="header-nav-link">상점 및 보상</Link>
               </li>
 
-              {userRole === 'BUSINESS' && (
+              {normalizedRole === 'BUSINESS' && (
                 <li className="header-nav-item">
                   <Link to="/business" className="header-nav-link">비즈니스</Link>
                 </li>
               )}
 
-              {userRole === 'ADMIN' && (
+              {normalizedRole === 'ADMIN' && (
                 <li className="header-nav-item">
                   <a href={adminPageUrl} className="header-nav-link">관리자 페이지</a>
                 </li>

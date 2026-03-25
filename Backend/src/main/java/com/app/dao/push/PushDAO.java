@@ -1,4 +1,4 @@
-﻿package com.app.dao.push;
+package com.app.dao.push;
 
 import java.util.List;
 import java.util.Map;

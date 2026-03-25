@@ -14,6 +14,7 @@ import MyQuest from './pages/quest/MyQuest/MyQuest';
 import MyQuestDetail from './pages/quest/MyQuest/MyQuestDetail';
 import QrVerify from './pages/quest/QrVerify/QrVerify';
 import RewardPage from './pages/reward/rewardPage';
+import BusinessPage from './pages/business/BusinessPage';
 import CustomerService from './pages/support/CustomerService';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
@@ -73,6 +74,7 @@ function AppRoutes({ isAuthenticated }) {
           element={isAuthenticated ? <MyQuestDetail /> : <Navigate to="/login" replace />}
         />
         <Route path="/reward" element={<RewardPage />} />
+        <Route path="/business" element={<BusinessPage />} />
         <Route path="/support" element={<CustomerService />} />
         <Route path="/support/notice" element={<CustomerService />} />
         <Route path="/support/faq" element={<CustomerService />} />
