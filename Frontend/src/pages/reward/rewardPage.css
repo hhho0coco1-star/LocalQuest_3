@@ -169,7 +169,10 @@
 
 /* Reward badge section */
 .reward-badge-card {
-  padding: 20px;
+  padding: 16px;
+  min-height: 214px;
+  display: flex;
+  flex-direction: column;
 }
 
 .reward-badge-head {
@@ -177,7 +180,7 @@
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .reward-badge-head h2 {
@@ -207,8 +210,8 @@
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   display: flex;
-  gap: 10px;
-  padding: 10px;
+  gap: 8px;
+  padding: 8px;
 }
 
 .reward-badge-icon {
@@ -217,10 +220,10 @@
   border-radius: 50%;
   display: inline-flex;
   flex-shrink: 0;
-  font-size: 18px;
-  height: 34px;
+  font-size: 16px;
+  height: 30px;
   justify-content: center;
-  width: 34px;
+  width: 30px;
 }
 
 .reward-badge-copy {
@@ -252,4 +255,66 @@
   color: var(--reward-text-soft);
   font-size: var(--reward-fs-sm);
   margin: 0;
+}
+
+.reward-badge-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.reward-badge-item-featured {
+  width: 100%;
+  min-height: 86px;
+  position: relative;
+  padding-right: 78px;
+}
+
+.reward-badge-item-featured .reward-badge-copy p {
+  margin-right: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reward-badge-recent-chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.reward-badge-link {
+  margin-top: 10px;
+}
+
+.reward-badge-modal-box {
+  width: min(100%, 560px);
+  padding: 22px;
+}
+
+.reward-badge-modal-body {
+  max-height: min(65vh, 520px);
+}
+
+.reward-badge-modal-list .reward-badge-item {
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .reward-badge-card {
+    min-height: 198px;
+  }
+
+  .reward-badge-item-featured {
+    min-height: 82px;
+    padding-right: 74px;
+  }
 }

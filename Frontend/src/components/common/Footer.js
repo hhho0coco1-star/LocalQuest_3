@@ -402,7 +402,7 @@ const Footer = () => {
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="뱃지 도감"
+            aria-label="배지 도감"
           >
             <div className="badge-dex-handle" />
 
@@ -410,11 +410,11 @@ const Footer = () => {
               <div className="badge-dex-title-wrap">
                 <div className="badge-dex-title-icon">🏅</div>
                 <div>
-                  <h3 className="badge-dex-title">뱃지 도감</h3>
-                  <p className="badge-dex-subtitle">LocalQuest에서 획득할 수 있는 모든 뱃지를 확인해보세요.</p>
+                  <h3 className="badge-dex-title">배지 도감</h3>
+                  <p className="badge-dex-subtitle">LocalQuest에서 획득할 수 있는 모든 배지를 확인해보세요.</p>
                 </div>
               </div>
-              <button type="button" className="badge-dex-close" onClick={closeBadgeDex} aria-label="뱃지 도감 닫기">
+              <button type="button" className="badge-dex-close" onClick={closeBadgeDex} aria-label="배지 도감 닫기">
                 ✕
               </button>
             </header>
