@@ -642,7 +642,6 @@ function MainPage() {
   );
 
   const finishTopQuestDrag = useCallback(() => {
-    const track = topQuestTrackRef.current;
     const dragState = topQuestDragRef.current;
 
     if (!dragState.isPointerDown) {
@@ -736,7 +735,7 @@ function MainPage() {
       searchCircleRef.current.setMap(map);
     }
 
-    visibleQuestList.forEach((quest) => {
+    visibleQuestList.forEach((quest, index) => {
       const position = new window.kakao.maps.LatLng(quest.latitude, quest.longitude);
 
       const marker = new window.kakao.maps.Marker({
@@ -749,6 +748,8 @@ function MainPage() {
       const content = document.createElement('button');
       content.type = 'button';
       content.className = `map-quest-overlay-chip${activeQuestId === quest.questId ? ' is-active' : ''}`;
+      content.style.setProperty('--map-chip-bounce-delay', `${(index % 6) * 0.12}s`);
+      content.style.setProperty('--map-chip-bounce-duration', `${1.4 + (index % 4) * 0.12}s`);
 
       const title = document.createElement('strong');
       title.textContent = quest.title;

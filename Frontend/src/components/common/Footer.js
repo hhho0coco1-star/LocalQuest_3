@@ -16,7 +16,7 @@ const Footer = () => {
     badges: "/badges",
     partner: "/business/partner",
     guide: "/business/guide",
-    alliance: "/business/alliance",
+    alliance: "/inquiry",
     faq: "/support/faq",
     notice: "/support/notice",
     contact: "/support/contact",

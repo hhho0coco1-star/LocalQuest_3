@@ -12,7 +12,6 @@ import QuestList from './pages/quest/QuestList/QuestList';
 import QuestDetail from './pages/quest/QuestDetail/QuestDetail';
 import MyQuest from './pages/quest/MyQuest/MyQuest';
 import MyQuestDetail from './pages/quest/MyQuest/MyQuestDetail';
-import QrVerify from './pages/quest/QrVerify/QrVerify';
 import RewardPage from './pages/reward/rewardPage';
 import BusinessPage from './pages/business/BusinessPage';
 import BusinessInquiryPage from './pages/business/BusinessInquiryPage';
