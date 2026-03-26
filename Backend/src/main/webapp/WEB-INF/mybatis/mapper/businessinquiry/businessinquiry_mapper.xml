@@ -15,6 +15,9 @@
 			ADDRESS AS address,
 			ADDRESS_DETAIL AS addressDetail,
 			PHONE AS phone,
+			LATITUDE AS latitude,
+			LONGITUDE AS longitude,
+			LOCATION_TYPE AS locationType,
 			CREATED_AT AS createdAt
 		FROM LQ_BUSINESS_INQUIRY
 		<where>
@@ -45,6 +48,9 @@
 			ADDRESS AS address,
 			ADDRESS_DETAIL AS addressDetail,
 			PHONE AS phone,
+			LATITUDE AS latitude,
+			LONGITUDE AS longitude,
+			LOCATION_TYPE AS locationType,
 			CREATED_AT AS createdAt
 		FROM LQ_BUSINESS_INQUIRY
 		WHERE INQUIRY_ID = #{inquiryId}
@@ -61,6 +67,9 @@
 		address,
 		address_detail,
 		phone,
+		latitude,
+		longitude,
+		location_type,
 		created_at
 		) VALUES (
 		SEQ_LQ_BUSINESS_INQUIRY_PK.nextval,
@@ -72,6 +81,9 @@
 		#{address},
 		#{addressDetail},
 		#{phone},
+		#{latitude},
+		#{longitude},
+		#{locationType},
 		sysdate )
 	</insert>
 

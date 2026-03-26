@@ -31,9 +31,21 @@ public class BusinessInquiryAPIController {
         if (businessInquiry.getContent() == null || businessInquiry.getContent().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("message", "content is required"));
         }
+        if (businessInquiry.getZipCode() == null || businessInquiry.getZipCode().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", "zipCode is required"));
+        }
+        if (businessInquiry.getAddress() == null || businessInquiry.getAddress().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", "address is required"));
+        }
+        if (businessInquiry.getLatitude() == null || businessInquiry.getLongitude() == null) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", "latitude and longitude are required"));
+        }
 
         if (businessInquiry.getStatus() == null || businessInquiry.getStatus().trim().isEmpty()) {
             businessInquiry.setStatus("PENDING");
+        }
+        if (businessInquiry.getLocationType() == null || businessInquiry.getLocationType().trim().isEmpty()) {
+            businessInquiry.setLocationType("ROAD_ADDRESS");
         }
 
         boolean created = businessInquiryService.saveBusinessInquiry(businessInquiry);
