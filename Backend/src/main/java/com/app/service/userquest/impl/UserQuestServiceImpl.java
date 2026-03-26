@@ -67,7 +67,7 @@ public class UserQuestServiceImpl implements UserQuestService {
     private static final String LOCATION_TYPE_VISIT = "VISIT";
     private static final String LOCATION_TYPE_EXPERIENCE = "EXPERIENCE";
     private static final String LOCATION_TYPE_PURCHASE = "PURCHASE";
-    private static final double GPS_VERIFY_RADIUS_METERS = 120.0;
+    private static final double GPS_VERIFY_RADIUS_METERS = 50.0;
 
     @Autowired
     private UserQuestDAO userQuestDAO;
