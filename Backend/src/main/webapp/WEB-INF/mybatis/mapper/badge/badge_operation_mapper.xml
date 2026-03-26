@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN"
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="badge_operation_mapper">
+
+	<select id="findActiveUserByUserId" parameterType="int" resultType="User">
+		SELECT
+			USER_ID,
+			USER_LOGIN_ID,
+			NAME,
+			EMAIL,
+			PASSWORD,
+			NICKNAME,
+			BIRTH,
+			GENDER,
+			ROLE,
+			EXP,
+			POINT,
+			STATUS
+		FROM LQ_USER
+		WHERE USER_ID = #{value}
+		  AND UPPER(NVL(STATUS, 'ACTIVE')) = 'ACTIVE'
+	</select>
+
+	<select id="findActiveUserByNickname" parameterType="string" resultType="User">
+		SELECT
+			USER_ID,
+			USER_LOGIN_ID,
+			NAME,
+			EMAIL,
+			PASSWORD,
+			NICKNAME,
+			BIRTH,
+			GENDER,
+			ROLE,
+			EXP,
+			POINT,
+			STATUS
+		FROM LQ_USER
+		WHERE UPPER(NVL(STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND NICKNAME = #{value}
+	</select>
+
+	<select id="countCompletedQuestByUserId" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_USER_QUEST
+		WHERE USER_ID = #{value}
+		  AND STATUS = 'COMPLETED'
+	</select>
+
+	<select id="countDistinctVisitedLocationByUserId" parameterType="int" resultType="int">
+		SELECT COUNT(DISTINCT QL.LOCATION_ID)
+		FROM LQ_USER_QUEST UQ
+		INNER JOIN LQ_USER_QUEST_PROGRESS UQP
+			ON UQP.USER_QUEST_ID = UQ.USER_QUEST_ID
+		INNER JOIN LQ_QUEST_LOCATION QL
+			ON QL.QUEST_LOCATION_ID = UQP.QUEST_LOCATION_ID
+		WHERE UQ.USER_ID = #{value}
+		  AND UQ.STATUS = 'COMPLETED'
+		  AND NVL(UQP.IS_COMPLETED, 0) = 1
+	</select>
+
+	<select id="countReviewByUserId" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_QUEST_REVIEW
+		WHERE USER_ID = #{value}
+	</select>
+
+	<select id="countRewardExchangeByUserId" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_REWARD_EXCHANGE
+		WHERE USER_ID = #{value}
+	</select>
+
+	<select id="sumUsedPointByUserId" parameterType="int" resultType="int">
+		SELECT NVL(SUM(USED_POINT), 0)
+		FROM LQ_REWARD_EXCHANGE
+		WHERE USER_ID = #{value}
+	</select>
+
+	<select id="findBadgeIdByName" parameterType="string" resultType="int">
+		SELECT BADGE_ID
+		FROM LQ_BADGE
+		WHERE NAME = #{value}
+	</select>
+
+	<insert id="insertBadge" parameterType="RewardBadgeDTO">
+		INSERT INTO LQ_BADGE (
+			BADGE_ID,
+			NAME,
+			DESCRIPTION,
+			CONDITION_TEXT,
+			ICON_URL,
+			CREATED_AT
+		) VALUES (
+			SEQ_LQ_BADGE_PK.NEXTVAL,
+			#{name},
+			#{description},
+			#{conditionText},
+			#{iconUrl},
+			SYSDATE
+		)
+	</insert>
+
+	<select id="existsUserBadge" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_USER_BADGE
+		WHERE USER_ID = #{userId}
+		  AND BADGE_ID = #{badgeId}
+	</select>
+
+	<insert id="insertUserBadge" parameterType="map">
+		INSERT INTO LQ_USER_BADGE (
+			USER_BADGE_ID,
+			USER_ID,
+			BADGE_ID,
+			EARNED_AT
+		) VALUES (
+			SEQ_LQ_USER_BADGE_PK.NEXTVAL,
+			#{userId},
+			#{badgeId},
+			SYSDATE
+		)
+	</insert>
+
+</mapper>

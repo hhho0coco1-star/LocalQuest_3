@@ -4,9 +4,10 @@ import java.util.List;
 
 import com.app.dto.questreview.QuestReviewDTO;
 import com.app.dto.questreview.QuestReviewListItemDTO;
+import com.app.dto.reward.RewardBadgeDTO;
 
 public interface QuestReviewService {
-    public int saveQuestReview(QuestReviewDTO questReview);
+    public List<RewardBadgeDTO> saveQuestReview(QuestReviewDTO questReview);
     public List<QuestReviewListItemDTO> getQuestReviewsByQuestId(int questId);
     public List<QuestReviewListItemDTO> getQuestReviewsByUserId(int userId);
     public int updateQuestReview(QuestReviewDTO questReview);

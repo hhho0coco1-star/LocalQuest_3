@@ -819,12 +819,8 @@ function RewardPage() {
           const fresh = awardedBadges.filter((badge) => !existingIds.has(badge.badgeId));
           return [...fresh, ...prev];
         });
-
-        const awardedNames = awardedBadges.map((badge) => badge.name).join(", ");
-        showToastMessage(`🎉 ${itemName} 교환 완료! 새 배지 획득: ${awardedNames}`);
-      } else {
-        showToastMessage(`🎉 ${itemName} 교환이 완료됐어요!`);
       }
+      showToastMessage(`🎉 ${itemName} 교환이 완료됐어요!`);
 
       closeModal();
     } catch (error) {
