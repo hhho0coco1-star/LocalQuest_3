@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.app.dto.business.BusinessDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
+import com.app.dto.inquiry.InquiryDTO;
+import com.app.dto.inquiry.InquiryStatus;
 import com.app.dto.location.LocationDTO;
 import com.app.dto.locationqr.BusinessQrInfoDTO;
 import com.app.dto.quest.QuestDTO;
@@ -28,6 +30,7 @@ import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
 import com.app.service.businessinquiry.BusinessInquiryService;
+import com.app.service.inquiry.InquiryService;
 import com.app.service.location.LocationService;
 import com.app.service.locationqr.LocationQrService;
 import com.app.service.quest.QuestService;
@@ -61,6 +64,9 @@ public class AdminController {
 	private BusinessInquiryService businessInquiryService;
 
 	@Autowired
+	private InquiryService inquiryService;
+
+	@Autowired
 	private LocationQrService locationQrService;
 
 	// 관리자 메인 페이지
@@ -70,6 +76,99 @@ public class AdminController {
 	}
 	
 	// 1. 회원 목록 조회
+	// Admin QnA page
+	@GetMapping("/qna")
+	public String inquiryAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "status", required = false) String status,
+	        @RequestParam(value = "userId", required = false) Integer userId,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    String normalizedStatusCandidate = (status != null) ? status.trim() : null;
+	    String normalizedStatus = (normalizedStatusCandidate != null
+	            && InquiryStatus.ADMIN_SEARCH_STATUSES.contains(normalizedStatusCandidate))
+	            ? normalizedStatusCandidate
+	            : null;
+	    Integer normalizedUserId = (userId != null && userId > 0) ? userId : null;
+	    List<InquiryDTO> inquiryList = Collections.emptyList();
+	    String inquiryLoadError = null;
+	    Map<String, Object> inquiryParams = new HashMap<>();
+
+	    inquiryParams.put("keyword", normalizedKeyword);
+	    inquiryParams.put("status", normalizedStatus);
+	    inquiryParams.put("userId", normalizedUserId);
+
+	    try {
+	        inquiryList = inquiryService.findAdminInquiryList(inquiryParams);
+	    } catch (Exception e) {
+	        inquiryLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("statusOptions", InquiryStatus.ADMIN_SEARCH_STATUSES);
+	    model.addAttribute("inquiryList", inquiryList);
+	    model.addAttribute("inquiryLoadError", inquiryLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentStatus", normalizedStatus);
+	    model.addAttribute("currentUserId", normalizedUserId);
+	    return "admin/admin-qna-manage-v3";
+	}
+
+	@GetMapping("/qna/detail")
+	@ResponseBody
+	public Map<String, Object> getInquiryDetail(@RequestParam int inquiryId) {
+	    InquiryDTO inquiry = inquiryService.findInquiryById(inquiryId);
+
+	    if (inquiry == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("inquiryId", inquiry.getInquiryId());
+	    result.put("userId", inquiry.getUserId());
+	    result.put("title", inquiry.getTitle());
+	    result.put("content", inquiry.getContent());
+	    result.put("status", inquiry.getStatus());
+	    result.put("answerContent", inquiry.getAnswerContent());
+	    result.put("createdAt", inquiry.getCreatedAt() != null ? inquiry.getCreatedAt().toString() : null);
+	    result.put("answeredAt", inquiry.getAnsweredAt() != null ? inquiry.getAnsweredAt().toString() : null);
+	    return result;
+	}
+
+	@PostMapping("/qna/answer")
+	@ResponseBody
+	public String answerInquiry(@RequestParam int inquiryId, @RequestParam String answerContent) {
+	    String normalizedAnswerContent = answerContent == null ? "" : answerContent.trim();
+	    if (normalizedAnswerContent.isEmpty()) {
+	        return "fail:empty_answer";
+	    }
+
+	    InquiryDTO inquiry = new InquiryDTO();
+	    inquiry.setInquiryId(inquiryId);
+	    inquiry.setAnswerContent(normalizedAnswerContent);
+	    inquiry.setStatus(InquiryStatus.ANSWERED);
+
+	    try {
+	        int result = inquiryService.saveInquiryAnswer(inquiry);
+	        return result > 0 ? "success" : "fail";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "error";
+	    }
+	}
+
+	@PostMapping("/qna/delete")
+	@ResponseBody
+	public String deleteInquiry(@RequestParam int inquiryId) {
+	    try {
+	        int result = inquiryService.removeInquiry(inquiryId);
+	        return result > 0 ? "success" : "fail";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "error";
+	    }
+	}
+
 	@GetMapping("/users")
 	public String getUserList(
 	        @RequestParam(value="sort", defaultValue="DESC") String sort,

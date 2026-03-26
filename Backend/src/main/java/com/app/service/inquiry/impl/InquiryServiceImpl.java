@@ -1,6 +1,7 @@
 package com.app.service.inquiry.impl;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,11 @@ public class InquiryServiceImpl implements InquiryService {
 
     // 3. 문의 상세 조회
     @Override
+    public List<InquiryDTO> findAdminInquiryList(Map<String, Object> params) {
+        return inquiryDAO.getAdminInquiryList(params);
+    }
+
+    @Override
     public InquiryDTO findInquiryById(int inquiryId) {
         return inquiryDAO.getInquiryById(inquiryId);
     }
@@ -51,5 +57,10 @@ public class InquiryServiceImpl implements InquiryService {
     @Transactional
     public int removeInquiry(int inquiryId) {
         return inquiryDAO.deleteInquiry(inquiryId);
+    }
+    @Override
+    @Transactional
+    public int saveInquiryAnswer(InquiryDTO inquiry) {
+        return inquiryDAO.saveInquiryAnswer(inquiry);
     }
 }
