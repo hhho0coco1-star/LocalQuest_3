@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.app.dao.badge.BadgeOperationDAO;
+import com.app.dto.badge.BadgeMetricsDTO;
 import com.app.dto.reward.RewardBadgeDTO;
 import com.app.dto.user.User;
 import com.app.service.badge.BadgeOperationService;
@@ -148,6 +149,27 @@ public class BadgeOperationServiceImpl implements BadgeOperationService {
 		}
 
 		return evaluateAndGrantBadges(user.getUserId());
+	}
+
+	@Override
+	public BadgeMetricsDTO getBadgeMetrics(int userId) {
+		BadgeMetricsDTO response = new BadgeMetricsDTO();
+		if (userId <= 0) {
+			return response;
+		}
+
+		User user = badgeOperationDAO.findActiveUserByUserId(userId);
+		if (user == null) {
+			return response;
+		}
+
+		BadgeMetrics metrics = loadMetrics(userId);
+		response.setCompletedQuestCount(metrics.completedQuestCount);
+		response.setDistinctVisitedLocationCount(metrics.distinctVisitedLocationCount);
+		response.setReviewCount(metrics.reviewCount);
+		response.setRewardExchangeCount(metrics.rewardExchangeCount);
+		response.setUsedPointSum(metrics.usedPointSum);
+		return response;
 	}
 
 	private BadgeMetrics loadMetrics(int userId) {

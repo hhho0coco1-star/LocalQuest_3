@@ -35,4 +35,22 @@
 		ORDER BY UB.EARNED_AT DESC, UB.USER_BADGE_ID DESC
 	</select>
 
+	<select id="findUserBadgesByUserId" parameterType="int" resultType="RewardBadgeDTO">
+		SELECT
+			B.BADGE_ID,
+			B.NAME,
+			B.DESCRIPTION,
+			B.CONDITION_TEXT,
+			B.ICON_URL,
+			UB.EARNED_AT
+		FROM LQ_USER_BADGE UB
+		INNER JOIN LQ_USER U
+			ON U.USER_ID = UB.USER_ID
+		INNER JOIN LQ_BADGE B
+			ON B.BADGE_ID = UB.BADGE_ID
+		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND UB.USER_ID = #{value}
+		ORDER BY UB.EARNED_AT DESC, UB.USER_BADGE_ID DESC
+	</select>
+
 </mapper>

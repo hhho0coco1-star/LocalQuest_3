@@ -20,6 +20,7 @@ import BusinessInquiryPage from './pages/business/BusinessInquiryPage';
 import CustomerService from './pages/support/CustomerService';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
+import QrVerify from './pages/quest/QrVerify/QrVerify'
 
 const resolveSafeRedirectPath = (value) => {
   if (!value || typeof value !== 'string') {

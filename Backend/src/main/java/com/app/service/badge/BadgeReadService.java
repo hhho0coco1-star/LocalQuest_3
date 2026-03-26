@@ -9,4 +9,6 @@ public interface BadgeReadService {
 	List<RewardBadgeDTO> getBadgeCatalog();
 
 	List<RewardBadgeDTO> getUserBadges(String nickname);
+
+	List<RewardBadgeDTO> getUserBadgesByUserId(int userId);
 }
