@@ -706,6 +706,143 @@
          * 회원번호 정렬 함수 (서버 정렬 기준 유지)
          * 현재는 서버 요청 방식으로 처리합니다.
          */
+        function searchAdminInquiry() {
+            const keyword = ($('#adminInquiryKeyword').val() || '').trim();
+            const status = ($('#adminInquiryStatus').val() || '').trim();
+            const userId = ($('#adminInquiryUserId').val() || '').trim();
+            let url = ctx + "/admin/qna";
+            const params = [];
+
+            if (keyword) {
+                params.push("keyword=" + encodeURIComponent(keyword));
+            }
+            if (status) {
+                params.push("status=" + encodeURIComponent(status));
+            }
+            if (userId) {
+                params.push("userId=" + encodeURIComponent(userId));
+            }
+            if (params.length > 0) {
+                url += "?" + params.join("&");
+            }
+
+            loadAdminContent(url);
+        }
+
+        function loadAdminInquiryDetail(inquiryId, onSuccess) {
+            $.ajax({
+                url: ctx + "/admin/qna/detail",
+                type: "GET",
+                dataType: "json",
+                data: { inquiryId: inquiryId },
+                success: function(res) {
+                    if (res && typeof onSuccess === "function") {
+                        onSuccess(res);
+                        return;
+                    }
+                    alert("문의 정보를 찾을 수 없습니다.");
+                },
+                error: function(xhr) {
+                    alert("서버 통신 오류 (" + xhr.status + ")");
+                }
+            });
+        }
+
+        function resetAdminInquiryModal() {
+            $('#adminInquiryDetailId').val('');
+            $('#adminInquiryDetailInquiryId').text('-');
+            $('#adminInquiryDetailUserId').text('-');
+            $('#adminInquiryDetailStatus').text('-');
+            $('#adminInquiryDetailCreatedAt').text('-');
+            $('#adminInquiryDetailAnsweredAt').text('-');
+            $('#adminInquiryDetailTitle').text('-');
+            $('#adminInquiryDetailContent').text('-');
+            $('#adminInquiryDetailAnswerContent').text('-');
+            $('#adminInquiryAnswerContent').val('');
+            $('#adminInquiryAnswerReadBlock').hide();
+            $('#adminInquiryAnswerEditor').hide();
+            $('#adminInquiryModalTitle').text('문의 상세');
+        }
+
+        function openAdminInquiryDetailModal(inquiryId, focusAnswer) {
+            resetAdminInquiryModal();
+            $('#adminInquiryModal').fadeIn(200);
+
+            loadAdminInquiryDetail(inquiryId, function(data) {
+                const status = String(data.status || '').toUpperCase();
+                const isPending = status === 'PENDING';
+
+                $('#adminInquiryDetailId').val(data.inquiryId || '');
+                $('#adminInquiryDetailInquiryId').text(data.inquiryId || '-');
+                $('#adminInquiryDetailUserId').text(data.userId || '-');
+                $('#adminInquiryDetailStatus').text(data.status || '-');
+                $('#adminInquiryDetailCreatedAt').text(data.createdAt || '-');
+                $('#adminInquiryDetailAnsweredAt').text(data.answeredAt || '-');
+                $('#adminInquiryDetailTitle').text(data.title || '-');
+                $('#adminInquiryDetailContent').text(data.content || '-');
+                $('#adminInquiryDetailAnswerContent').text(data.answerContent || '-');
+
+                if (isPending) {
+                    $('#adminInquiryModalTitle').text('문의 답변');
+                    $('#adminInquiryAnswerEditor').show();
+                    if (focusAnswer) {
+                        $('#adminInquiryAnswerContent').trigger('focus');
+                    }
+                } else {
+                    $('#adminInquiryModalTitle').text('문의 상세');
+                    $('#adminInquiryAnswerReadBlock').show();
+                }
+            });
+        }
+
+        function openAdminInquiryAnswerModal(inquiryId) {
+            openAdminInquiryDetailModal(inquiryId, true);
+        }
+
+        function closeAdminInquiryDetailModal() {
+            $('#adminInquiryModal').fadeOut(200);
+        }
+
+        function submitAdminInquiryAnswer() {
+            const inquiryId = Number($('#adminInquiryDetailId').val()) || 0;
+            const answerContent = ($('#adminInquiryAnswerContent').val() || '').trim();
+
+            if (!inquiryId) {
+                alert("문의 정보를 다시 불러와주세요.");
+                return;
+            }
+            if (!answerContent) {
+                alert("답변 내용을 입력해주세요.");
+                return;
+            }
+
+            $.ajax({
+                url: ctx + "/admin/qna/answer",
+                type: "POST",
+                data: {
+                    inquiryId: inquiryId,
+                    answerContent: answerContent
+                },
+                success: function(res) {
+                    const normalized = String(res || '').trim();
+                    if (normalized === "success") {
+                        alert("답변이 등록되었습니다.");
+                        closeAdminInquiryDetailModal();
+                        searchAdminInquiry();
+                        return;
+                    }
+                    if (normalized === "fail:empty_answer") {
+                        alert("답변 내용을 입력해주세요.");
+                        return;
+                    }
+                    alert("답변 등록에 실패했습니다.");
+                },
+                error: function(xhr) {
+                    alert("서버 통신 오류 (" + xhr.status + ")");
+                }
+            });
+        }
+
         function sortUserList() {
             currentSortOrder = (currentSortOrder === 'DESC') ? 'ASC' : 'DESC';
             const type = $('#searchType').val();
