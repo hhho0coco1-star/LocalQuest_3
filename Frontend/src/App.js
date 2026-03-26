@@ -13,6 +13,8 @@ import QuestDetail from './pages/quest/QuestDetail/QuestDetail';
 import MyQuest from './pages/quest/MyQuest/MyQuest';
 import MyQuestDetail from './pages/quest/MyQuest/MyQuestDetail';
 import RewardPage from './pages/reward/rewardPage';
+import BadgePage from './pages/reward/badge/badgePage';
+import BadgeAchievementToast from './pages/reward/badge/BadgeAchievementToast';
 import BusinessPage from './pages/business/BusinessPage';
 import BusinessInquiryPage from './pages/business/BusinessInquiryPage';
 import CustomerService from './pages/support/CustomerService';
@@ -63,6 +65,7 @@ function AppRoutes({ isAuthenticated }) {
         />
         <Route path="/explore" element={<QuestList />} />
         <Route path="/explore/:questId" element={<QuestDetail />} />
+        <Route path="/qr/verify" element={<QrVerify />} />
         <Route
           path="/quest"
           element={isAuthenticated ? <MyQuest /> : <Navigate to="/login" replace />}
@@ -76,6 +79,7 @@ function AppRoutes({ isAuthenticated }) {
           element={isAuthenticated ? <MyQuestDetail /> : <Navigate to="/login" replace />}
         />
         <Route path="/reward" element={<RewardPage />} />
+        <Route path="/reward/badges" element={<BadgePage />} />
         <Route path="/business" element={<BusinessPage />} />
         <Route path="/inquiry" element={<BusinessInquiryPage />} />
         <Route path="/support" element={<CustomerService />} />
@@ -99,6 +103,7 @@ function App() {
     <Router>
       <ScrollToTop />
       <AppRoutes isAuthenticated={isAuthenticated} />
+      <BadgeAchievementToast />
     </Router>
   );
 }

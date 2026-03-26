@@ -94,6 +94,56 @@ function toSafeNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function resolveUserIdFromClient(authUserId = 0) {
+  const normalizedAuthUserId = toSafeNumber(authUserId, 0);
+  if (normalizedAuthUserId > 0) {
+    return normalizedAuthUserId;
+  }
+
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const queryUserId = toSafeNumber(
+    new URLSearchParams(window.location.search).get("userId"),
+    0,
+  );
+  if (queryUserId > 0) {
+    return queryUserId;
+  }
+
+  const storageKeys = ["lq_user_id", "userId", "user_id"];
+  for (const key of storageKeys) {
+    const storedValue = toSafeNumber(window.localStorage.getItem(key), 0);
+    if (storedValue > 0) {
+      return storedValue;
+    }
+  }
+
+  const rawAuth = window.localStorage.getItem("lq_auth");
+  if (rawAuth) {
+    try {
+      const parsedAuth = JSON.parse(rawAuth);
+      const nestedUserId = toSafeNumber(
+        parsedAuth?.user?.userId ??
+          parsedAuth?.user?.USER_ID ??
+          parsedAuth?.user?.user_id ??
+          parsedAuth?.userId ??
+          parsedAuth?.USER_ID ??
+          parsedAuth?.user_id,
+        0,
+      );
+      if (nestedUserId > 0) {
+        return nestedUserId;
+      }
+    } catch {
+      // ignore malformed local storage payload
+    }
+  }
+
+  return 0;
+}
+
 function formatDateLabel(dateValue) {
   if (!dateValue) {
     return "-";
@@ -191,6 +241,19 @@ function normalizeRewardBadges(badges) {
       earnedAt: formatDateLabel(badge?.earnedAt),
     };
   });
+}
+
+function toBadgeEarnedTimestamp(earnedAt) {
+  if (!earnedAt || earnedAt === "-") {
+    return 0;
+  }
+
+  const parsed = new Date(earnedAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return 0;
+  }
+
+  return parsed.getTime();
 }
 
 function getBadgeIcon(iconUrl) {
@@ -302,10 +365,14 @@ function toRankingRow(row) {
 
 function RewardPage() {
   const authNickname = useSelector((state) => state.auth?.user?.nickname ?? "");
-  const authUserId = useSelector((state) => toSafeNumber(state.auth?.user?.userId, 0));
+  const reduxAuthUserId = useSelector((state) => toSafeNumber(state.auth?.user?.userId, 0));
   const resolvedNickname = useMemo(
     () => resolveNicknameFromClient(authNickname),
     [authNickname],
+  );
+  const authUserId = useMemo(
+    () => resolveUserIdFromClient(reduxAuthUserId),
+    [reduxAuthUserId],
   );
 
   const [levelBox, setLevelBox] = useState(null);
@@ -323,6 +390,7 @@ function RewardPage() {
   const [badges, setBadges] = useState([]);
   const [isBadgesLoading, setIsBadgesLoading] = useState(true);
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [pendingItem, setPendingItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExchanging, setIsExchanging] = useState(false);
@@ -663,6 +731,16 @@ function RewardPage() {
   }, [rewardItems, statusFilter, sortType]);
 
   const realtimeTop5 = useMemo(() => rankingList.slice(0, 5), [rankingList]);
+  const sortedBadges = useMemo(() => {
+    return [...badges].sort((left, right) => {
+      const dateDiff = toBadgeEarnedTimestamp(right.earnedAt) - toBadgeEarnedTimestamp(left.earnedAt);
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      return right.badgeId - left.badgeId;
+    });
+  }, [badges]);
+  const latestBadge = sortedBadges[0] ?? null;
   const roadmapItems = useMemo(() => normalizeRoadmapItems(levelBox?.roadmap), [levelBox?.roadmap]);
   const currentGradeIcon = useMemo(
     () => getGradeIcon(levelBox?.currentGradeName, "🚶"),
@@ -688,6 +766,14 @@ function RewardPage() {
 
   const closeRankingModal = () => {
     setIsRankingModalOpen(false);
+  };
+
+  const openBadgeModal = () => {
+    setIsBadgeModalOpen(true);
+  };
+
+  const closeBadgeModal = () => {
+    setIsBadgeModalOpen(false);
   };
 
   const openPurchaseModal = (item) => {
@@ -765,12 +851,8 @@ function RewardPage() {
           const fresh = awardedBadges.filter((badge) => !existingIds.has(badge.badgeId));
           return [...fresh, ...prev];
         });
-
-        const awardedNames = awardedBadges.map((badge) => badge.name).join(", ");
-        showToastMessage(`🎉 ${itemName} 교환 완료! 새 배지 획득: ${awardedNames}`);
-      } else {
-        showToastMessage(`🎉 ${itemName} 교환이 완료됐어요!`);
       }
+      showToastMessage(`🎉 ${itemName} 교환이 완료됐어요!`);
 
       closeModal();
     } catch (error) {
@@ -969,26 +1051,29 @@ function RewardPage() {
                 <span>{badges.length}개 획득</span>
               </div>
 
-              {isBadgesLoading ? (
-                <p className="reward-badge-empty">배지 데이터를 불러오는 중입니다.</p>
-              ) : badges.length > 0 ? (
-                <div className="reward-badge-list">
-                  {badges.slice(0, 6).map((badge) => (
-                    <article key={badge.badgeId} className="reward-badge-item">
-                      <span className="reward-badge-icon" aria-hidden="true">
-                        {getBadgeIcon(badge.iconUrl)}
-                      </span>
-                      <div className="reward-badge-copy">
-                        <strong>{badge.name}</strong>
-                        <p>{badge.conditionText || badge.description || "획득 조건 정보 준비 중"}</p>
-                        <span>{badge.earnedAt}</span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="reward-badge-empty">아직 획득한 배지가 없어요.</p>
-              )}
+              <div className="reward-badge-body">
+                {isBadgesLoading ? (
+                  <p className="reward-badge-empty">배지 데이터를 불러오는 중입니다.</p>
+                ) : latestBadge ? (
+                  <article className="reward-badge-item reward-badge-item-featured">
+                    <span className="reward-badge-icon" aria-hidden="true">
+                      {getBadgeIcon(latestBadge.iconUrl)}
+                    </span>
+                    <div className="reward-badge-copy">
+                      <strong>{latestBadge.name}</strong>
+                      <p>{latestBadge.conditionText || latestBadge.description || "획득 조건 정보 준비 중"}</p>
+                      <span>{latestBadge.earnedAt}</span>
+                    </div>
+                    <span className="reward-badge-recent-chip">최근 획득</span>
+                  </article>
+                ) : (
+                  <p className="reward-badge-empty">아직 획득한 배지가 없어요.</p>
+                )}
+              </div>
+
+              <button type="button" className="reward-rank-link reward-badge-link" onClick={openBadgeModal}>
+                전체 배지 보기 →
+              </button>
             </article>
 
             <article className="reward-card reward-rank-card">
@@ -1183,6 +1268,42 @@ function RewardPage() {
               </div>
             ) : (
               <p className="reward-ranking-empty">데이터 없음</p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className={`reward-modal-overlay ${isBadgeModalOpen ? "reward-is-open" : ""}`} onClick={closeBadgeModal}>
+        <section
+          className="reward-modal-box reward-badge-modal-box"
+          role="dialog"
+          aria-modal="true"
+          aria-label="전체 배지"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="reward-ranking-modal-head">
+            <h3>내 배지 전체보기</h3>
+            <button type="button" className="reward-ranking-close" onClick={closeBadgeModal}>닫기</button>
+          </div>
+
+          <div className="reward-ranking-modal-body reward-badge-modal-body">
+            {sortedBadges.length > 0 ? (
+              <div className="reward-badge-list reward-badge-modal-list">
+                {sortedBadges.map((badge) => (
+                  <article key={`modal-badge-${badge.badgeId}`} className="reward-badge-item">
+                    <span className="reward-badge-icon" aria-hidden="true">
+                      {getBadgeIcon(badge.iconUrl)}
+                    </span>
+                    <div className="reward-badge-copy">
+                      <strong>{badge.name}</strong>
+                      <p>{badge.conditionText || badge.description || "획득 조건 정보 준비 중"}</p>
+                      <span>{badge.earnedAt}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="reward-ranking-empty">아직 획득한 배지가 없어요.</p>
             )}
           </div>
         </section>

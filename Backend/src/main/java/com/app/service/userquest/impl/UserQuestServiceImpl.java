@@ -7,15 +7,12 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.time.Duration;
-import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -42,12 +39,14 @@ import com.app.dto.pointhistory.PointHistoryDTO;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.receipt.ReceiptDTO;
+import com.app.dto.reward.RewardBadgeDTO;
 import com.app.dto.userquest.UserQuestDetailDTO;
 import com.app.dto.userquest.UserQuestDetailLocationDTO;
 import com.app.dto.userquest.UserQuestDTO;
 import com.app.dto.userquest.UserQuestOverviewDTO;
 import com.app.dto.userquest.UserQuestSummaryDTO;
 import com.app.dto.userquestprogress.UserQuestProgressDTO;
+import com.app.service.badge.BadgeOperationService;
 import com.app.service.userquest.UserQuestService;
 import com.app.service.pointhistory.PointHistoryService;
 
@@ -89,6 +88,9 @@ public class UserQuestServiceImpl implements UserQuestService {
 
     @Autowired
     private PointHistoryService pointHistoryService;
+
+    @Autowired
+    private BadgeOperationService badgeOperationService;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -287,6 +289,13 @@ public class UserQuestServiceImpl implements UserQuestService {
         response.setMatchedQuestCount(results.size());
         response.setVerifiedQuestCount(verifiedQuestCount);
         response.setCompletedQuestCount(completedQuestCount);
+
+        List<RewardBadgeDTO> newlyAwardedBadges = Collections.emptyList();
+        if (completedQuestCount > 0) {
+            newlyAwardedBadges = badgeOperationService.evaluateAndGrantBadges(userId);
+        }
+        response.setNewlyAwardedBadges(newlyAwardedBadges);
+
         response.setMessage(buildQrVerificationMessage(results, verifiedQuestCount, completedQuestCount));
         return response;
     }
@@ -483,10 +492,13 @@ public class UserQuestServiceImpl implements UserQuestService {
         }
 
         if ("COMPLETED".equalsIgnoreCase(detail.getQuestStatus())) {
+            List<RewardBadgeDTO> newlyAwardedBadges = badgeOperationService.evaluateAndGrantBadges(detail.getUserId());
+
             Map<String, Object> response = new HashMap<>();
             response.put("completed", true);
             response.put("alreadyCompleted", true);
             response.put("message", "이미 완료한 퀘스트입니다.");
+            response.put("newlyAwardedBadges", newlyAwardedBadges);
             response.put("detail", detail);
             return response;
         }
@@ -501,11 +513,13 @@ public class UserQuestServiceImpl implements UserQuestService {
 
         Date completedAt = new Date();
         userQuestDAO.updateUserQuestStatusAndCompletedAt(userQuestId, "COMPLETED", completedAt);
+        List<RewardBadgeDTO> newlyAwardedBadges = badgeOperationService.evaluateAndGrantBadges(detail.getUserId());
 
         Map<String, Object> response = new HashMap<>();
         response.put("completed", true);
         response.put("alreadyCompleted", false);
         response.put("message", "퀘스트를 완료했습니다.");
+        response.put("newlyAwardedBadges", newlyAwardedBadges);
         response.put("detail", getUserQuestDetail(userId, userQuestId));
         return response;
     }
