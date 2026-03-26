@@ -7,6 +7,11 @@ import './MyQuestDetail.css';
 
 const STAR_OPTIONS = [1, 2, 3, 4, 5];
 const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"]';
+const GPS_FALLBACK_LOCATION = {
+  name: '대흥로 215',
+  latitude: 36.80740752813,
+  longitude: 127.147164,
+};
 
 const getDifficultyText = (rewardExp) => {
   if (rewardExp >= 300) return '어려움';
@@ -28,7 +33,7 @@ const formatDateTime = (value) => {
   return `${year}.${month}.${date} ${hours}:${minutes}`;
 };
 
-const formatDueDateTime = (value) => (value ? formatDateTime(value) : '마감 정보 없음');
+const formatDueDateTime = (value) => (value ? formatDateTime(value) : '제한 없음');
 
 const getQuestStatusLabel = (status) => {
   if (status === 'IN_PROGRESS') return '진행 중';
@@ -55,6 +60,21 @@ const getVerificationLabel = (locationCategory) => {
     default:
       return 'GPS 인증';
   }
+};
+
+const isLocationCompleted = (location) => Number(location?.isCompleted) === 1;
+
+const canVerifyLocationInOrder = (locations, targetLocation) => {
+  if (!Array.isArray(locations) || !targetLocation) return true;
+  const targetOrder = Number(targetLocation.visitOrder);
+  if (!Number.isFinite(targetOrder) || targetOrder <= 1) return true;
+
+  return !locations.some((location) => {
+    const visitOrder = Number(location?.visitOrder);
+    if (!Number.isFinite(visitOrder)) return false;
+    if (Number(location?.questLocationId) === Number(targetLocation.questLocationId)) return false;
+    return visitOrder < targetOrder && !isLocationCompleted(location);
+  });
 };
 
 const loadKakaoMapSdk = (appKey) =>
@@ -105,6 +125,38 @@ const loadKakaoMapSdk = (appKey) =>
     script.addEventListener('error', () => reject(new Error('sdk-load-failed')), { once: true });
     document.head.appendChild(script);
   });
+
+const getGpsPositionWithFallback = async () => {
+  if (!navigator.geolocation) {
+    return {
+      latitude: GPS_FALLBACK_LOCATION.latitude,
+      longitude: GPS_FALLBACK_LOCATION.longitude,
+      usedFallback: true,
+    };
+  }
+
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
+    });
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      usedFallback: false,
+    };
+  } catch (error) {
+    return {
+      latitude: GPS_FALLBACK_LOCATION.latitude,
+      longitude: GPS_FALLBACK_LOCATION.longitude,
+      usedFallback: true,
+    };
+  }
+};
 
 function MyQuestDetail() {
   const navigate = useNavigate();
@@ -333,31 +385,25 @@ function MyQuestDetail() {
 
   const handleGpsVerification = async (location) => {
     if (!location || isSubmittingGps) return;
-    if (!navigator.geolocation) {
-      openVerificationFailure(location.name, '이 기기에서는 위치 인증을 지원하지 않습니다.');
-      return;
-    }
 
     try {
       setIsSubmittingGps(true);
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        });
-      });
+      const position = await getGpsPositionWithFallback();
 
       const response = await questApi.verifyQuestGps(
         userQuestId,
         location.questLocationId,
-        position.coords.latitude,
-        position.coords.longitude
+        position.latitude,
+        position.longitude
       );
       const result = response.data || {};
       if (result.verified) {
         if (result.detail) setDetail(result.detail);
-        alert(result.message || 'GPS 인증이 완료되었습니다.');
+        alert(
+          position.usedFallback
+            ? `${result.message || 'GPS 인증이 완료되었습니다.'} 현재 위치를 확인하지 못해 기본 위치(${GPS_FALLBACK_LOCATION.name})로 인증했습니다.`
+            : (result.message || 'GPS 인증이 완료되었습니다.')
+        );
         return;
       }
       openVerificationFailure(location.name, result.message || 'GPS 인증에 실패했습니다.', result.reason || '');
@@ -555,9 +601,9 @@ function MyQuestDetail() {
               <div className="my-quest-detail-progress-grid">
                 <article><span>진행률</span><strong>{detail.progressPercent}%</strong></article>
                 <article><span>완료한 장소</span><strong>{detail.completedLocationCount}/{detail.totalLocationCount}</strong></article>
-                <article><span>시작일</span><strong>{formatDateTime(detail.startedAt)}</strong></article>
-                <article><span>마감</span><strong>{formatDueDateTime(detail.dueAt)}</strong></article>
-                <article><span>완료일</span><strong>{formatDateTime(detail.completedAt)}</strong></article>
+                <article><span>시작 시간</span><strong>{formatDateTime(detail.startedAt)}</strong></article>
+                <article><span>종료 시간</span><strong>{formatDueDateTime(detail.dueAt)}</strong></article>
+                <article><span>완료 시간</span><strong>{formatDateTime(detail.completedAt)}</strong></article>
               </div>
               <div className="my-quest-detail-progress-bar"><span style={{ width: `${detail.progressPercent}%` }} /></div>
               {detail.questStatus !== 'COMPLETED' ? (
@@ -581,7 +627,8 @@ function MyQuestDetail() {
                 <div className="quest-detail-location-list">
                   {detail.locations.map((location) => {
                     const uploadedReceipt = receiptUploads[location.questLocationId];
-                    const isCompleted = Number(location.isCompleted) === 1;
+                    const isCompleted = isLocationCompleted(location);
+                    const isOrderReady = canVerifyLocationInOrder(detail.locations, location);
                     const clickable = hasValidCoordinates(location);
                     return (
                       <article key={location.questLocationId || location.locationId} className={`quest-detail-location-item my-quest-detail-location-item${isCompleted ? ' is-completed' : ''}${clickable ? ' is-clickable' : ''}`} onClick={() => openMapModal(location)} onKeyDown={(event) => {
@@ -599,14 +646,14 @@ function MyQuestDetail() {
                           </div>
                           {location.address ? <p>{location.address}</p> : null}
                           {location.addressDetail ? <p>{location.addressDetail}</p> : null}
-                          {clickable ? <span className="quest-detail-location-map-hint">클릭해서 지도 보기</span> : null}
                           {location.description ? <span className="quest-detail-location-note">{location.description}</span> : null}
+                          {clickable ? <span className="quest-detail-location-map-hint">클릭해서 지도 보기</span> : null}
                           {isCompleted ? (
                             <span className="my-quest-detail-completed-at">완료일 {formatDateTime(location.completedAt)}</span>
                           ) : (
                             <div className="my-quest-detail-verification">
-                              <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationCategory)} 하기`}</button>
-                              <span className="my-quest-detail-type-note">{getVerificationLabel(location.locationCategory)}</span>
+                              {isOrderReady ? <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationCategory)} 하기`}</button> : null}
+                              {!isOrderReady ? <span className="my-quest-detail-order-note">이전 순서를 먼저 인증해야 합니다.</span> : null}
                               {uploadedReceipt ? <span className="my-quest-detail-uploaded-note">영수증 업로드됨: {uploadedReceipt.fileName}</span> : null}
                             </div>
                           )}

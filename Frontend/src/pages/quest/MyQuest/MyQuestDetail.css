@@ -123,11 +123,21 @@
   background: linear-gradient(180deg, #ffffff, #f0fdf4);
 }
 
+.my-quest-detail-location-item .quest-detail-location-body {
+  flex: 1;
+  min-width: 0;
+}
+
 .my-quest-detail-location-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.my-quest-detail-location-head h3 {
+  flex: 1;
+  min-width: 0;
 }
 
 .my-quest-detail-location-badge {
@@ -175,6 +185,18 @@
   color: #0f766e;
   font-size: 13px;
   font-weight: 700;
+}
+
+.my-quest-detail-order-note {
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.my-quest-detail-location-item .quest-detail-location-note {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 16px;
 }
 
 .my-quest-detail-type-note {

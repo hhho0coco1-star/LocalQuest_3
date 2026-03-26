@@ -262,6 +262,55 @@ public class AdminController {
     }
 
     // 3. 퀘스트 등록
+    @GetMapping("/locations")
+    public String locationList(
+        @RequestParam(value = "keyword", required = false) String keyword,
+        @RequestParam(value = "category", required = false) String category,
+        Model model) {
+
+        String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        String normalizedCategory = (category != null && !category.trim().isEmpty()) ? category.trim().toUpperCase(Locale.ROOT) : null;
+
+        List<LocationDTO> locationList;
+        String locationLoadError = null;
+        try {
+            List<LocationDTO> allLocations = locationService.searchLocations(normalizedKeyword);
+            if (allLocations == null || allLocations.isEmpty()) {
+                locationList = Collections.emptyList();
+            } else if (normalizedCategory == null) {
+                locationList = allLocations;
+            } else {
+                List<LocationDTO> filteredLocationList = new ArrayList<>();
+                for (LocationDTO location : allLocations) {
+                    if (location == null) {
+                        continue;
+                    }
+
+                    String locationCategory = location.getLocationCategory() == null
+                        ? "VISIT"
+                        : location.getLocationCategory().trim().toUpperCase(Locale.ROOT);
+
+                    if (normalizedCategory.equals(locationCategory)) {
+                        filteredLocationList.add(location);
+                    }
+                }
+                locationList = filteredLocationList;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            locationList = Collections.emptyList();
+            locationLoadError = "장소 목록 조회 중 오류가 발생했습니다.";
+        }
+
+        model.addAttribute("locationList", locationList);
+        model.addAttribute("locationCount", locationList.size());
+        model.addAttribute("locationLoadError", locationLoadError);
+        model.addAttribute("currentKeyword", normalizedKeyword);
+        model.addAttribute("currentCategory", normalizedCategory);
+
+        return "admin/admin-location";
+    }
+
     @GetMapping("/locations/search")
     @ResponseBody
     public List<Map<String, Object>> searchLocations(
@@ -292,6 +341,46 @@ public class AdminController {
             return response;
         } catch (Exception e) {
             return Collections.emptyList();
+        }
+    }
+
+    @PostMapping("/locations/save")
+    @ResponseBody
+    public String saveLocation(LocationDTO location) {
+        try {
+            if (location == null) {
+                return "fail:location_invalid";
+            }
+            if (location.getName() == null || location.getName().trim().isEmpty()) {
+                return "fail:location_name_empty";
+            }
+            if (location.getZipCode() == null || location.getZipCode().trim().isEmpty()) {
+                return "fail:zip_code_empty";
+            }
+            if (location.getAddress() == null || location.getAddress().trim().isEmpty()) {
+                return "fail:address_empty";
+            }
+            if (location.getLatitude() == null || location.getLongitude() == null) {
+                return "fail:coordinate_empty";
+            }
+            if (location.getLocationCategory() == null || location.getLocationCategory().trim().isEmpty()) {
+                return "fail:location_category_empty";
+            }
+
+            location.setBusinessId(null);
+            if (location.getLocationType() == null || location.getLocationType().trim().isEmpty()) {
+                location.setLocationType("QUEST_SPOT");
+            }
+            location.setLocationCategory(location.getLocationCategory().trim().toUpperCase(Locale.ROOT));
+
+            if (location.getLocationId() > 0) {
+                return locationService.updateLocation(location) == 1 ? "success" : "fail";
+            }
+
+            return locationService.saveLocation(location) == 1 ? "success" : "fail";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
         }
     }
 
