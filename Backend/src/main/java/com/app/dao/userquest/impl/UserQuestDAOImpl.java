@@ -28,6 +28,28 @@ public class UserQuestDAOImpl implements UserQuestDAO {
     }
 
     @Override
+    public UserQuestDTO findLatestUserQuestByUserIdAndQuestId(int userId, int questId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("questId", questId);
+        return sqlSessionTemplate.selectOne("userquest_mapper.findLatestUserQuestByUserIdAndQuestId", params);
+    }
+    @Override
+    public UserQuestDTO findUserQuestByUserIdAndQuestId(UserQuestDTO userQuest) {
+        return sqlSessionTemplate.selectOne("userquest_mapper.findUserQuestByUserIdAndQuestId", userQuest);
+    }
+
+    @Override
+    public int updateUserQuestForAccept(UserQuestDTO userQuest) {
+        return sqlSessionTemplate.update("userquest_mapper.updateUserQuestForAccept", userQuest);
+    }
+
+    @Override
+    public int completeUserQuest(UserQuestDTO userQuest) {
+        return sqlSessionTemplate.update("userquest_mapper.completeUserQuest", userQuest);
+    }
+
+    @Override
     public List<UserQuestSummaryDTO> findUserQuestSummariesByUserId(int userId) {
         return sqlSessionTemplate.selectList("userquest_mapper.findUserQuestSummariesByUserId", userId);
     }
@@ -70,5 +92,27 @@ public class UserQuestDAOImpl implements UserQuestDAO {
         params.put("status", status);
         params.put("completedAt", completedAt);
         return sqlSessionTemplate.update("userquest_mapper.updateUserQuestStatusAndCompletedAt", params);
+    }
+
+    @Override
+    public int updateUserQuestLifecycle(
+        int userQuestId,
+        String status,
+        java.time.LocalDateTime startedAt,
+        java.time.LocalDateTime dueAt,
+        Date completedAt
+    ) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userQuestId", userQuestId);
+        params.put("status", status);
+        params.put("startedAt", startedAt);
+        params.put("dueAt", dueAt);
+        params.put("completedAt", completedAt);
+        return sqlSessionTemplate.update("userquest_mapper.updateUserQuestLifecycle", params);
+    }
+
+    @Override
+    public int deleteUserQuest(int userQuestId) {
+        return sqlSessionTemplate.delete("userquest_mapper.deleteUserQuest", userQuestId);
     }
 }

@@ -14,4 +14,5 @@ public class SignUpRequest {
 	private String birthMonth;
 	private String birthDay;
 	private String gender;
+	private Boolean marketingAgree;
 }

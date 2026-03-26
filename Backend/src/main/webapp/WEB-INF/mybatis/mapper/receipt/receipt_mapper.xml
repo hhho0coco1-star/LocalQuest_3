@@ -9,7 +9,6 @@
 			RECEIPT_ID,
 			USER_ID,
 			USER_QUEST_PROGRESS_ID,
-			CATEGORY,
 			VERIFY_STATUS,
 			FILE_PATH,
 			FILE_UPLOAD_NAME,
@@ -19,7 +18,6 @@
 			SEQ_LQ_RECEIPT_PK.NEXTVAL,
 			#{userId},
 			#{userQuestProgressId},
-			#{category},
 			#{verifyStatus},
 			#{filePath},
 			#{fileUploadName},
@@ -27,4 +25,13 @@
 			SYSDATE
 		)
 	</insert>
+
+	<delete id="deleteReceiptsByUserQuestId" parameterType="int">
+		DELETE FROM LQ_RECEIPT
+		WHERE USER_QUEST_PROGRESS_ID IN (
+			SELECT USER_QUEST_PROGRESS_ID
+			FROM LQ_USER_QUEST_PROGRESS
+			WHERE USER_QUEST_ID = #{userQuestId}
+		)
+	</delete>
 </mapper>

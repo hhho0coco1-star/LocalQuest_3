@@ -17,6 +17,7 @@ public class UserQuestDetailLocationDTO {
     private Double latitude;
     private Double longitude;
     private String locationType;
+    private String locationCategory;
     private String description;
     private int isCompleted;
     private Date completedAt;

@@ -1,27 +1,33 @@
 package com.app.dto.userquest;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 
 @Data
 public class UserQuestSummaryDTO {
-    private int userQuestId;
-    private int userId;
-    private int questId;
+    private Integer userQuestId;
+    private Integer userId;
+    private Integer questId;
+    private boolean accepted;
     private String questStatus;
-    private Date startedAt;
-    private Date completedAt;
-    private Date createdAt;
+    private LocalDateTime startedAt;
+    private LocalDateTime dueAt;
+    private LocalDateTime completedAt;
+    private LocalDateTime createdAt;
 
     private String title;
     private String description;
     private String category;
-    private int rewardExp;
-    private int rewardPoint;
+    private Integer rewardExp;
+    private Integer rewardPoint;
     private Integer timeLimit;
 
-    private int totalLocationCount;
-    private int completedLocationCount;
-    private int progressPercent;
+    private Integer totalLocationCount;
+    private Integer completedLocationCount;
+    private Integer progressPercent;
+
+    private String status;
+    private boolean expired;
+    private Long remainingSeconds;
 }

@@ -1,6 +1,8 @@
 package com.app.dao.questreview.impl;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +26,30 @@ public class QuestReviewDAOImpl implements QuestReviewDAO {
 
     @Override
     public List<QuestReviewListItemDTO> selectQuestReviewsByQuestId(int questId) {
-        return sqlSessionTemplate.selectList("questreview_mapper.selectQuestReviewsByQuestId", questId);
+        try {
+            return sqlSessionTemplate.selectList("questreview_mapper.selectQuestReviewsByQuestId", questId);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public List<QuestReviewListItemDTO> selectQuestReviewsByUserId(int userId) {
+        try {
+            return sqlSessionTemplate.selectList("questreview_mapper.selectQuestReviewsByUserId", userId);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public int updateQuestReview(QuestReviewDTO questReview) {
         return sqlSessionTemplate.update("questreview_mapper.updateQuestReview", questReview);
+    }
+
+    @Override
+    public int updateQuestReviewAsAdmin(QuestReviewDTO questReview) {
+        return sqlSessionTemplate.update("questreview_mapper.updateQuestReviewAsAdmin", questReview);
     }
 
     @Override
@@ -39,5 +59,30 @@ public class QuestReviewDAOImpl implements QuestReviewDAO {
         questReview.setQuestId(questId);
         questReview.setUserId(userId);
         return sqlSessionTemplate.delete("questreview_mapper.deleteQuestReview", questReview);
+    }
+
+    @Override
+    public int deleteQuestReviewAsAdmin(int reviewId, int questId) {
+        QuestReviewDTO questReview = new QuestReviewDTO();
+        questReview.setReviewId(reviewId);
+        questReview.setQuestId(questId);
+        return sqlSessionTemplate.delete("questreview_mapper.deleteQuestReviewAsAdmin", questReview);
+    }
+
+    private boolean isQuestReviewStorageUnavailable(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String upperMessage = message.toUpperCase(Locale.ROOT);
+                if (upperMessage.contains("LQ_QUEST_REVIEW")
+                    || upperMessage.contains("ORA-00942")
+                    || upperMessage.contains("TABLE OR VIEW DOES NOT EXIST")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

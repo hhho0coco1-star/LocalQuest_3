@@ -4,8 +4,9 @@
 
 <c:set var="path" value="${pageContext.request.contextPath}" />
 <link rel="stylesheet" href="${path}/css/admin-quest.css">
+<link rel="stylesheet" href="${path}/css/admin-reward-item.css">
 
-<div class="adm-q-container">
+<div class="adm-q-container adm-r-container">
     <div class="adm-q-header">
         <h2 class="adm-q-title"><i class="fas fa-store"></i> 리워드 아이템 관리</h2>
         

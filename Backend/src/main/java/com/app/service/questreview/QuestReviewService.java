@@ -8,6 +8,9 @@ import com.app.dto.questreview.QuestReviewListItemDTO;
 public interface QuestReviewService {
     public int saveQuestReview(QuestReviewDTO questReview);
     public List<QuestReviewListItemDTO> getQuestReviewsByQuestId(int questId);
+    public List<QuestReviewListItemDTO> getQuestReviewsByUserId(int userId);
     public int updateQuestReview(QuestReviewDTO questReview);
+    public int updateQuestReviewAsAdmin(QuestReviewDTO questReview);
     public int removeQuestReview(int reviewId, int questId, int userId);
+    public int removeQuestReviewAsAdmin(int reviewId, int questId);
 }

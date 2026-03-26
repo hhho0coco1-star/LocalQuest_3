@@ -73,6 +73,8 @@
 .quest-card-meta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
   gap: 14px;
   margin: 24px 0;
   color: #64748b;
@@ -85,23 +87,40 @@
   gap: 6px;
 }
 
+.quest-card-meta-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-left: auto;
+}
+
 .quest-card-bottom {
   display: flex;
-  justify-content: space-between;
-  align-items: end;
+  justify-content: flex-end;
   gap: 16px;
 }
 
-.quest-card-bottom strong {
+.quest-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.quest-card-reward {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.quest-card-reward strong {
   display: block;
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 700;
   color: #0f172a;
 }
 
-.quest-card-bottom span {
-  font-size: 13px;
-  color: #64748b;
-}
 
 .quest-card-button {
   border: none;
@@ -116,4 +135,18 @@
 
 .quest-card-button:hover {
   background: #d93d5e;
+}
+
+.quest-card-button-accept {
+  background: #ff385d;
+}
+
+.quest-card-button-accept:hover:not(:disabled) {
+  background: #e72f52;
+}
+
+.quest-card-button:disabled {
+  background: #cbd5e1;
+  color: #ffffff;
+  cursor: not-allowed;
 }

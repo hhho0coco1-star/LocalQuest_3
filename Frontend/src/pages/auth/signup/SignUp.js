@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Input from '../../../components/common/Input';
 import Button from '../../../components/common/Button';
 import { userApi } from '../../../api/UserApi';
@@ -7,6 +7,8 @@ import './SignUp.css';
 
 function Signup() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const marketingAgreeFromTerms = location.state?.marketingAgree === true;
     const userIdRegex = /^[A-Za-z0-9]{4,20}$/;
     const nicknameRegex = /^[A-Za-z0-9\uAC00-\uD7A3_]{2,20}$/;
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,20}$/;
@@ -261,7 +263,8 @@ function Signup() {
                 userId: trimmedUserId,
                 nickname: trimmedNickname,
                 email: trimmedEmail,
-                name: trimmedName
+                name: trimmedName,
+                marketingAgree: marketingAgreeFromTerms
             });
             alert('성공!');
             navigate('/login');

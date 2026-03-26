@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 
 import com.app.dto.user.User;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
@@ -43,5 +45,57 @@ public class JwtTokenProvider {
 
 	public long getAccessTokenExpireSeconds() {
 		return ACCESS_TOKEN_EXPIRE_MS / 1000L;
+	}
+
+	public Integer resolveUserIdFromAuthorizationHeader(String authorizationHeader) {
+		if (authorizationHeader == null) {
+			return null;
+		}
+
+		String normalizedHeader = authorizationHeader.trim();
+		if (normalizedHeader.isEmpty()) {
+			return null;
+		}
+
+		if (!normalizedHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+			return null;
+		}
+
+		String token = normalizedHeader.substring(7).trim();
+		if (token.isEmpty()) {
+			return null;
+		}
+
+		return parseUserId(token);
+	}
+
+	public Integer parseUserId(String token) {
+		if (token == null || token.trim().isEmpty()) {
+			return null;
+		}
+
+		try {
+			Claims claims = Jwts.parser()
+				.verifyWith(secretKey)
+				.build()
+				.parseSignedClaims(token.trim())
+				.getPayload();
+
+			Object uid = claims.get("uid");
+			if (uid instanceof Number) {
+				return Integer.valueOf(((Number) uid).intValue());
+			}
+
+			if (uid instanceof String) {
+				String uidText = ((String) uid).trim();
+				if (!uidText.isEmpty()) {
+					return Integer.valueOf(Integer.parseInt(uidText));
+				}
+			}
+
+			return null;
+		} catch (JwtException | IllegalArgumentException e) {
+			return null;
+		}
 	}
 }

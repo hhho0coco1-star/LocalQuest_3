@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-public class FAQDTO {
+public class FaqDTO {
     private int faqId;
     private String category;
     private String question;

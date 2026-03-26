@@ -1,39 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { questApi } from '../../api/QuestApi';
 import './MainPage.css';
 
 const LOCATION_CONSENT_KEY = 'localquest_location_consent';
-const CHEONAN_CENTER = {
+const QUEST_SEARCH_RADIUS_METERS = 3000;
+const DEFAULT_MAP_LEVEL = 5;
+const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥로 215';
+const HUMAN_CENTER_FALLBACK = {
   lat: 36.81511,
   lng: 127.11389,
 };
-const STAR_OPTIONS = [1, 2, 3, 4, 5];
-
-const hotQuestData = [
-  {
-    id: 1,
-    title: '천안 중앙시장 먹거리 퀘스트',
-    region: '충남 천안',
-    description:
-      '중앙시장 먹거리 골목을 따라 이동하며 인증 미션을 수행하는 대표 미식 퀘스트입니다.',
-  },
-  {
-    id: 2,
-    title: '불당동 카페거리 감성 퀘스트',
-    region: '천안 불당동',
-    description:
-      '불당동 카페거리를 따라 걸으며 포토 인증과 체크포인트 미션을 완료하는 감성 퀘스트입니다.',
-  },
-  {
-    id: 3,
-    title: '독립기념관 역사 체험 퀘스트',
-    region: '천안 목천읍',
-    description:
-      '독립기념관 일대를 따라 이동하며 역사 포인트를 기록하는 체험형 퀘스트입니다.',
-  },
-];
 
 const questTabItems = [
   { key: 'overview', label: '홈' },
@@ -69,16 +46,86 @@ function renderStarText(rating) {
   return Array.from({ length: 5 }, (_, index) => (index < numericRating ? '★' : '☆')).join('');
 }
 
-function MainPage() {
-  const navigate = useNavigate();
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  const user = useSelector((state) => state.auth.user);
+function formatQuestRegion(source) {
+  const addressTokens = String(source?.address || '')
+    .split(/\s+/)
+    .filter(Boolean);
 
+  if (addressTokens.length >= 2) {
+    return `${addressTokens[0]} ${addressTokens[1]}`;
+  }
+
+  return source?.locationName || '천안 추천';
+}
+
+function calculateDistanceMeters(startLat, startLng, endLat, endLng) {
+  const toRadians = (value) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const latitudeDelta = toRadians(endLat - startLat);
+  const longitudeDelta = toRadians(endLng - startLng);
+  const startLatitudeInRadians = toRadians(startLat);
+  const endLatitudeInRadians = toRadians(endLat);
+
+  const haversineValue =
+    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
+    Math.cos(startLatitudeInRadians) *
+      Math.cos(endLatitudeInRadians) *
+      Math.sin(longitudeDelta / 2) *
+      Math.sin(longitudeDelta / 2);
+
+  const angularDistance = 2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
+  return earthRadius * angularDistance;
+}
+
+function filterQuestsWithinRadius(questList, center, radiusMeters = QUEST_SEARCH_RADIUS_METERS) {
+  if (!center) {
+    return [];
+  }
+
+  return questList.filter((quest) => {
+    if (!Number.isFinite(quest.latitude) || !Number.isFinite(quest.longitude)) {
+      return false;
+    }
+
+    return (
+      calculateDistanceMeters(center.lat, center.lng, quest.latitude, quest.longitude) <= radiusMeters
+    );
+  });
+}
+
+function buildRadiusMessage(center, questCount) {
+  if (!center) {
+    return '';
+  }
+
+  if (questCount > 0) {
+    return `${center.mode === 'current' ? '내 현재 위치 기준' : '지도 중심 기준'} 3km 내 퀘스트 ${questCount}개`;
+  }
+
+  if (center.mode === 'current') {
+    return '내 현재 위치 3km 내에 퀘스트가 없습니다. 지도를 이동해 다른 위치의 퀘스트를 탐색해보세요.';
+  }
+
+  return '현재 지도 중심 3km 내에 퀘스트가 없습니다. 지도를 더 이동해보세요.';
+}
+
+function MainPage() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRefs = useRef([]);
   const overlayRefs = useRef([]);
+  const currentLocationMarkerRef = useRef(null);
+  const searchCircleRef = useRef(null);
+  const skipNextIdleRef = useRef(false);
   const consentRef = useRef(false);
+  const topQuestTrackRef = useRef(null);
+  const topQuestDragRef = useRef({
+    isPointerDown: false,
+    startX: 0,
+    startScrollLeft: 0,
+    hasDragged: false,
+  });
+  const topQuestSuppressClickUntilRef = useRef(0);
 
   const [hasLocationConsent, setHasLocationConsent] = useState(() => {
     if (typeof window === 'undefined') {
@@ -90,6 +137,10 @@ function MainPage() {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingQuest, setPendingQuest] = useState(null);
   const [mapQuestList, setMapQuestList] = useState([]);
+  const [visibleQuestList, setVisibleQuestList] = useState([]);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [searchCenter, setSearchCenter] = useState(null);
+  const [radiusStatusMessage, setRadiusStatusMessage] = useState('');
   const [activeQuestId, setActiveQuestId] = useState(null);
   const [questLoadError, setQuestLoadError] = useState('');
   const [mapStatus, setMapStatus] = useState('idle');
@@ -101,18 +152,13 @@ function MainPage() {
   const [questReviews, setQuestReviews] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
-  const [reviewForm, setReviewForm] = useState({
-    rating: 5,
-    content: '',
-  });
-  const [editingReviewId, setEditingReviewId] = useState(null);
-  const [editReviewForm, setEditReviewForm] = useState({
-    rating: 5,
-    content: '',
-  });
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [reviewSubmitError, setReviewSubmitError] = useState('');
-  const [reviewSubmitMessage, setReviewSubmitMessage] = useState('');
+  const [topRatedQuests, setTopRatedQuests] = useState([]);
+  const [topRatedLoading, setTopRatedLoading] = useState(true);
+  const [topRatedError, setTopRatedError] = useState('');
+  const [topQuestScrollValue, setTopQuestScrollValue] = useState(0);
+  const [canScrollTopQuestPrev, setCanScrollTopQuestPrev] = useState(false);
+  const [canScrollTopQuestNext, setCanScrollTopQuestNext] = useState(false);
+  const [isTopQuestDragging, setIsTopQuestDragging] = useState(false);
 
   const kakaoMapKey = process.env.REACT_APP_KAKAO_MAP_KEY;
 
@@ -141,6 +187,68 @@ function MainPage() {
     }
   }, []);
 
+  const updateTopQuestScrollState = useCallback(() => {
+    const track = topQuestTrackRef.current;
+
+    if (!track) {
+      setTopQuestScrollValue(0);
+      setCanScrollTopQuestPrev(false);
+      setCanScrollTopQuestNext(false);
+      return;
+    }
+
+    const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+    const nextScrollValue = maxScrollLeft > 0 ? (track.scrollLeft / maxScrollLeft) * 100 : 0;
+
+    setTopQuestScrollValue(nextScrollValue);
+    setCanScrollTopQuestPrev(track.scrollLeft > 8);
+    setCanScrollTopQuestNext(track.scrollLeft < maxScrollLeft - 8);
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchTopRatedQuests = async () => {
+      try {
+        setTopRatedLoading(true);
+        setTopRatedError('');
+
+        const response = await questApi.getTopRatedQuests();
+        if (!isCancelled) {
+          setTopRatedQuests(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setTopRatedError('추천 퀘스트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setTopRatedLoading(false);
+        }
+      }
+    };
+
+    fetchTopRatedQuests();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    updateTopQuestScrollState();
+
+    const handleResize = () => {
+      updateTopQuestScrollState();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [topRatedQuests, updateTopQuestScrollState]);
+
   // 지도에 뿌릴 퀘스트 목록은 대표 좌표가 있는 데이터만 남긴다.
   useEffect(() => {
     let isCancelled = false;
@@ -150,9 +258,13 @@ function MainPage() {
         setQuestLoadError('');
         const response = await questApi.getQuestMapList();
         const nextQuestList = Array.isArray(response.data)
-          ? response.data.filter(
-              (quest) => Number.isFinite(quest.latitude) && Number.isFinite(quest.longitude)
-            )
+          ? response.data
+              .map((quest) => ({
+                ...quest,
+                latitude: Number(quest.latitude),
+                longitude: Number(quest.longitude),
+              }))
+              .filter((quest) => Number.isFinite(quest.latitude) && Number.isFinite(quest.longitude))
           : [];
 
         if (isCancelled) {
@@ -160,9 +272,6 @@ function MainPage() {
         }
 
         setMapQuestList(nextQuestList);
-        if (nextQuestList.length > 0) {
-          setActiveQuestId((prev) => prev || nextQuestList[0].questId);
-        }
       } catch (error) {
         if (!isCancelled) {
           setQuestLoadError('천안 퀘스트 위치를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
@@ -196,10 +305,13 @@ function MainPage() {
 
       mapRef.current.innerHTML = '';
 
-      const defaultPosition = new window.kakao.maps.LatLng(CHEONAN_CENTER.lat, CHEONAN_CENTER.lng);
+      const defaultPosition = new window.kakao.maps.LatLng(
+        HUMAN_CENTER_FALLBACK.lat,
+        HUMAN_CENTER_FALLBACK.lng
+      );
       const map = new window.kakao.maps.Map(mapRef.current, {
         center: defaultPosition,
-        level: 6,
+        level: DEFAULT_MAP_LEVEL,
       });
 
       mapInstanceRef.current = map;
@@ -280,7 +392,7 @@ function MainPage() {
       handleSdkReady();
     };
 
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false&libraries=services`;
     script.async = true;
     script.setAttribute('data-kakao-map-sdk', 'true');
     script.addEventListener('load', handleScriptLoad);
@@ -293,14 +405,140 @@ function MainPage() {
       script.removeEventListener('error', handleScriptError);
     };
   }, [kakaoMapKey]);
+
+  useEffect(() => {
+    if (mapStatus !== 'ready' || !mapInstanceRef.current || currentLocation || searchCenter) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    const map = mapInstanceRef.current;
+
+    const applyInitialCenter = (lat, lng, label = '현재 위치') => {
+      if (isCancelled || !window.kakao?.maps?.LatLng) {
+        return;
+      }
+
+      const nextCurrentLocation = {
+        lat,
+        lng,
+        label,
+      };
+
+      skipNextIdleRef.current = true;
+      map.setCenter(new window.kakao.maps.LatLng(lat, lng));
+      map.setLevel(DEFAULT_MAP_LEVEL);
+      setCurrentLocation(nextCurrentLocation);
+      setSearchCenter({
+        ...nextCurrentLocation,
+        mode: 'current',
+      });
+    };
+
+    const applyFallbackCenter = () => {
+      applyInitialCenter(HUMAN_CENTER_FALLBACK.lat, HUMAN_CENTER_FALLBACK.lng, HUMAN_CENTER_ADDRESS);
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (isCancelled) {
+            return;
+          }
+
+          applyInitialCenter(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          if (!isCancelled) {
+            applyFallbackCenter();
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000,
+        }
+      );
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    applyFallbackCenter();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentLocation, mapStatus, searchCenter]);
+
+  useEffect(() => {
+    if (!searchCenter) {
+      setVisibleQuestList([]);
+      setRadiusStatusMessage('');
+      return;
+    }
+
+    const nextVisibleQuestList = filterQuestsWithinRadius(mapQuestList, searchCenter);
+    setVisibleQuestList(nextVisibleQuestList);
+    setRadiusStatusMessage(buildRadiusMessage(searchCenter, nextVisibleQuestList.length));
+    setActiveQuestId((prev) => {
+      if (nextVisibleQuestList.some((quest) => quest.questId === prev)) {
+        return prev;
+      }
+
+      return nextVisibleQuestList[0]?.questId ?? null;
+    });
+  }, [mapQuestList, searchCenter]);
+
+  useEffect(() => {
+    if (mapStatus !== 'ready' || !mapInstanceRef.current || !window.kakao?.maps?.event) {
+      return undefined;
+    }
+
+    const map = mapInstanceRef.current;
+    const handleIdle = () => {
+      if (skipNextIdleRef.current) {
+        skipNextIdleRef.current = false;
+        return;
+      }
+
+      const center = map.getCenter();
+      if (!center) {
+        return;
+      }
+
+      const nextLat = center.getLat();
+      const nextLng = center.getLng();
+
+      setSearchCenter((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.lat - nextLat) < 0.00001 &&
+          Math.abs(prev.lng - nextLng) < 0.00001
+        ) {
+          return prev;
+        }
+
+        return {
+          lat: nextLat,
+          lng: nextLng,
+          mode: 'map',
+          label: 'map-center',
+        };
+      });
+    };
+
+    window.kakao.maps.event.addListener(map, 'idle', handleIdle);
+
+    return () => {
+      window.kakao.maps.event.removeListener(map, 'idle', handleIdle);
+    };
+  }, [mapStatus]);
+
   const openQuestPanel = useCallback((quest) => {
     setSelectedQuest(quest);
     setActivePanelTab('overview');
-    setReviewSubmitError('');
-    setReviewSubmitMessage('');
-    setReviewForm({ rating: 5, content: '' });
-    setEditingReviewId(null);
-    setEditReviewForm({ rating: 5, content: '' });
   }, []);
 
   // 위치 동의는 퀘스트 상세를 열기 직전에만 체크한다.
@@ -308,7 +546,12 @@ function MainPage() {
     (quest) => {
       setActiveQuestId(quest.questId);
 
-      if (mapInstanceRef.current && window.kakao?.maps?.LatLng) {
+      if (
+        mapInstanceRef.current &&
+        window.kakao?.maps?.LatLng &&
+        Number.isFinite(quest.latitude) &&
+        Number.isFinite(quest.longitude)
+      ) {
         mapInstanceRef.current.panTo(new window.kakao.maps.LatLng(quest.latitude, quest.longitude));
       }
 
@@ -323,6 +566,133 @@ function MainPage() {
     [openQuestPanel]
   );
 
+  const scrollTopRatedQuests = useCallback((direction) => {
+    const track = topQuestTrackRef.current;
+    if (!track) {
+      return;
+    }
+
+    const scrollAmount = Math.max(track.clientWidth * 0.82, 320);
+    track.scrollBy({
+      left: direction * scrollAmount,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  const handleTopQuestRangeChange = useCallback(
+    (event) => {
+      const track = topQuestTrackRef.current;
+      if (!track) {
+        return;
+      }
+
+      const nextValue = Number(event.target.value) || 0;
+      const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+
+      track.scrollLeft = (maxScrollLeft * nextValue) / 100;
+      setTopQuestScrollValue(nextValue);
+      updateTopQuestScrollState();
+    },
+    [updateTopQuestScrollState]
+  );
+
+  const handleTopQuestPointerDown = useCallback((event) => {
+    const track = topQuestTrackRef.current;
+    if (!track) {
+      return;
+    }
+
+    if (event.button !== 0) {
+      return;
+    }
+
+    topQuestDragRef.current = {
+      isPointerDown: true,
+      startX: event.clientX,
+      startScrollLeft: track.scrollLeft,
+      hasDragged: false,
+    };
+
+    setIsTopQuestDragging(false);
+  }, []);
+
+  const handleTopQuestPointerMove = useCallback(
+    (event) => {
+      const track = topQuestTrackRef.current;
+      const dragState = topQuestDragRef.current;
+
+      if (!track || !dragState.isPointerDown) {
+        return;
+      }
+
+      const deltaX = event.clientX - dragState.startX;
+      if (!dragState.hasDragged && Math.abs(deltaX) < 6) {
+        return;
+      }
+
+      if (!dragState.hasDragged) {
+        dragState.hasDragged = true;
+        setIsTopQuestDragging(true);
+      }
+
+      track.scrollLeft = dragState.startScrollLeft - deltaX;
+      updateTopQuestScrollState();
+    },
+    [updateTopQuestScrollState]
+  );
+
+  const finishTopQuestDrag = useCallback(() => {
+    const track = topQuestTrackRef.current;
+    const dragState = topQuestDragRef.current;
+
+    if (!dragState.isPointerDown) {
+      return;
+    }
+
+    if (dragState.hasDragged) {
+      topQuestSuppressClickUntilRef.current = Date.now() + 220;
+    }
+
+    topQuestDragRef.current = {
+      isPointerDown: false,
+      startX: 0,
+      startScrollLeft: 0,
+      hasDragged: false,
+    };
+
+    setIsTopQuestDragging(false);
+    updateTopQuestScrollState();
+  }, [updateTopQuestScrollState]);
+
+  const handleTopQuestCardClick = useCallback(
+    (quest) => {
+      if (Date.now() < topQuestSuppressClickUntilRef.current) {
+        return;
+      }
+
+      window.location.href = `/explore/${quest.questId}`;
+    },
+    []
+  );
+
+  useEffect(() => {
+    const handleWindowMouseMove = (event) => {
+      handleTopQuestPointerMove(event);
+    };
+
+    const handleWindowMouseUp = () => {
+      finishTopQuestDrag();
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [finishTopQuestDrag, handleTopQuestPointerMove]);
+
   // 마커와 오버레이는 퀘스트 목록/선택 상태가 바뀔 때마다 다시 그린다.
   useEffect(() => {
     if (mapStatus !== 'ready' || !mapInstanceRef.current || !window.kakao?.maps) {
@@ -335,19 +705,39 @@ function MainPage() {
     overlayRefs.current.forEach((overlay) => overlay.setMap(null));
     markerRefs.current = [];
     overlayRefs.current = [];
+    currentLocationMarkerRef.current?.setMap(null);
+    searchCircleRef.current?.setMap(null);
+    currentLocationMarkerRef.current = null;
+    searchCircleRef.current = null;
 
-    if (!mapQuestList.length) {
-      const center = new window.kakao.maps.LatLng(CHEONAN_CENTER.lat, CHEONAN_CENTER.lng);
-      map.setCenter(center);
-      map.setLevel(6);
-      return undefined;
+    if (currentLocation) {
+      const currentPosition = new window.kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+
+      currentLocationMarkerRef.current = new window.kakao.maps.Marker({
+        map,
+        position: currentPosition,
+        zIndex: 10,
+      });
     }
 
-    const bounds = new window.kakao.maps.LatLngBounds();
+    if (searchCenter) {
+      const centerPosition = new window.kakao.maps.LatLng(searchCenter.lat, searchCenter.lng);
 
-    mapQuestList.forEach((quest) => {
+      searchCircleRef.current = new window.kakao.maps.Circle({
+        center: centerPosition,
+        radius: QUEST_SEARCH_RADIUS_METERS,
+        strokeWeight: 2,
+        strokeColor: '#4f6ef7',
+        strokeOpacity: 0.8,
+        strokeStyle: 'dash',
+        fillColor: '#4f6ef7',
+        fillOpacity: 0.08,
+      });
+      searchCircleRef.current.setMap(map);
+    }
+
+    visibleQuestList.forEach((quest) => {
       const position = new window.kakao.maps.LatLng(quest.latitude, quest.longitude);
-      bounds.extend(position);
 
       const marker = new window.kakao.maps.Marker({
         map,
@@ -382,20 +772,17 @@ function MainPage() {
       window.kakao.maps.event.addListener(marker, 'click', () => handleQuestSelect(quest));
     });
 
-    if (mapQuestList.length === 1) {
-      map.setCenter(bounds.getCenter());
-      map.setLevel(4);
-    } else {
-      map.setBounds(bounds);
-    }
-
     return () => {
       markerRefs.current.forEach((marker) => marker.setMap(null));
       overlayRefs.current.forEach((overlay) => overlay.setMap(null));
       markerRefs.current = [];
       overlayRefs.current = [];
+      currentLocationMarkerRef.current?.setMap(null);
+      searchCircleRef.current?.setMap(null);
+      currentLocationMarkerRef.current = null;
+      searchCircleRef.current = null;
     };
-  }, [activeQuestId, handleQuestSelect, mapQuestList, mapStatus]);
+  }, [activeQuestId, currentLocation, handleQuestSelect, mapStatus, searchCenter, visibleQuestList]);
 
   // 상세 패널이 열리면 퀘스트 상세/리뷰를 함께 불러와서 탭 전환 시 즉시 보여준다.
   useEffect(() => {
@@ -460,163 +847,6 @@ function MainPage() {
     setQuestDetail(null);
     setQuestReviews([]);
     setActivePanelTab('overview');
-    setReviewSubmitError('');
-    setReviewSubmitMessage('');
-    setEditingReviewId(null);
-    setEditReviewForm({ rating: 5, content: '' });
-  };
-
-  const handleReviewFieldChange = (event) => {
-    const { name, value } = event.target;
-    setReviewForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleEditReviewFieldChange = (event) => {
-    const { name, value } = event.target;
-    setEditReviewForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // 비로그인 사용자는 리뷰 읽기만 가능하고, 작성 폼은 로그인 후에만 노출한다.
-  const handleReviewSubmit = async (event) => {
-    event.preventDefault();
-
-    if (!selectedQuest?.questId) {
-      return;
-    }
-
-    if (!isAuthenticated || !user?.userId) {
-      setReviewSubmitError('로그인한 사용자만 리뷰를 작성할 수 있습니다.');
-      return;
-    }
-
-    const trimmedContent = reviewForm.content.trim();
-    if (!trimmedContent) {
-      setReviewSubmitError('리뷰 내용을 입력해주세요.');
-      return;
-    }
-
-    try {
-      setIsSubmittingReview(true);
-      setReviewSubmitError('');
-      setReviewSubmitMessage('');
-
-      await questApi.createQuestReview(selectedQuest.questId, {
-        userId: user.userId,
-        rating: Number(reviewForm.rating),
-        content: trimmedContent,
-      });
-
-      await fetchQuestReviews(selectedQuest.questId, { showLoading: false });
-      setReviewForm({ rating: 5, content: '' });
-      setReviewSubmitMessage('리뷰가 등록되었습니다.');
-      setActivePanelTab('reviews');
-    } catch (error) {
-      setReviewSubmitError(
-        error.response?.data?.message || '리뷰 등록 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      );
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
-  const startReviewEdit = (review) => {
-    setEditingReviewId(review.reviewId);
-    setEditReviewForm({
-      rating: Number(review.rating) || 5,
-      content: review.content || '',
-    });
-    setReviewSubmitError('');
-    setReviewSubmitMessage('');
-    setActivePanelTab('reviews');
-  };
-
-  const cancelReviewEdit = () => {
-    setEditingReviewId(null);
-    setEditReviewForm({ rating: 5, content: '' });
-    setReviewSubmitError('');
-    setReviewSubmitMessage('');
-  };
-
-  // 수정/삭제는 내가 작성한 리뷰 카드에서만 가능하게 막는다.
-  const handleReviewUpdate = async (event) => {
-    event.preventDefault();
-
-    if (!selectedQuest?.questId || !editingReviewId) {
-      return;
-    }
-
-    if (!isAuthenticated || !user?.userId) {
-      setReviewSubmitError('로그인한 사용자만 리뷰를 수정할 수 있습니다.');
-      return;
-    }
-
-    const trimmedContent = editReviewForm.content.trim();
-    if (!trimmedContent) {
-      setReviewSubmitError('리뷰 내용을 입력해주세요.');
-      return;
-    }
-
-    try {
-      setIsSubmittingReview(true);
-      setReviewSubmitError('');
-      setReviewSubmitMessage('');
-
-      await questApi.updateQuestReview(selectedQuest.questId, editingReviewId, {
-        userId: user.userId,
-        rating: Number(editReviewForm.rating),
-        content: trimmedContent,
-      });
-
-      await fetchQuestReviews(selectedQuest.questId, { showLoading: false });
-      setEditingReviewId(null);
-      setEditReviewForm({ rating: 5, content: '' });
-      setReviewSubmitMessage('리뷰가 수정되었습니다.');
-    } catch (error) {
-      setReviewSubmitError(
-        error.response?.data?.message || '리뷰 수정 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      );
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
-  const handleReviewDelete = async (reviewId) => {
-    if (!selectedQuest?.questId || !isAuthenticated || !user?.userId) {
-      setReviewSubmitError('로그인한 사용자만 리뷰를 삭제할 수 있습니다.');
-      return;
-    }
-
-    const shouldDelete = window.confirm('이 리뷰를 삭제할까요?');
-    if (!shouldDelete) {
-      return;
-    }
-
-    try {
-      setIsSubmittingReview(true);
-      setReviewSubmitError('');
-      setReviewSubmitMessage('');
-
-      await questApi.deleteQuestReview(selectedQuest.questId, reviewId, user.userId);
-      await fetchQuestReviews(selectedQuest.questId, { showLoading: false });
-
-      if (editingReviewId === reviewId) {
-        cancelReviewEdit();
-      }
-
-      setReviewSubmitMessage('리뷰가 삭제되었습니다.');
-    } catch (error) {
-      setReviewSubmitError(
-        error.response?.data?.message || '리뷰 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      );
-    } finally {
-      setIsSubmittingReview(false);
-    }
   };
   const reviewCount = questReviews.length;
   const reviewAverage = reviewCount
@@ -639,73 +869,6 @@ function MainPage() {
         }
       : null);
 
-  const myReview = useMemo(() => {
-    if (!isAuthenticated || !user?.userId) {
-      return null;
-    }
-
-    return questReviews.find((review) => Number(review.userId) === Number(user.userId)) || null;
-  }, [isAuthenticated, questReviews, user?.userId]);
-
-  const canWriteReview = Boolean(isAuthenticated && user?.userId && !myReview && !editingReviewId);
-
-  const renderReviewForm = ({
-    title,
-    subtitle,
-    formState,
-    setRating,
-    onChange,
-    onSubmit,
-    submitLabel,
-    cancelButton,
-  }) => (
-    <form className="quest-review-form" onSubmit={onSubmit}>
-      <div className="quest-review-form-head">
-        <h4>{title}</h4>
-        <span>{subtitle}</span>
-      </div>
-
-      <div className="review-rating-row">
-        <div className="review-rating-stars" aria-label="별점 선택">
-          {STAR_OPTIONS.map((star) => (
-            <button
-              key={star}
-              type="button"
-              className={`review-rating-btn${star <= formState.rating ? ' is-active' : ''}`}
-              onClick={() => setRating(star)}
-              aria-label={`${star}점 선택`}
-            >
-              <span className="review-rating-star">{star <= formState.rating ? '★' : '☆'}</span>
-            </button>
-          ))}
-        </div>
-        <span className="review-rating-value">{formState.rating} / 5</span>
-      </div>
-
-      <textarea
-        className="quest-review-textarea"
-        name="content"
-        value={formState.content}
-        onChange={onChange}
-        placeholder="퀘스트를 직접 경험한 후기를 남겨주세요."
-      />
-
-      {reviewSubmitError ? (
-        <p className="quest-review-message is-error">{reviewSubmitError}</p>
-      ) : null}
-      {reviewSubmitMessage ? (
-        <p className="quest-review-message is-success">{reviewSubmitMessage}</p>
-      ) : null}
-
-      <div className={cancelButton ? 'quest-review-submit-row-split' : 'quest-review-submit-row'}>
-        {cancelButton}
-        <button type="submit" className="quest-review-submit" disabled={isSubmittingReview}>
-          {isSubmittingReview ? '처리 중...' : submitLabel}
-        </button>
-      </div>
-    </form>
-  );
-
   return (
     <div className="main-page-shell">
       <div className="main-page">
@@ -713,12 +876,14 @@ function MainPage() {
           <div className="hero-copy">
             <span className="hero-chip">MISSION BASED O2O PLATFORM</span>
             <h1 className="hero-title">
-              <span className="hero-title-line">지루한 일상이</span>
-              <span className="hero-title-line accent">게임이 되는 순간</span>
+              <span className="hero-title-line">캐치프라이즈 매일 걷는</span>
+              <span className="hero-title-line accent">그 길이
+혜택이 되는 순간</span>
             </h1>
             <p className="hero-description">
-              단순한 방문이 아닙니다. GPS와 QR 인증을 통해 지역 곳곳에 숨겨진 퀘스트를 수행하고,
-              레벨을 높이며 당신만의 탐험 지도를 완성하세요.
+              오늘 뭐 먹지? 어디 갈까? 고민은 이제 그만.
+              내 동선 위 퀘스트를 수행하고, 즉시 쿠폰을 받으며
+              나만의 로컬 지도를 완성하세요.
             </p>
           </div>
 
@@ -742,58 +907,127 @@ function MainPage() {
             ) : null}
           </div>
 
-          <div className="map-quest-strip">
-            <div className="map-quest-strip-head">
-              <div className="section-heading">
-                <span className="section-badge">LOCAL MAP</span>
-                <h2>천안 퀘스트를 지도로 만나보세요</h2>
-                <p>
-                  마커 또는 아래 카드에서 퀘스트를 선택하면 상세 정보와 리뷰를 확인할 수 있습니다.
-                </p>
-              </div>
-            </div>
-
-            {questLoadError ? <div className="map-quest-empty">{questLoadError}</div> : null}
-
-            <div className="map-quest-card-list">
-              {mapQuestList.length ? (
-                mapQuestList.map((quest) => (
-                  <button
-                    key={quest.questId}
-                    type="button"
-                    className={`map-quest-card${activeQuestId === quest.questId ? ' is-active' : ''}`}
-                    onClick={() => handleQuestSelect(quest)}
-                  >
-                    <div className="map-quest-card-top">
-                      <span className="map-quest-category">{quest.category || 'QUEST'}</span>
-                      <span className="map-quest-reward">+ {quest.rewardPoint}P</span>
-                    </div>
-                    <strong>{quest.title}</strong>
-                    <p>{quest.description}</p>
-                    <span className="map-quest-location">{formatQuestAddress(quest)}</span>
-                  </button>
-                ))
-              ) : (
-                <div className="map-quest-empty">표시할 퀘스트가 아직 없습니다.</div>
-              )}
-            </div>
-          </div>
+          {questLoadError ? <div className="map-quest-empty map-quest-status">{questLoadError}</div> : null}
+          {!questLoadError && radiusStatusMessage ? (
+            <div className="map-quest-empty map-quest-status">{radiusStatusMessage}</div>
+          ) : null}
         </section>
 
         <section className="hot-quest-section">
-          <div className="section-heading">
-            <span className="section-badge">HOT QUEST</span>
-            <h2>지금 가장 핫한 지역 퀘스트</h2>
+          <div className="hot-quest-head">
+            <div className="section-heading">
+              <span className="section-badge">HOT QUEST</span>
+              <h2>리뷰 평점이 높은 추천 퀘스트</h2>
+              <p>리뷰 평점 높은 순으로 상위 10개 퀘스트를 모아봤어요.</p>
+            </div>
+
+            <div className="hot-quest-nav">
+              <button
+                type="button"
+                className="hot-quest-nav-btn"
+                onClick={() => scrollTopRatedQuests(-1)}
+                disabled={!canScrollTopQuestPrev}
+                aria-label="추천 퀘스트 이전으로 이동"
+              >
+                &lt;
+              </button>
+              <button
+                type="button"
+                className="hot-quest-nav-btn"
+                onClick={() => scrollTopRatedQuests(1)}
+                disabled={!canScrollTopQuestNext}
+                aria-label="추천 퀘스트 다음으로 이동"
+              >
+                &gt;
+              </button>
+            </div>
           </div>
-          <div className="quest-card-grid">
-            {hotQuestData.map((quest) => (
-              <article key={quest.id} className="quest-card">
-                <span className="quest-region">{quest.region}</span>
-                <h3>{quest.title}</h3>
-                <p>{quest.description}</p>
-              </article>
-            ))}
-          </div>
+
+          {topRatedLoading ? (
+            <div className="panel-loading-state">추천 퀘스트를 불러오는 중입니다.</div>
+          ) : null}
+
+          {!topRatedLoading && topRatedError ? (
+            <div className="panel-empty-state">{topRatedError}</div>
+          ) : null}
+
+          {!topRatedLoading && !topRatedError ? (
+            topRatedQuests.length ? (
+              <div className="hot-quest-carousel-shell">
+                <div className="hot-quest-slider-stage">
+                  <button
+                    type="button"
+                    className="hot-quest-nav-btn hot-quest-nav-btn-side is-prev"
+                    onClick={() => scrollTopRatedQuests(-1)}
+                    disabled={!canScrollTopQuestPrev}
+                    aria-label="추천 퀘스트 이전으로 이동"
+                  >
+                    &lt;
+                  </button>
+                <div
+                  ref={topQuestTrackRef}
+                  className={`hot-quest-track${isTopQuestDragging ? ' is-dragging' : ''}`}
+                  onScroll={updateTopQuestScrollState}
+                  onMouseDown={handleTopQuestPointerDown}
+                >
+                  {topRatedQuests.map((quest, index) => (
+                    <button
+                      key={quest.questId}
+                      type="button"
+                      className="hot-quest-card"
+                      onClick={() => handleTopQuestCardClick(quest)}
+                    >
+                      <div className="hot-quest-card-top">
+                        <span className="hot-quest-rank">TOP {index + 1}</span>
+                        <span className="hot-quest-score">★ {Number(quest.reviewAverage || 0).toFixed(1)}</span>
+                      </div>
+
+                      <div className="hot-quest-card-main">
+                        <span className="hot-quest-region">{formatQuestRegion(quest)}</span>
+                        <strong>{quest.title}</strong>
+                        <p>{quest.description}</p>
+                      </div>
+
+                      <div className="hot-quest-card-meta">
+                        <span>{quest.category || 'QUEST'}</span>
+                        <span>리뷰 {quest.reviewCount}개</span>
+                      </div>
+
+                      <div className="hot-quest-card-location">
+                        {quest.locationName || formatQuestAddress(quest)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                  <button
+                    type="button"
+                    className="hot-quest-nav-btn hot-quest-nav-btn-side is-next"
+                    onClick={() => scrollTopRatedQuests(1)}
+                    disabled={!canScrollTopQuestNext}
+                    aria-label="추천 퀘스트 다음으로 이동"
+                  >
+                    &gt;
+                  </button>
+                </div>
+
+                <div className="hot-quest-range-row">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={topQuestScrollValue}
+                    className="hot-quest-range"
+                    onChange={handleTopQuestRangeChange}
+                    aria-label="추천 퀘스트 좌우 이동"
+                    disabled={topRatedQuests.length <= 1}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="panel-empty-state">추천할 퀘스트가 아직 없습니다.</div>
+            )
+          ) : null}
         </section>
 
         <section className="partner-banner-section">
@@ -804,7 +1038,7 @@ function MainPage() {
               Local Quest 파트너가 되어 매장에 활기를 더하세요. 실방문객 중심의 마케팅 효과를 직접
               경험해보세요.
             </p>
-            <Link to="/business" className="partner-cta-btn">
+            <Link to="/inquiry" className="partner-cta-btn">
               비즈니스 상담 신청하기
             </Link>
           </div>
@@ -898,7 +1132,7 @@ function MainPage() {
                   </div>
 
                   <div className="quest-panel-action-row">
-                    <Link className="quest-panel-primary-link" to={`/quest/${selectedQuest.questId}`}>
+                    <Link className="quest-panel-primary-link" to={`/explore/${selectedQuest.questId}`}>
                       퀘스트 상세보기
                     </Link>
                   </div>
@@ -923,114 +1157,27 @@ function MainPage() {
                     </div>
                   </div>
 
-                  {!isAuthenticated ? (
-                    <div className="quest-review-login-box">
-                      <p>
-                        비로그인 사용자는 리뷰를 읽을 수만 있습니다. 리뷰 작성, 수정, 삭제는 로그인 후
-                        이용해주세요.
-                      </p>
-                      <button
-                        type="button"
-                        className="quest-review-login-btn"
-                        onClick={() => navigate('/login')}
-                      >
-                        로그인하러 가기
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {isAuthenticated && editingReviewId
-                    ? renderReviewForm({
-                        title: '리뷰 수정',
-                        subtitle: '내가 남긴 리뷰를 다시 정리해보세요.',
-                        formState: editReviewForm,
-                        setRating: (rating) =>
-                          setEditReviewForm((prev) => ({
-                            ...prev,
-                            rating,
-                          })),
-                        onChange: handleEditReviewFieldChange,
-                        onSubmit: handleReviewUpdate,
-                        submitLabel: '리뷰 수정하기',
-                        cancelButton: (
-                          <button
-                            type="button"
-                            className="quest-review-cancel-btn"
-                            onClick={cancelReviewEdit}
-                          >
-                            취소
-                          </button>
-                        ),
-                      })
-                    : null}
-
-                  {canWriteReview
-                    ? renderReviewForm({
-                        title: '리뷰 작성',
-                        subtitle: '퀘스트를 직접 수행한 후기를 남겨주세요.',
-                        formState: reviewForm,
-                        setRating: (rating) =>
-                          setReviewForm((prev) => ({
-                            ...prev,
-                            rating,
-                          })),
-                        onChange: handleReviewFieldChange,
-                        onSubmit: handleReviewSubmit,
-                        submitLabel: '리뷰 등록하기',
-                      })
-                    : null}
-
-                  {isAuthenticated && myReview && !editingReviewId ? (
-                    <div className="quest-review-note-box">
-                      이 퀘스트에 리뷰를 작성했습니다.
-                      
-                    </div>
-                  ) : null}
-
                   {reviewLoading ? <div className="panel-loading-state">리뷰를 불러오는 중입니다.</div> : null}
                   {!reviewLoading && reviewError ? <div className="panel-empty-state">{reviewError}</div> : null}
 
                   {!reviewLoading && !reviewError ? (
                     <div className="quest-review-list">
                       {questReviews.length ? (
-                        questReviews.map((review) => {
-                          const isMyReview =
-                            isAuthenticated && Number(review.userId) === Number(user?.userId);
-
-                          return (
-                            <article key={review.reviewId} className="quest-review-card">
-                              <div className="quest-review-card-head">
-                                <div className="quest-review-card-side">
-                                  <strong>{review.authorName || '로컬 유저'}</strong>
-                                  <span>{formatReviewDate(review.createdAt)}</span>
-                                </div>
-
-                                <div className="quest-review-card-side">
-                                  <span className="quest-review-rating">{renderStarText(review.rating)}</span>
-                                  {isMyReview ? (
-                                    <div className="quest-review-card-actions">
-                                      <button
-                                        type="button"
-                                        className="quest-review-action-btn"
-                                        onClick={() => startReviewEdit(review)}
-                                      >
-                                        수정
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="quest-review-action-btn is-danger"
-                                        onClick={() => handleReviewDelete(review.reviewId)}
-                                      >
-                                        삭제
-                                      </button>
-                                    </div>
-                                  ) : null}
-                                </div>
+                        questReviews.map((review) => (
+                          <article key={review.reviewId} className="quest-review-card">
+                            <div className="quest-review-card-head">
+                              <div className="quest-review-card-side">
+                                <strong>{review.authorName || '로컬 유저'}</strong>
+                                <span>{formatReviewDate(review.createdAt)}</span>
                               </div>
-                              <p>{review.content}</p>
-                            </article>
-                          );
-                        })
+
+                              <div className="quest-review-card-side">
+                                <span className="quest-review-rating">{renderStarText(review.rating)}</span>
+                              </div>
+                            </div>
+                            <p>{review.content}</p>
+                          </article>
+                        ))
                       ) : (
                         <div className="panel-empty-state">아직 등록된 리뷰가 없습니다.</div>
                       )}

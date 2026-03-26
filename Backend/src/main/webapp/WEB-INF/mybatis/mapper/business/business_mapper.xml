@@ -4,6 +4,101 @@
 		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="business_mapper">
+	<select id="getBusinessList" parameterType="map" resultType="BusinessDTO">
+		SELECT
+			BUSINESS_ID AS businessId,
+			USER_ID AS userId,
+			BUSINESS_NAME AS businessName,
+			ZIP_CODE AS zipCode,
+			ADDRESS AS address,
+			ADDRESS_DETAIL AS addressDetail,
+			PHONE AS phone,
+			DESCRIPTION AS description,
+			CREATED_AT AS createdAt
+		FROM LQ_BUSINESS
+		<where>
+			<if test="keyword != null and keyword != ''">
+				AND (
+					BUSINESS_NAME LIKE '%' || #{keyword} || '%'
+					OR ADDRESS LIKE '%' || #{keyword} || '%'
+					OR PHONE LIKE '%' || #{keyword} || '%'
+				)
+			</if>
+			<if test="userId != null">
+				AND USER_ID = #{userId}
+			</if>
+		</where>
+		ORDER BY BUSINESS_ID DESC
+	</select>
+
+	<select id="getBusinessById" parameterType="int" resultType="BusinessDTO">
+		SELECT
+			BUSINESS_ID AS businessId,
+			USER_ID AS userId,
+			BUSINESS_NAME AS businessName,
+			ZIP_CODE AS zipCode,
+			ADDRESS AS address,
+			ADDRESS_DETAIL AS addressDetail,
+			PHONE AS phone,
+			DESCRIPTION AS description,
+			CREATED_AT AS createdAt
+		FROM LQ_BUSINESS
+		WHERE BUSINESS_ID = #{businessId}
+	</select>
+
+	<select id="getBusinessByUserId" parameterType="int" resultType="BusinessDTO">
+		SELECT
+			BUSINESS_ID AS businessId,
+			USER_ID AS userId,
+			BUSINESS_NAME AS businessName,
+			ZIP_CODE AS zipCode,
+			ADDRESS AS address,
+			ADDRESS_DETAIL AS addressDetail,
+			PHONE AS phone,
+			DESCRIPTION AS description,
+			CREATED_AT AS createdAt
+		FROM LQ_BUSINESS
+		WHERE USER_ID = #{userId}
+	</select>
+
+	<select id="getBusinessAuthSummary" parameterType="int" resultType="hashmap">
+		SELECT
+			#{businessId} AS "businessId",
+			COUNT(*) AS "totalAuthCount",
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS "qrAuthCount",
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS "receiptAuthCount",
+			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS "totalPaymentAmount",
+			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS "totalSettlementAmount",
+			TO_CHAR(MAX(CREATED_AT), 'YYYY-MM-DD HH24:MI') AS "lastAuthAt",
+			COUNT(DISTINCT USER_ID) AS "uniqueUserCount",
+			COUNT(DISTINCT LOCATION_ID) AS "uniqueLocationCount"
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
+	</select>
+
+	<select id="getBusinessDashboardByBusinessId" parameterType="int" resultType="BusinessDashboardDTO">
+		SELECT
+			COUNT(*) AS totalAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS qrAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS receiptAuthCount,
+			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS totalPaymentAmount,
+			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS totalSettlementAmount,
+			MAX(CREATED_AT) AS lastAuthAt,
+			COUNT(DISTINCT USER_ID) AS authUserCount,
+			COUNT(DISTINCT LOCATION_ID) AS authLocationCount
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
+	</select>
+
+	<select id="getBusinessHourlyAuthCounts" parameterType="int" resultType="BusinessHourlyAuthDTO">
+		SELECT
+			TO_NUMBER(TO_CHAR(CREATED_AT, 'HH24')) AS hourOfDay,
+			COUNT(*) AS authCount
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
+		GROUP BY TO_CHAR(CREATED_AT, 'HH24')
+		ORDER BY TO_CHAR(CREATED_AT, 'HH24')
+	</select>
 	<insert id="saveBusiness" parameterType="BusinessDTO">
 		INSERT INTO LQ_BUSINESS (
 		business_id,
@@ -26,4 +121,22 @@
 		#{description},
 		sysdate )
 	</insert>
+
+	<update id="updateBusiness" parameterType="BusinessDTO">
+		UPDATE LQ_BUSINESS
+		SET
+			USER_ID = #{userId},
+			BUSINESS_NAME = #{businessName},
+			ZIP_CODE = #{zipCode},
+			ADDRESS = #{address},
+			ADDRESS_DETAIL = #{addressDetail},
+			PHONE = #{phone},
+			DESCRIPTION = #{description}
+		WHERE BUSINESS_ID = #{businessId}
+	</update>
+
+	<delete id="deleteBusiness" parameterType="int">
+		DELETE FROM LQ_BUSINESS
+		WHERE BUSINESS_ID = #{businessId}
+	</delete>
 </mapper>

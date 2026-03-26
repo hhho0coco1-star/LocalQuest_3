@@ -19,4 +19,10 @@ public class QuestLocationServiceImpl implements QuestLocationService {
     public int saveQuestLocation(QuestLocationDTO questLocation) {
         return dao.saveQuestLocation(questLocation);
     }
+
+    @Override
+    @Transactional
+    public int deleteQuestLocationsByQuestId(int questId) {
+        return dao.deleteQuestLocationsByQuestId(questId);
+    }
 }

@@ -1,0 +1,56 @@
+Business Admin Work Summary
+
+1. Business admin structure
+- Extended business mapper for list/detail/update/delete.
+- Extended business DAO / DAOImpl.
+- Extended business service / serviceImpl.
+- Updated admin controller with business list/detail/save/delete endpoints.
+
+2. Business inquiry admin structure
+- Extended business inquiry mapper for list/detail/status update/delete.
+- Extended business inquiry DAO / DAOImpl.
+- Extended business inquiry service / serviceImpl.
+- Updated admin controller with inquiry list/detail/status update/delete endpoints.
+
+3. Admin page integration
+- Store info page now shows two sections in one page:
+  - Inquiries
+  - Stores
+- Added small tab navigation inside the business admin page.
+- Added inquiry detail modal.
+- Added store detail modal.
+- Accept flow now moves inquiry into store registration.
+- Saving a new store with inquiryId updates inquiry status to ANSWERED.
+
+4. Inquiry creation API
+- Added POST /api/business-inquiries
+- Request body fields:
+  - userId
+  - title
+  - content
+  - status (optional, default PENDING)
+
+5. Files added
+- src/main/webapp/WEB-INF/views/admin/admin-business.jsp
+- src/main/webapp/resources/css/admin-business.css
+- src/main/java/com/app/controller/api/BusinessInquiryAPIController.java
+- business-admin-work-summary.txt
+
+6. Files modified
+- src/main/webapp/WEB-INF/mybatis/mapper/business/business_mapper.xml
+- src/main/java/com/app/dao/business/BusinessDAO.java
+- src/main/java/com/app/dao/business/impl/BusinessDAOImpl.java
+- src/main/java/com/app/service/business/BusinessService.java
+- src/main/java/com/app/service/business/impl/BusinessServiceImpl.java
+- src/main/webapp/WEB-INF/mybatis/mapper/businessinquiry/businessinquiry_mapper.xml
+- src/main/java/com/app/dao/businessinquiry/BusinessInquiryDAO.java
+- src/main/java/com/app/dao/businessinquiry/impl/BusinessInquiryDAOImpl.java
+- src/main/java/com/app/service/businessinquiry/BusinessInquiryService.java
+- src/main/java/com/app/service/businessinquiry/impl/BusinessInquiryServiceImpl.java
+- src/main/java/com/app/controller/AdminController.java
+- src/main/webapp/WEB-INF/views/admin/admin.jsp
+
+7. Note
+- Inquiry table will remain empty until data is inserted into LQ_BUSINESS_INQUIRY.
+- User pages can now send data through POST /api/business-inquiries.
+- Maven compile check could not be executed because mvn / mvnw was not available in the current environment.

@@ -6,11 +6,16 @@ import java.util.Map;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
+import com.app.dto.quest.QuestTopRatedDTO;
 
 public interface QuestDAO {
+    List<QuestDTO> selectAdminAllQuests();
+
     List<QuestDTO> selectAllQuests();
 
     List<QuestMapDTO> selectQuestMapList();
+
+    List<QuestTopRatedDTO> selectTopRatedQuests(int limit);
 
     QuestDTO selectQuestById(int questId);
 
@@ -21,6 +26,10 @@ public interface QuestDAO {
     int updateQuest(QuestDTO quest);
 
     int updateQuestStatus(Map<String, Object> params);
+
+    int updateExpiredQuestsToInactive();
+
+    int resetQuestTimerAndActivate(int questId);
     
     // 퀘스트 검색/필터
     public List<QuestDTO> selectSearchQuests(Map<String, Object> params);

@@ -11,5 +11,12 @@ public class BusinessInquiryDTO {
     private String title;
     private String content;
     private String status;
+    private String zipCode;
+    private String address;
+    private String addressDetail;
+    private String phone;
+    private Double latitude;
+    private Double longitude;
+    private String locationType;
     private LocalDateTime createdAt;
 }

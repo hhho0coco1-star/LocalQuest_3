@@ -1,55 +1,143 @@
-<?xml version="1.0" encoding="UTF-8"?> 
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC
-		   "-//mybatis.org//DTD Mapper 3.0//EN" 
-		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+           "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="userquestprogress_mapper">
-	<insert id="saveUserQuestProgress" parameterType="UserQuestProgressDTO">
-		INSERT INTO LQ_USER_QUEST_PROGRESS (
-		user_quest_progress_id,
-		user_quest_id,
-		quest_location_id,
-		is_completed,
-		completed_at
-		) VALUES (
-		SEQ_LQ_USER_QUEST_PROGRESS_PK.nextval,
-		#{userQuestId},
-		#{questLocationId},
-		#{isCompleted},
-		#{completedAt} )
-	</insert>
+    <insert id="saveUserQuestProgress" parameterType="UserQuestProgressDTO">
+        INSERT INTO LQ_USER_QUEST_PROGRESS (
+            USER_QUEST_PROGRESS_ID,
+            USER_QUEST_ID,
+            QUEST_LOCATION_ID,
+            IS_COMPLETED,
+            COMPLETED_AT
+        ) VALUES (
+            SEQ_LQ_USER_QUEST_PROGRESS_PK.NEXTVAL,
+            #{userQuestId},
+            #{questLocationId},
+            #{isCompleted},
+            #{completedAt}
+        )
+    </insert>
 
-	<update id="upsertCompletedProgress" parameterType="map">
-		MERGE INTO LQ_USER_QUEST_PROGRESS target
-		USING (
-			SELECT
-				#{userQuestId} AS USER_QUEST_ID,
-				#{questLocationId} AS QUEST_LOCATION_ID,
-				#{completedAt} AS COMPLETED_AT
-			FROM dual
-		) source
-		ON (
-			target.USER_QUEST_ID = source.USER_QUEST_ID
-			AND target.QUEST_LOCATION_ID = source.QUEST_LOCATION_ID
-		)
-		WHEN MATCHED THEN
-			UPDATE SET
-				target.IS_COMPLETED = 1,
-				target.COMPLETED_AT = source.COMPLETED_AT
-		WHEN NOT MATCHED THEN
-			INSERT (
-				USER_QUEST_PROGRESS_ID,
-				USER_QUEST_ID,
-				QUEST_LOCATION_ID,
-				IS_COMPLETED,
-				COMPLETED_AT
-			)
-			VALUES (
-				SEQ_LQ_USER_QUEST_PROGRESS_PK.nextval,
-				source.USER_QUEST_ID,
-				source.QUEST_LOCATION_ID,
-				1,
-				source.COMPLETED_AT
-			)
-	</update>
+    <insert id="initializeProgressByQuestId" parameterType="map">
+        INSERT INTO LQ_USER_QUEST_PROGRESS (
+            USER_QUEST_PROGRESS_ID,
+            USER_QUEST_ID,
+            QUEST_LOCATION_ID,
+            IS_COMPLETED,
+            COMPLETED_AT
+        )
+        SELECT
+            SEQ_LQ_USER_QUEST_PROGRESS_PK.NEXTVAL,
+            #{userQuestId},
+            ql.QUEST_LOCATION_ID,
+            0,
+            NULL
+        FROM LQ_QUEST_LOCATION ql
+        WHERE ql.QUEST_ID = #{questId}
+    </insert>
+
+    <update id="upsertCompletedProgress" parameterType="map">
+        MERGE INTO LQ_USER_QUEST_PROGRESS target
+        USING (
+            SELECT
+                #{userQuestId} AS USER_QUEST_ID,
+                #{questLocationId} AS QUEST_LOCATION_ID,
+                #{completedAt} AS COMPLETED_AT
+            FROM DUAL
+        ) source
+        ON (
+            target.USER_QUEST_ID = source.USER_QUEST_ID
+            AND target.QUEST_LOCATION_ID = source.QUEST_LOCATION_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.IS_COMPLETED = 1,
+                target.COMPLETED_AT = source.COMPLETED_AT
+        WHEN NOT MATCHED THEN
+            INSERT (
+                USER_QUEST_PROGRESS_ID,
+                USER_QUEST_ID,
+                QUEST_LOCATION_ID,
+                IS_COMPLETED,
+                COMPLETED_AT
+            )
+            VALUES (
+                SEQ_LQ_USER_QUEST_PROGRESS_PK.NEXTVAL,
+                source.USER_QUEST_ID,
+                source.QUEST_LOCATION_ID,
+                1,
+                source.COMPLETED_AT
+            )
+    </update>
+
+    <delete id="deleteProgressByUserQuestId" parameterType="int">
+        DELETE FROM LQ_USER_QUEST_PROGRESS
+        WHERE USER_QUEST_ID = #{_parameter}
+    </delete>
+
+    <delete id="deleteUserQuestProgressByUserQuestId" parameterType="int">
+        DELETE FROM LQ_USER_QUEST_PROGRESS
+        WHERE USER_QUEST_ID = #{_parameter}
+    </delete>
+
+    <select id="findQrVerificationTargets" parameterType="map" resultType="com.app.dto.locationqr.UserQuestQrVerificationTargetDTO">
+        SELECT
+            uqp.USER_QUEST_PROGRESS_ID as userQuestProgressId,
+            uqp.USER_QUEST_ID as userQuestId,
+            uq.QUEST_ID as questId,
+            q.TITLE as questTitle,
+            uq.STATUS as userQuestStatus,
+            uq.STARTED_AT as startedAt,
+            uq.COMPLETED_AT as completedAt,
+            q.TIME_LIMIT as timeLimit,
+            ql.QUEST_LOCATION_ID as questLocationId,
+            ql.LOCATION_ID as locationId,
+            ql.VISIT_ORDER as visitOrder,
+            l.NAME as locationName,
+            uqp.IS_COMPLETED as isCompleted,
+            uqp.COMPLETED_AT as progressCompletedAt,
+            progress_count.TOTAL_COUNT as totalCount,
+            progress_count.COMPLETED_COUNT as completedCount
+        FROM LQ_USER_QUEST_PROGRESS uqp
+        INNER JOIN LQ_USER_QUEST uq
+            ON uq.USER_QUEST_ID = uqp.USER_QUEST_ID
+        INNER JOIN LQ_QUEST_LOCATION ql
+            ON ql.QUEST_LOCATION_ID = uqp.QUEST_LOCATION_ID
+        INNER JOIN LQ_QUEST q
+            ON q.QUEST_ID = uq.QUEST_ID
+        LEFT JOIN LQ_LOCATION l
+            ON l.LOCATION_ID = ql.LOCATION_ID
+        INNER JOIN (
+            SELECT
+                USER_QUEST_ID,
+                COUNT(*) as TOTAL_COUNT,
+                SUM(CASE WHEN NVL(IS_COMPLETED, 0) = 1 THEN 1 ELSE 0 END) as COMPLETED_COUNT
+            FROM LQ_USER_QUEST_PROGRESS
+            GROUP BY USER_QUEST_ID
+        ) progress_count
+            ON progress_count.USER_QUEST_ID = uqp.USER_QUEST_ID
+        WHERE uq.USER_ID = #{userId}
+          AND ql.LOCATION_ID = #{locationId}
+          AND uq.STATUS = 'IN_PROGRESS'
+          AND NVL(q.STATUS, 'ACTIVE') != 'DELETED'
+        ORDER BY uq.USER_QUEST_ID DESC, ql.VISIT_ORDER ASC
+    </select>
+
+    <update id="completeUserQuestProgress" parameterType="UserQuestProgressDTO">
+        UPDATE LQ_USER_QUEST_PROGRESS
+        SET IS_COMPLETED = 1,
+            COMPLETED_AT = #{completedAt}
+        WHERE USER_QUEST_ID = #{userQuestId}
+          AND QUEST_LOCATION_ID = #{questLocationId}
+          AND NVL(IS_COMPLETED, 0) = 0
+    </update>
+
+    <select id="countIncompleteProgressByUserQuestId" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM LQ_USER_QUEST_PROGRESS
+        WHERE USER_QUEST_ID = #{_parameter}
+          AND NVL(IS_COMPLETED, 0) = 0
+    </select>
 </mapper>
