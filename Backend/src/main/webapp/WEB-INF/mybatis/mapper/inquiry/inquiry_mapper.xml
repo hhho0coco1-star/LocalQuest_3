@@ -1,27 +1,28 @@
-<?xml version="1.0" encoding="UTF-8"?> 
-<!DOCTYPE mapper PUBLIC
-		   "-//mybatis.org//DTD Mapper 3.0//EN" 
-		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="inquiry_mapper">
-	<insert id="saveInquiry" parameterType="InquiryDTO">
-		INSERT INTO LQ_INQUIRY (
-		inquiry_id,
-		user_id,
-		title,
-		content,
-		status,
-		answer_content,
-		answered_at,
-		created_at
-		) VALUES (
-		SEQ_LQ_INQUIRY_PK.nextval,
-		#{userId},
-		#{title},
-		#{content},
-		#{status},
-		#{answerContent},
-		#{answeredAt},
-		sysdate )
-	</insert>
+
+    <insert id="saveInquiry" parameterType="com.app.dto.inquiry.InquiryDTO">
+        INSERT INTO LQ_INQUIRY (INQUIRY_ID, USER_ID, TITLE, CONTENT, STATUS, CREATED_AT)
+        VALUES (SEQ_LQ_INQUIRY_PK.NEXTVAL, #{userId}, #{title}, #{content}, 'PENDING', SYSDATE)
+    </insert>
+
+    <select id="getInquiryList" resultType="com.app.dto.inquiry.InquiryDTO">
+        SELECT * FROM LQ_INQUIRY WHERE USER_ID = #{userId} ORDER BY CREATED_AT DESC
+    </select>
+
+    <select id="getInquiryById" resultType="com.app.dto.inquiry.InquiryDTO">
+        SELECT * FROM LQ_INQUIRY WHERE INQUIRY_ID = #{inquiryId}
+    </select>
+
+    <update id="updateInquiry">
+        UPDATE LQ_INQUIRY SET TITLE = #{title}, CONTENT = #{content}
+        WHERE INQUIRY_ID = #{inquiryId} AND STATUS = 'PENDING'
+    </update>
+
+    <delete id="deleteInquiry">
+        DELETE FROM LQ_INQUIRY WHERE INQUIRY_ID = #{inquiryId}
+    </delete>
+
 </mapper>

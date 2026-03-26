@@ -4,6 +4,44 @@
 		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="questreview_mapper">
+	<select id="selectQuestReviewsByQuestId" parameterType="int" resultType="com.app.dto.questreview.QuestReviewListItemDTO">
+		SELECT
+			r.REVIEW_ID as reviewId,
+			r.USER_ID as userId,
+			r.QUEST_ID as questId,
+			q.TITLE as questTitle,
+			r.RATING as rating,
+			r.CONTENT as content,
+			r.CREATED_AT as createdAt,
+			NVL(u.NICKNAME, u.NAME) as authorName
+		FROM LQ_QUEST_REVIEW r
+		INNER JOIN LQ_USER u
+			ON r.USER_ID = u.USER_ID
+		INNER JOIN LQ_QUEST q
+			ON r.QUEST_ID = q.QUEST_ID
+		WHERE r.QUEST_ID = #{questId}
+		ORDER BY r.CREATED_AT DESC, r.REVIEW_ID DESC
+	</select>
+
+	<select id="selectQuestReviewsByUserId" parameterType="int" resultType="com.app.dto.questreview.QuestReviewListItemDTO">
+		SELECT
+			r.REVIEW_ID as reviewId,
+			r.USER_ID as userId,
+			r.QUEST_ID as questId,
+			q.TITLE as questTitle,
+			r.RATING as rating,
+			r.CONTENT as content,
+			r.CREATED_AT as createdAt,
+			NVL(u.NICKNAME, u.NAME) as authorName
+		FROM LQ_QUEST_REVIEW r
+		INNER JOIN LQ_USER u
+			ON r.USER_ID = u.USER_ID
+		INNER JOIN LQ_QUEST q
+			ON r.QUEST_ID = q.QUEST_ID
+		WHERE r.USER_ID = #{userId}
+		ORDER BY r.CREATED_AT DESC, r.REVIEW_ID DESC
+	</select>
+
 	<insert id="saveQuestReview" parameterType="QuestReviewDTO">
 		INSERT INTO LQ_QUEST_REVIEW (
 		review_id,
@@ -20,4 +58,36 @@
 		#{content},
 		sysdate )
 	</insert>
+
+	<update id="updateQuestReview" parameterType="QuestReviewDTO">
+		UPDATE LQ_QUEST_REVIEW
+		SET
+			RATING = #{rating},
+			CONTENT = #{content}
+		WHERE REVIEW_ID = #{reviewId}
+		  AND QUEST_ID = #{questId}
+		  AND USER_ID = #{userId}
+	</update>
+
+	<update id="updateQuestReviewAsAdmin" parameterType="QuestReviewDTO">
+		UPDATE LQ_QUEST_REVIEW
+		SET
+			RATING = #{rating},
+			CONTENT = #{content}
+		WHERE REVIEW_ID = #{reviewId}
+		  AND QUEST_ID = #{questId}
+	</update>
+
+	<delete id="deleteQuestReview" parameterType="QuestReviewDTO">
+		DELETE FROM LQ_QUEST_REVIEW
+		WHERE REVIEW_ID = #{reviewId}
+		  AND QUEST_ID = #{questId}
+		  AND USER_ID = #{userId}
+	</delete>
+
+	<delete id="deleteQuestReviewAsAdmin" parameterType="QuestReviewDTO">
+		DELETE FROM LQ_QUEST_REVIEW
+		WHERE REVIEW_ID = #{reviewId}
+		  AND QUEST_ID = #{questId}
+	</delete>
 </mapper>

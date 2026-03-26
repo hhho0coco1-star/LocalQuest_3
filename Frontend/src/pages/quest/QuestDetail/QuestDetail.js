@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { questApi } from '../../../api/QuestApi';
 import './QuestDetail.css';
+
+const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"]';
 
 const getDifficultyText = (rewardExp) => {
   if (rewardExp >= 300) return '어려움';
@@ -11,6 +14,72 @@ const getDifficultyText = (rewardExp) => {
 
 const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '제한 없음');
 
+const hasValidCoordinates = (location) =>
+  Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
+
+const loadKakaoMapSdk = (appKey) =>
+  new Promise((resolve, reject) => {
+    if (!appKey) {
+      reject(new Error('missing-key'));
+      return;
+    }
+
+    if (window.kakao?.maps?.LatLng) {
+      resolve(window.kakao);
+      return;
+    }
+
+    const handleReady = () => {
+      if (window.kakao?.maps?.LatLng) {
+        resolve(window.kakao);
+        return;
+      }
+
+      if (window.kakao?.maps?.load) {
+        window.kakao.maps.load(() => {
+          if (window.kakao?.maps?.LatLng) {
+            resolve(window.kakao);
+            return;
+          }
+
+          reject(new Error('sdk-load-failed'));
+        });
+        return;
+      }
+
+      reject(new Error('sdk-load-failed'));
+    };
+
+    const existingScript = document.querySelector(KAKAO_MAP_SCRIPT_SELECTOR);
+    if (existingScript) {
+      if (existingScript.getAttribute('data-loaded') === 'true') {
+        handleReady();
+        return;
+      }
+
+      existingScript.addEventListener('load', handleReady, { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('sdk-load-failed')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+    script.async = true;
+    script.setAttribute('data-kakao-map-sdk', 'true');
+    script.addEventListener(
+      'load',
+      () => {
+        script.setAttribute('data-loaded', 'true');
+        handleReady();
+      },
+      { once: true }
+    );
+    script.addEventListener('error', () => reject(new Error('sdk-load-failed')), { once: true });
+    document.head.appendChild(script);
+  });
+
 const toQuestDetailModel = (quest) => {
   const locations = Array.isArray(quest.locations)
     ? [...quest.locations].sort((a, b) => (a.visitOrder || 0) - (b.visitOrder || 0))
@@ -18,7 +87,6 @@ const toQuestDetailModel = (quest) => {
 
   return {
     title: quest.title,
-    category: quest.category,
     difficulty: getDifficultyText(quest.rewardExp),
     locationSummary:
       locations.length > 0
@@ -34,25 +102,201 @@ const toQuestDetailModel = (quest) => {
 function QuestDetail() {
   const navigate = useNavigate();
   const { questId } = useParams();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const kakaoMapKey = process.env.REACT_APP_KAKAO_MAP_KEY;
+
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const mapMarkerRef = useRef(null);
+
   const [quest, setQuest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isAccepted, setIsAccepted] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [selectedMapLocation, setSelectedMapLocation] = useState(null);
+  const [mapLoadState, setMapLoadState] = useState('idle');
 
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchQuestDetail = async () => {
       try {
         setLoading(true);
+        setError('');
         const response = await questApi.getQuestDetail(questId);
-        setQuest(toQuestDetailModel(response.data));
-      } catch (err) {
-        setError('퀘스트를 찾을 수 없습니다.');
+        if (!isCancelled) {
+          setQuest(toQuestDetailModel(response.data));
+        }
+      } catch (fetchError) {
+        if (!isCancelled) {
+          setError('퀘스트를 찾을 수 없습니다.');
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchQuestDetail();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [questId]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchAcceptedState = async () => {
+      if (!isAuthenticated) {
+        setIsAccepted(false);
+        return;
+      }
+
+      try {
+        const response = await questApi.getMyQuestOverview();
+        if (isCancelled) {
+          return;
+        }
+
+        const allQuests = [
+          ...(Array.isArray(response.data?.ongoingQuests) ? response.data.ongoingQuests : []),
+          ...(Array.isArray(response.data?.completedQuests) ? response.data.completedQuests : []),
+        ];
+
+        setIsAccepted(allQuests.some((userQuest) => Number(userQuest.questId) === Number(questId)));
+      } catch (overviewError) {
+        if (!isCancelled) {
+          setIsAccepted(false);
+        }
+      }
+    };
+
+    fetchAcceptedState();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isAuthenticated, questId]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const renderLocationMap = async () => {
+      if (!selectedMapLocation || !mapContainerRef.current) {
+        return;
+      }
+
+      if (!kakaoMapKey) {
+        setMapLoadState('missing-key');
+        return;
+      }
+
+      try {
+        setMapLoadState('loading');
+        const kakao = await loadKakaoMapSdk(kakaoMapKey);
+
+        if (isCancelled || !mapContainerRef.current) {
+          return;
+        }
+
+        const position = new kakao.maps.LatLng(
+          Number(selectedMapLocation.latitude),
+          Number(selectedMapLocation.longitude)
+        );
+
+        if (!mapInstanceRef.current) {
+          mapInstanceRef.current = new kakao.maps.Map(mapContainerRef.current, {
+            center: position,
+            level: 3,
+          });
+        }
+
+        mapInstanceRef.current.setCenter(position);
+
+        if (!mapMarkerRef.current) {
+          mapMarkerRef.current = new kakao.maps.Marker({ position });
+          mapMarkerRef.current.setMap(mapInstanceRef.current);
+        } else {
+          mapMarkerRef.current.setPosition(position);
+          mapMarkerRef.current.setMap(mapInstanceRef.current);
+        }
+
+        setMapLoadState('ready');
+      } catch (mapError) {
+        if (!isCancelled) {
+          setMapLoadState(mapError.message === 'missing-key' ? 'missing-key' : 'error');
+        }
+      }
+    };
+
+    renderLocationMap();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [kakaoMapKey, selectedMapLocation]);
+
+  const handleAcceptQuest = async () => {
+    if (!isAuthenticated) {
+      alert('로그인 후 퀘스트를 수락할 수 있습니다.');
+      navigate('/login');
+      return;
+    }
+
+    if (isAccepted || isAccepting) {
+      return;
+    }
+
+    try {
+      setIsAccepting(true);
+      const response = await questApi.acceptQuest(questId);
+      const userQuestId = response.data?.userQuestId;
+      const alreadyAccepted = Boolean(response.data?.alreadyAccepted);
+
+      setIsAccepted(true);
+      alert(alreadyAccepted ? '이미 수락한 퀘스트입니다.' : '퀘스트를 수락했습니다.');
+
+      if (userQuestId) {
+        navigate(`/mypage/${userQuestId}`);
+      }
+    } catch (acceptError) {
+      const message =
+        acceptError.response?.data?.message ||
+        '퀘스트 수락에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      alert(message);
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  const openMapModal = (location) => {
+    if (!hasValidCoordinates(location)) {
+      return;
+    }
+
+    setSelectedMapLocation(location);
+  };
+
+  const closeMapModal = () => {
+    setSelectedMapLocation(null);
+    setMapLoadState('idle');
+    mapMarkerRef.current = null;
+    mapInstanceRef.current = null;
+  };
+
+  const openKakaoMapWindow = () => {
+    if (!selectedMapLocation || !hasValidCoordinates(selectedMapLocation)) {
+      return;
+    }
+
+    const url = `https://map.kakao.com/link/map/${encodeURIComponent(
+      selectedMapLocation.name || '퀘스트 위치'
+    )},${selectedMapLocation.latitude},${selectedMapLocation.longitude}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="quest-detail-page">
@@ -69,13 +313,20 @@ function QuestDetail() {
           <section className="quest-detail-card">
             <div className="quest-detail-head">
               <div>
-                <span className="quest-detail-category">{quest.category}</span>
                 <h1>{quest.title}</h1>
                 <p>{quest.description}</p>
               </div>
               <div className="quest-detail-summary">
                 <strong>{quest.reward}</strong>
                 <span>보상</span>
+                <button
+                  type="button"
+                  className="quest-detail-accept-button"
+                  onClick={handleAcceptQuest}
+                  disabled={isAccepted || isAccepting}
+                >
+                  {isAccepting ? '수락 중...' : isAccepted ? '수락 완료' : '퀘스트 수락'}
+                </button>
               </div>
             </div>
 
@@ -98,22 +349,42 @@ function QuestDetail() {
               <h2>방문 순서</h2>
               {quest.locations.length > 0 ? (
                 <div className="quest-detail-location-list">
-                  {quest.locations.map((location) => (
-                    <article
-                      key={location.questLocationId || location.locationId}
-                      className="quest-detail-location-item"
-                    >
-                      <div className="quest-detail-location-order">{location.visitOrder}</div>
-                      <div className="quest-detail-location-body">
-                        <h3>{location.name}</h3>
-                        {location.address && <p>{location.address}</p>}
-                        {location.addressDetail && <p>{location.addressDetail}</p>}
-                        {location.description && (
-                          <span className="quest-detail-location-note">{location.description}</span>
-                        )}
-                      </div>
-                    </article>
-                  ))}
+                  {quest.locations.map((location) => {
+                    const clickable = hasValidCoordinates(location);
+
+                    return (
+                      <article
+                        key={location.questLocationId || location.locationId}
+                        className={`quest-detail-location-item${clickable ? ' is-clickable' : ''}`}
+                        onClick={() => openMapModal(location)}
+                        onKeyDown={(event) => {
+                          if (!clickable) {
+                            return;
+                          }
+
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openMapModal(location);
+                          }
+                        }}
+                        role={clickable ? 'button' : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                      >
+                        <div className="quest-detail-location-order">{location.visitOrder}</div>
+                        <div className="quest-detail-location-body">
+                          <h3>{location.name}</h3>
+                          {location.address ? <p>{location.address}</p> : null}
+                          {location.addressDetail ? <p>{location.addressDetail}</p> : null}
+                          {clickable ? (
+                            <span className="quest-detail-location-map-hint">클릭해서 지도 보기</span>
+                          ) : null}
+                          {location.description ? (
+                            <span className="quest-detail-location-note">{location.description}</span>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="quest-detail-empty-copy">아직 연결된 로케이션이 없습니다.</p>
@@ -127,6 +398,57 @@ function QuestDetail() {
           </section>
         )}
       </div>
+
+      {selectedMapLocation ? (
+        <div className="quest-location-map-modal-overlay" onClick={closeMapModal}>
+          <div className="quest-location-map-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="quest-location-map-modal-head">
+              <div>
+                <span className="quest-location-map-chip">지도 보기</span>
+                <h2>{selectedMapLocation.name}</h2>
+                <p>
+                  {[selectedMapLocation.address, selectedMapLocation.addressDetail]
+                    .filter(Boolean)
+                    .join(' ')}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="quest-location-map-close"
+                onClick={closeMapModal}
+              >
+                x
+              </button>
+            </div>
+
+            <div className="quest-location-map-canvas-wrap">
+              <div ref={mapContainerRef} className="quest-location-map-canvas" />
+              {mapLoadState === 'loading' ? (
+                <div className="quest-location-map-state">지도를 불러오는 중입니다.</div>
+              ) : null}
+              {mapLoadState === 'missing-key' ? (
+                <div className="quest-location-map-state">카카오 지도 키가 설정되지 않았습니다.</div>
+              ) : null}
+              {mapLoadState === 'error' ? (
+                <div className="quest-location-map-state">지도를 표시하지 못했습니다.</div>
+              ) : null}
+            </div>
+
+            <div className="quest-location-map-footer">
+              <span className="quest-location-map-coords">
+                {selectedMapLocation.latitude}, {selectedMapLocation.longitude}
+              </span>
+              <button
+                type="button"
+                className="quest-location-map-link-button"
+                onClick={openKakaoMapWindow}
+              >
+                카카오맵에서 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

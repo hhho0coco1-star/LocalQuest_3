@@ -1,23 +1,40 @@
-<?xml version="1.0" encoding="UTF-8"?> 
-<!DOCTYPE mapper PUBLIC
-		   "-//mybatis.org//DTD Mapper 3.0//EN" 
-		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="faq_mapper">
-	<insert id="saveFAQ" parameterType="FAQDTO">
-		INSERT INTO LQ_FAQ (
-		faq_id,
-		category,
-		question,
-		answer,
-		view_count,
-		created_at
-		) VALUES (
-		SEQ_LQ_FAQ_PK.nextval,
-		#{category},
-		#{question},
-		#{answer},
-		#{viewCount},
-		sysdate )
+	<insert id="saveFaq" parameterType="com.app.dto.faq.FaqDTO">
+		INSERT INTO LQ_FAQ (FAQ_ID, CATEGORY, QUESTION, ANSWER, VIEW_COUNT,
+		CREATED_AT)
+		VALUES (SEQ_LQ_FAQ_PK.NEXTVAL, #{category}, #{question}, #{answer}, 0,
+		SYSDATE)
 	</insert>
+
+	<select id="getFaqList" resultType="com.app.dto.faq.FaqDTO">
+		SELECT * FROM LQ_FAQ ORDER BY CREATED_AT DESC
+	</select>
+
+	<select id="getFaqByCategory" parameterType="string"
+		resultType="com.app.dto.faq.FaqDTO">
+		SELECT * FROM LQ_FAQ WHERE CATEGORY = #{category} ORDER BY CREATED_AT DESC
+	</select>
+
+	<select id="getFaqById" parameterType="int"
+		resultType="com.app.dto.faq.FaqDTO">
+		SELECT * FROM LQ_FAQ WHERE FAQ_ID = #{faqId}
+	</select>
+
+	<update id="updateViewCount" parameterType="int">
+		UPDATE LQ_FAQ SET VIEW_COUNT = VIEW_COUNT + 1 WHERE FAQ_ID = #{faqId}
+	</update>
+
+	<update id="updateFaq" parameterType="com.app.dto.faq.FaqDTO">
+		UPDATE LQ_FAQ
+		SET CATEGORY = #{category}, QUESTION = #{question}, ANSWER = #{answer}
+		WHERE FAQ_ID = #{faqId}
+	</update>
+
+	<delete id="deleteFaq" parameterType="int">
+		DELETE FROM LQ_FAQ WHERE FAQ_ID = #{faqId}
+	</delete>
+	
 </mapper>

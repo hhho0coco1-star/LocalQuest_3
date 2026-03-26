@@ -15,4 +15,6 @@ public class BusinessDTO {
     private String phone;
     private String description;
     private LocalDateTime createdAt;
+    private Boolean operationActive;
+    private String operationStatus;
 }

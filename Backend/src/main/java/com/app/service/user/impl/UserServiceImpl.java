@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.security.SecureRandom;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -34,7 +37,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.mindrot.jbcrypt.BCrypt;
 
+import com.app.dao.push.PushDAO;
 import com.app.dao.user.UserDAO;
+import com.app.dto.push.UserNotificationSettingDTO;
 import com.app.dto.user.FindPasswordRequest;
 import com.app.dto.user.FindUserIdRequest;
 import com.app.dto.user.LoginRequest;
@@ -51,12 +56,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class UserServiceImpl implements UserService{
 	private static final Properties MAIL_PROPERTIES = loadMailProperties();
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+	private static final long SOCIAL_STATE_TTL_MILLIS = 5 * 60 * 1000L;
 	private static final String PROVIDER_GOOGLE = "google";
 	private static final String PROVIDER_NAVER = "naver";
 	private static final String PROVIDER_KAKAO = "kakao";
 
 	private final RestTemplate restTemplate = new RestTemplate();
 	private final ObjectMapper objectMapper = new ObjectMapper();
+	private final Map<String, IssuedSocialState> issuedSocialStates = new ConcurrentHashMap<>();
 
 	@Autowired
 	private UserDAO userDAO;
@@ -66,6 +73,9 @@ public class UserServiceImpl implements UserService{
 
 	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
+
+	@Autowired
+	private PushDAO pushDAO;
 
 
 
@@ -117,7 +127,50 @@ public class UserServiceImpl implements UserService{
 		user.setExp(0);
 		user.setPoint(0);
 
-		return userDAO.saveUser(user);
+		int saveResult = userDAO.saveUser(user);
+		if (saveResult != 1) {
+			throw new IllegalStateException("회원가입 처리 중 오류가 발생했습니다.");
+		}
+
+		User savedUser = userDAO.findByUserLoginId(user.getUserLoginId());
+		if (savedUser == null || savedUser.getUserId() <= 0) {
+			throw new IllegalStateException("회원가입 후 사용자 정보를 조회하지 못했습니다.");
+		}
+
+		saveInitialNotificationSetting(savedUser.getUserId(), Boolean.TRUE.equals(request.getMarketingAgree()));
+		return saveResult;
+	}
+
+	private void saveInitialNotificationSetting(int userId, boolean marketingAgree) {
+		if (userId <= 0) {
+			return;
+		}
+
+		UserNotificationSettingDTO existingSetting = pushDAO.findNotificationSettingByUserId(userId);
+		String agreeYn = marketingAgree ? "Y" : "N";
+
+		if (existingSetting == null) {
+			UserNotificationSettingDTO newSetting = new UserNotificationSettingDTO();
+			newSetting.setUserId(userId);
+			newSetting.setPushAgree(agreeYn);
+			newSetting.setMarketingAgree(agreeYn);
+			newSetting.setLunchPushAgree(agreeYn);
+			newSetting.setDinnerPushAgree(agreeYn);
+			newSetting.setWeekendPushAgree(agreeYn);
+			newSetting.setPreferredTimezone("Asia/Seoul");
+			pushDAO.insertNotificationSetting(newSetting);
+			return;
+		}
+
+		existingSetting.setPushAgree(agreeYn);
+		existingSetting.setMarketingAgree(agreeYn);
+		existingSetting.setLunchPushAgree(agreeYn);
+		existingSetting.setDinnerPushAgree(agreeYn);
+		existingSetting.setWeekendPushAgree(agreeYn);
+		if (trimToEmpty(existingSetting.getPreferredTimezone()).isEmpty()) {
+			existingSetting.setPreferredTimezone("Asia/Seoul");
+		}
+		pushDAO.updateNotificationSetting(existingSetting);
 	}
 
 	@Override
@@ -183,7 +236,7 @@ public class UserServiceImpl implements UserService{
 	@Override
 	public String getSocialAuthorizationUrl(String provider) {
 		String normalizedProvider = normalizeSocialProvider(provider);
-		String state = UUID.randomUUID().toString();
+		String state = issueSocialState(normalizedProvider);
 
 		switch (normalizedProvider) {
 			case PROVIDER_GOOGLE:
@@ -208,7 +261,11 @@ public class UserServiceImpl implements UserService{
 			throw new IllegalArgumentException("소셜 로그인 인가 코드가 누락되었습니다.");
 		}
 
+		validateAndConsumeSocialState(normalizedProvider, normalizedState);
 		SocialUserProfile socialUser = fetchSocialUserProfile(normalizedProvider, normalizedCode, normalizedState);
+		if (PROVIDER_GOOGLE.equals(normalizedProvider)) {
+			socialUser = resolveGoogleSocialProfile(socialUser);
+		}
 		if (trimToEmpty(socialUser.email).isEmpty()) {
 			throw new IllegalStateException("소셜 계정의 이메일 정보를 확인할 수 없습니다. 제공자 동의 항목을 확인해주세요.");
 		}
@@ -228,6 +285,7 @@ public class UserServiceImpl implements UserService{
 			throw new IllegalStateException("비활성화된 계정입니다. 관리자에게 문의해주세요.");
 		}
 
+		syncSocialBirthAndGender(user, socialUser);
 		return buildLoginResponse(user);
 	}
 
@@ -283,6 +341,99 @@ public class UserServiceImpl implements UserService{
 		sendTemporaryPasswordMail(user.getEmail(), user.getName(), temporaryPassword);
 	}
 
+	@Override
+	public User getUserProfileById(int userId) {
+		if (userId <= 0) {
+			return null;
+		}
+
+		User user = userDAO.findByUserId(userId);
+		if (user == null) {
+			return null;
+		}
+
+		if (user.getStatus() != null && !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+			return null;
+		}
+
+		return user;
+	}
+
+	@Override
+	@Transactional
+	public User updateMyProfile(int userId, String nickname, String newPassword) {
+		if (userId <= 0) {
+			throw new IllegalArgumentException("Invalid user information.");
+		}
+
+		User currentUser = userDAO.findByUserId(userId);
+		if (currentUser == null || (currentUser.getStatus() != null && !"ACTIVE".equalsIgnoreCase(currentUser.getStatus()))) {
+			throw new IllegalArgumentException("Cannot find active user.");
+		}
+
+		String normalizedNickname = trimToEmpty(nickname);
+		String normalizedPassword = trimToEmpty(newPassword);
+		String currentNickname = trimToEmpty(currentUser.getNickname());
+
+		if (normalizedNickname.isEmpty()) {
+			normalizedNickname = currentNickname;
+		}
+
+		boolean nicknameChanged = !normalizedNickname.equals(currentNickname);
+		if (nicknameChanged && !isNicknameAvailable(normalizedNickname)) {
+			throw new IllegalArgumentException("Nickname is already in use.");
+		}
+
+		boolean passwordChanged = !normalizedPassword.isEmpty();
+		if (!nicknameChanged && !passwordChanged) {
+			return currentUser;
+		}
+
+		User updateTarget = new User();
+		updateTarget.setUserId(userId);
+
+		if (nicknameChanged) {
+			updateTarget.setNickname(normalizedNickname);
+		}
+
+		if (passwordChanged) {
+			updateTarget.setPassword(BCrypt.hashpw(normalizedPassword, BCrypt.gensalt()));
+		}
+
+		int updatedCount = userDAO.updateMyProfileByUserId(updateTarget);
+		if (updatedCount != 1) {
+			throw new IllegalStateException("Failed to update profile.");
+		}
+
+		User updatedUser = userDAO.findByUserId(userId);
+		if (updatedUser == null || (updatedUser.getStatus() != null && !"ACTIVE".equalsIgnoreCase(updatedUser.getStatus()))) {
+			throw new IllegalStateException("Updated user profile is not available.");
+		}
+
+		return updatedUser;
+	}
+
+	@Override
+	@Transactional
+	public boolean withdrawUser(int userId) {
+		if (userId <= 0) {
+			return false;
+		}
+
+		User currentUser = userDAO.findByUserId(userId);
+		if (currentUser == null) {
+			return false;
+		}
+
+		if ("WITHDRAWN".equalsIgnoreCase(trimToEmpty(currentUser.getStatus()))) {
+			return true;
+		}
+
+		Map<String, Object> statusMap = new HashMap<>();
+		statusMap.put("userId", userId);
+		statusMap.put("newStatus", "WITHDRAWN");
+		return userDAO.updateUserStatus(statusMap) == 1;
+	}
 	private LoginResponse buildLoginResponse(User user) {
 		String accessToken = jwtTokenProvider.createAccessToken(user);
 		LoginResponse response = new LoginResponse();
@@ -308,10 +459,47 @@ public class UserServiceImpl implements UserService{
 		throw new IllegalArgumentException("지원하지 않는 소셜 로그인 제공자입니다.");
 	}
 
+	private String issueSocialState(String provider) {
+		long nowMillis = System.currentTimeMillis();
+		cleanupExpiredSocialStates(nowMillis);
+
+		String state = UUID.randomUUID().toString();
+		issuedSocialStates.put(state, new IssuedSocialState(provider, nowMillis + SOCIAL_STATE_TTL_MILLIS));
+		return state;
+	}
+
+	private void validateAndConsumeSocialState(String provider, String state) {
+		long nowMillis = System.currentTimeMillis();
+		cleanupExpiredSocialStates(nowMillis);
+
+		String normalizedState = trimToEmpty(state);
+		if (normalizedState.isEmpty()) {
+			throw new IllegalArgumentException("Social login state is missing.");
+		}
+
+		IssuedSocialState issuedState = issuedSocialStates.remove(normalizedState);
+		if (issuedState == null ||
+			!provider.equals(issuedState.provider) ||
+			issuedState.expiresAtMillis < nowMillis) {
+			throw new IllegalArgumentException("Social login state is invalid or expired.");
+		}
+	}
+
+	private void cleanupExpiredSocialStates(long nowMillis) {
+		issuedSocialStates.entrySet().removeIf(entry -> entry.getValue().expiresAtMillis < nowMillis);
+	}
+
 	private String buildGoogleAuthorizationUrl(String state) {
 		String clientId = readRequiredConfig("LQ_SOCIAL_GOOGLE_CLIENT_ID", "lq.social.google.client-id");
 		String redirectUri = readRequiredConfig("LQ_SOCIAL_GOOGLE_REDIRECT_URI", "lq.social.google.redirect-uri");
-		String scope = readConfigOrDefault("LQ_SOCIAL_GOOGLE_SCOPE", "lq.social.google.scope", "openid profile email");
+		String scope = ensureRequiredScopes(
+			readConfigOrDefault("LQ_SOCIAL_GOOGLE_SCOPE", "lq.social.google.scope", "openid profile email"),
+			"openid",
+			"profile",
+			"email",
+			"https://www.googleapis.com/auth/user.birthday.read",
+			"https://www.googleapis.com/auth/user.gender.read"
+		);
 
 		return UriComponentsBuilder
 			.fromHttpUrl("https://accounts.google.com/o/oauth2/v2/auth")
@@ -344,14 +532,12 @@ public class UserServiceImpl implements UserService{
 	private String buildKakaoAuthorizationUrl(String state) {
 		String clientId = readRequiredConfig("LQ_SOCIAL_KAKAO_CLIENT_ID", "lq.social.kakao.client-id");
 		String redirectUri = readRequiredConfig("LQ_SOCIAL_KAKAO_REDIRECT_URI", "lq.social.kakao.redirect-uri");
-		String scope = readConfigOrDefault("LQ_SOCIAL_KAKAO_SCOPE", "lq.social.kakao.scope", "profile_nickname account_email");
 
 		return UriComponentsBuilder
 			.fromHttpUrl("https://kauth.kakao.com/oauth/authorize")
 			.queryParam("response_type", "code")
 			.queryParam("client_id", clientId)
 			.queryParam("redirect_uri", redirectUri)
-			.queryParam("scope", scope)
 			.queryParam("state", state)
 			.build()
 			.encode()
@@ -394,13 +580,35 @@ public class UserServiceImpl implements UserService{
 		String email = readJsonText(profileJson, "email");
 		String name = readJsonText(profileJson, "name");
 		String nickname = readJsonText(profileJson, "given_name");
+		String birth = null;
+		String gender = null;
+
+		try {
+			JsonNode peopleJson = getJsonWithBearer(
+				"https://people.googleapis.com/v1/people/me?personFields=birthdays,genders",
+				accessToken
+			);
+			birth = extractGoogleBirth(peopleJson);
+			gender = extractGoogleGender(peopleJson);
+		} catch (IllegalStateException ignored) {
+			// Birthday/gender consent can be optional; ignore and continue login.
+		}
+
+		if (birth == null || birth.trim().isEmpty()) {
+			birth = "2000-01-01";
+		}
+		if (normalizeGenderCode(gender) == null) {
+			gender = "M";
+		}
 
 		return new SocialUserProfile(
 			PROVIDER_GOOGLE,
 			providerUserId,
 			email,
 			name,
-			nickname
+			nickname,
+			birth,
+			gender
 		);
 	}
 
@@ -411,7 +619,7 @@ public class UserServiceImpl implements UserService{
 
 		String normalizedState = trimToEmpty(state);
 		if (normalizedState.isEmpty()) {
-			throw new IllegalArgumentException("네이버 로그인 state 값이 누락되었습니다.");
+			throw new IllegalArgumentException("Social login state is missing.");
 		}
 
 		String tokenUrl = UriComponentsBuilder
@@ -439,13 +647,20 @@ public class UserServiceImpl implements UserService{
 		String email = readJsonText(responseNode, "email");
 		String name = readJsonText(responseNode, "name");
 		String nickname = readJsonText(responseNode, "nickname");
+		String birth = buildBirthDate(
+			readJsonText(responseNode, "birthyear"),
+			readJsonText(responseNode, "birthday")
+		);
+		String gender = normalizeGenderCode(readJsonText(responseNode, "gender"));
 
 		return new SocialUserProfile(
 			PROVIDER_NAVER,
 			providerUserId,
 			email,
 			name,
-			nickname
+			nickname,
+			birth,
+			gender
 		);
 	}
 
@@ -475,15 +690,22 @@ public class UserServiceImpl implements UserService{
 		JsonNode profileNode = kakaoAccountNode.path("profile");
 
 		String email = trimToEmpty(kakaoAccountNode.path("email").asText(""));
+		if (email.isEmpty()) {
+			email = buildSocialFallbackEmail(PROVIDER_KAKAO, providerUserId);
+		}
 		String name = trimToEmpty(profileNode.path("nickname").asText(""));
 		String nickname = trimToEmpty(profileNode.path("nickname").asText(""));
+		String birth = "2000-01-01";
+		String gender = "M";
 
 		return new SocialUserProfile(
 			PROVIDER_KAKAO,
 			providerUserId,
 			email,
 			name,
-			nickname
+			nickname,
+			birth,
+			gender
 		);
 	}
 
@@ -561,13 +783,122 @@ public class UserServiceImpl implements UserService{
 		user.setEmail(email);
 		user.setPassword(BCrypt.hashpw(UUID.randomUUID().toString(), BCrypt.gensalt()));
 		user.setNickname(generateUniqueSocialNickname(preferredNickname));
-		user.setBirth(null);
-		user.setGender(null);
+		user.setBirth(trimToEmpty(socialUser.birth).isEmpty() ? null : socialUser.birth);
+		user.setGender(normalizeGenderCode(socialUser.gender));
 		user.setRole("USER");
 		user.setExp(0);
 		user.setPoint(0);
 		user.setStatus("ACTIVE");
 		return user;
+	}
+
+	private SocialUserProfile resolveGoogleSocialProfile(SocialUserProfile socialUser) {
+		if (socialUser == null) {
+			return null;
+		}
+
+		String fallbackEmail = buildSocialFallbackEmail(PROVIDER_GOOGLE, socialUser.providerUserId);
+		if (fallbackEmail.isEmpty()) {
+			return socialUser;
+		}
+
+		User fallbackUser = userDAO.findByEmail(fallbackEmail);
+		if (fallbackUser != null) {
+			return copySocialProfileWithEmail(socialUser, fallbackEmail);
+		}
+
+		String realEmail = trimToEmpty(socialUser.email);
+		if (realEmail.isEmpty()) {
+			return copySocialProfileWithEmail(socialUser, fallbackEmail);
+		}
+
+		User realEmailUser = userDAO.findByEmail(realEmail);
+		if (realEmailUser == null) {
+			return socialUser;
+		}
+
+		String existingLoginId = trimToEmpty(realEmailUser.getUserLoginId()).toLowerCase();
+		if (existingLoginId.startsWith(PROVIDER_GOOGLE + "_")) {
+			return socialUser;
+		}
+
+		return copySocialProfileWithEmail(socialUser, fallbackEmail);
+	}
+
+	private SocialUserProfile copySocialProfileWithEmail(SocialUserProfile source, String email) {
+		return new SocialUserProfile(
+			source.provider,
+			source.providerUserId,
+			email,
+			source.name,
+			source.nickname,
+			source.birth,
+			source.gender
+		);
+	}
+
+	private void syncSocialBirthAndGender(User user, SocialUserProfile socialUser) {
+		if (user == null || socialUser == null) {
+			return;
+		}
+
+		String currentBirth = trimToEmpty(user.getBirth());
+		String currentGender = normalizeGenderCode(user.getGender());
+		String socialBirth = trimToEmpty(socialUser.birth);
+		String socialGender = normalizeGenderCode(socialUser.gender);
+
+		boolean shouldUpdate = false;
+		if (shouldReplaceBirth(currentBirth, socialBirth)) {
+			user.setBirth(socialBirth);
+			shouldUpdate = true;
+		}
+
+		if (shouldReplaceGender(user, currentGender, socialGender)) {
+			user.setGender(socialGender);
+			shouldUpdate = true;
+		}
+
+		if (shouldUpdate) {
+			userDAO.updateSocialProfileByUserId(user);
+		}
+	}
+
+	private boolean shouldReplaceBirth(String currentBirth, String socialBirth) {
+		String normalizedSocialBirth = trimToEmpty(socialBirth);
+		if (normalizedSocialBirth.isEmpty() || isDefaultBirthValue(normalizedSocialBirth)) {
+			return false;
+		}
+
+		String normalizedCurrentBirth = trimToEmpty(currentBirth);
+		return normalizedCurrentBirth.isEmpty() || isDefaultBirthValue(normalizedCurrentBirth);
+	}
+
+	private boolean shouldReplaceGender(User user, String currentGender, String socialGender) {
+		if (socialGender == null) {
+			return false;
+		}
+
+		if (currentGender == null) {
+			return true;
+		}
+
+		if (!isSocialAccount(user)) {
+			return false;
+		}
+
+		// Social default is currently M; replace it only when provider returns F.
+		return "M".equals(currentGender) && "F".equals(socialGender);
+	}
+
+	private boolean isDefaultBirthValue(String birth) {
+		return trimToEmpty(birth).startsWith("2000-01-01");
+	}
+
+	private boolean isSocialAccount(User user) {
+		String loginId = trimToEmpty(user.getUserLoginId()).toLowerCase();
+		return loginId.startsWith(PROVIDER_GOOGLE + "_") ||
+			loginId.startsWith(PROVIDER_NAVER + "_") ||
+			loginId.startsWith(PROVIDER_KAKAO + "_");
 	}
 
 	private String generateUniqueSocialUserLoginId(String provider, String providerUserId) {
@@ -644,6 +975,171 @@ public class UserServiceImpl implements UserService{
 		return builder.toString();
 	}
 
+	private String ensureRequiredScopes(String configuredScope, String... requiredScopes) {
+		Set<String> scopes = new LinkedHashSet<>();
+
+		String normalizedConfiguredScope = trimToEmpty(configuredScope);
+		if (!normalizedConfiguredScope.isEmpty()) {
+			String[] configuredTokens = normalizedConfiguredScope.split("\\s+");
+			for (String token : configuredTokens) {
+				String normalizedToken = trimToEmpty(token);
+				if (!normalizedToken.isEmpty()) {
+					scopes.add(normalizedToken);
+				}
+			}
+		}
+
+		for (String requiredScope : requiredScopes) {
+			String normalizedScope = trimToEmpty(requiredScope);
+			if (!normalizedScope.isEmpty()) {
+				scopes.add(normalizedScope);
+			}
+		}
+
+		return String.join(" ", scopes);
+	}
+
+	private String buildBirthDate(String yearText, String monthDayText) {
+		String yearDigits = trimToEmpty(yearText).replaceAll("[^0-9]", "");
+		String monthDayDigits = trimToEmpty(monthDayText).replaceAll("[^0-9]", "");
+
+		if (yearDigits.length() != 4 || monthDayDigits.length() != 4) {
+			return null;
+		}
+
+		try {
+			int year = Integer.parseInt(yearDigits);
+			int month = Integer.parseInt(monthDayDigits.substring(0, 2));
+			int day = Integer.parseInt(monthDayDigits.substring(2, 4));
+			LocalDate birthDate = LocalDate.of(year, month, day);
+			return String.format(
+				"%04d-%02d-%02d",
+				birthDate.getYear(),
+				birthDate.getMonthValue(),
+				birthDate.getDayOfMonth()
+			);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	private String normalizeGenderCode(String rawGender) {
+		String normalizedGender = trimToEmpty(rawGender).toLowerCase();
+
+		if ("m".equals(normalizedGender) || "male".equals(normalizedGender)) {
+			return "M";
+		}
+
+		if ("f".equals(normalizedGender) || "female".equals(normalizedGender)) {
+			return "F";
+		}
+
+		return null;
+	}
+
+	private String extractGoogleBirth(JsonNode peopleRoot) {
+		JsonNode birthdays = peopleRoot.path("birthdays");
+		if (!birthdays.isArray()) {
+			return null;
+		}
+
+		for (JsonNode birthdayNode : birthdays) {
+			if (birthdayNode.path("metadata").path("primary").asBoolean(false)) {
+				String primaryBirth = toDateString(birthdayNode.path("date"));
+				if (primaryBirth != null) {
+					return primaryBirth;
+				}
+			}
+		}
+
+		for (JsonNode birthdayNode : birthdays) {
+			String birth = toDateString(birthdayNode.path("date"));
+			if (birth != null) {
+				return birth;
+			}
+		}
+
+		return null;
+	}
+
+	private String extractGoogleGender(JsonNode peopleRoot) {
+		JsonNode genders = peopleRoot.path("genders");
+		if (!genders.isArray()) {
+			return null;
+		}
+
+		for (JsonNode genderNode : genders) {
+			if (genderNode.path("metadata").path("primary").asBoolean(false)) {
+				String primaryGender = normalizeGenderCode(trimToEmpty(genderNode.path("value").asText("")));
+				if (primaryGender != null) {
+					return primaryGender;
+				}
+			}
+		}
+
+		for (JsonNode genderNode : genders) {
+			String gender = normalizeGenderCode(trimToEmpty(genderNode.path("value").asText("")));
+			if (gender != null) {
+				return gender;
+			}
+		}
+
+		return null;
+	}
+
+	private String toDateString(JsonNode dateNode) {
+		if (dateNode == null || dateNode.isMissingNode()) {
+			return null;
+		}
+
+		int year = dateNode.path("year").asInt(0);
+		int month = dateNode.path("month").asInt(0);
+		int day = dateNode.path("day").asInt(0);
+
+		if (year <= 0 || month <= 0 || day <= 0) {
+			return null;
+		}
+
+		try {
+			LocalDate birthDate = LocalDate.of(year, month, day);
+			return String.format(
+				"%04d-%02d-%02d",
+				birthDate.getYear(),
+				birthDate.getMonthValue(),
+				birthDate.getDayOfMonth()
+			);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	private String buildSocialFallbackEmail(String provider, String providerUserId) {
+		final String fallbackDomain = "@social.localquest";
+		final int maxEmailLength = 100;
+		final int maxLocalLength = maxEmailLength - fallbackDomain.length();
+
+		String normalizedProvider = trimToEmpty(provider).toLowerCase();
+		String normalizedProviderUserId = trimToEmpty(providerUserId).toLowerCase();
+		if (normalizedProvider.isEmpty() || normalizedProviderUserId.isEmpty()) {
+			return "";
+		}
+
+		String localPart = (normalizedProvider + "_" + normalizedProviderUserId)
+			.replaceAll("[^a-z0-9._-]", "_");
+		localPart = collapseUnderscores(localPart);
+		if (localPart.isEmpty()) {
+			return "";
+		}
+
+		if (localPart.length() > maxLocalLength) {
+			String hash = Integer.toHexString(localPart.hashCode());
+			int prefixLength = Math.max(1, maxLocalLength - hash.length() - 1);
+			localPart = localPart.substring(0, prefixLength) + "_" + hash;
+		}
+
+		return localPart + fallbackDomain;
+	}
+
 	private String localPartFromEmail(String email) {
 		String normalized = trimToEmpty(email);
 		int separatorIndex = normalized.indexOf('@');
@@ -653,19 +1149,41 @@ public class UserServiceImpl implements UserService{
 		return normalized.substring(0, separatorIndex);
 	}
 
+	private static class IssuedSocialState {
+		private final String provider;
+		private final long expiresAtMillis;
+
+		private IssuedSocialState(String provider, long expiresAtMillis) {
+			this.provider = provider;
+			this.expiresAtMillis = expiresAtMillis;
+		}
+	}
+
 	private static class SocialUserProfile {
 		private final String provider;
 		private final String providerUserId;
 		private final String email;
 		private final String name;
 		private final String nickname;
+		private final String birth;
+		private final String gender;
 
-		private SocialUserProfile(String provider, String providerUserId, String email, String name, String nickname) {
+		private SocialUserProfile(
+			String provider,
+			String providerUserId,
+			String email,
+			String name,
+			String nickname,
+			String birth,
+			String gender
+		) {
 			this.provider = provider;
 			this.providerUserId = providerUserId;
 			this.email = email;
 			this.name = name;
 			this.nickname = nickname;
+			this.birth = birth;
+			this.gender = gender;
 		}
 	}
 
@@ -703,17 +1221,18 @@ public class UserServiceImpl implements UserService{
 		}
 
 		try {
-			Message message = new MimeMessage(session);
+			MimeMessage message = new MimeMessage(session);
 			message.setFrom(new InternetAddress(from));
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
-			message.setSubject("[LOCAL QUEST] 임시 비밀번호 안내");
-			message.setText(
-				String.format(
-					"%s님,%n%n임시 비밀번호를 발급해드립니다.%n%n임시 비밀번호: %s%n%n로그인 후 반드시 비밀번호를 변경해주세요.%n감사합니다.%nLOCAL QUEST 드림",
-					trimToEmpty(name).isEmpty() ? "회원" : trimToEmpty(name),
-					temporaryPassword
-				)
+			String safeName = trimToEmpty(name).isEmpty() ? "회원" : trimToEmpty(name);
+			String mailSubject = "[LOCAL QUEST] 임시 비밀번호 안내";
+			String mailBody = String.format(
+				"%s님%n%n임시 비밀번호를 발급해드립니다.%n%n임시 비밀번호: %s%n%n로그인 후 반드시 비밀번호를 변경해주세요.%n감사합니다.%nLOCAL QUEST 드림",
+				safeName,
+				temporaryPassword
 			);
+			message.setSubject(mailSubject, "UTF-8");
+			message.setText(mailBody, "UTF-8");
 			Transport.send(message);
 		} catch (MessagingException e) {
 			throw new IllegalStateException("이메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
@@ -783,10 +1302,6 @@ public class UserServiceImpl implements UserService{
 	private String trimToEmpty(String value) {
 		return value == null ? "" : value.trim();
 	}
-    public List<User> getAllUsers() {
-        return userDAO.selectAllUsers();
-    }
-
 	@Override
 	public List<User> searchUsers(String type, String keyword, String sort) {
 	    Map<String, Object> searchParams = new HashMap<>();
@@ -799,20 +1314,38 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public boolean changeUserRole(int userId, String newRole) {
+        String normalizedRole = trimToEmpty(newRole).toUpperCase();
+        if (!isAllowedUserRole(normalizedRole)) {
+            return false;
+        }
+
         Map<String, Object> roleMap = new HashMap<>();
         roleMap.put("userId", userId);
-        roleMap.put("newRole", newRole);
+        roleMap.put("newRole", normalizedRole);
         
-        // 업데이트된 행의 수가 1이면 성공(true) 반환
+        // 업데이트 결과값이 1이면 성공(true) 반환
         return userDAO.updateUserRole(roleMap) == 1;
     }
 
     @Override
     public boolean changeUserStatus(int userId, String newStatus) {
+        String normalizedStatus = trimToEmpty(newStatus).toUpperCase();
+        if (!isAllowedUserStatus(normalizedStatus)) {
+            return false;
+        }
+
         Map<String, Object> statusMap = new HashMap<>();
         statusMap.put("userId", userId);
-        statusMap.put("newStatus", newStatus);
+        statusMap.put("newStatus", normalizedStatus);
         
         return userDAO.updateUserStatus(statusMap) == 1;
+    }
+
+    private boolean isAllowedUserRole(String role) {
+        return "USER".equals(role) || "BUSINESS".equals(role) || "ADMIN".equals(role);
+    }
+
+    private boolean isAllowedUserStatus(String status) {
+        return "ACTIVE".equals(status) || "WITHDRAWN".equals(status) || "INACTIVE".equals(status);
     }
 }

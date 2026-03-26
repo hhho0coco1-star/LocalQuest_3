@@ -14,5 +14,6 @@ public class QuestLocationInfoDTO {
     private Double latitude;
     private Double longitude;
     private String locationType;
+    private String locationCategory;
     private String description;
 }

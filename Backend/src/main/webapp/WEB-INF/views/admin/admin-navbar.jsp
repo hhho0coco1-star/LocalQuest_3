@@ -27,6 +27,10 @@
 					class="fas fa-scroll"></i> 퀘스트 관리
 			</a></li>
 			<li class="admin-nav-item"><a href="javascript:void(0)"
+				onclick="loadAdminContent('${path}/admin/locations', this)"> <i
+					class="fas fa-location-dot"></i> 장소 관리
+			</a></li>
+			<li class="admin-nav-item"><a href="javascript:void(0)"
 				onclick="loadAdminContent('${path}/admin/store-info', this)"> <i
 					class="fas fa-map-marked-alt"></i> 매장 정보 관리
 			</a></li>

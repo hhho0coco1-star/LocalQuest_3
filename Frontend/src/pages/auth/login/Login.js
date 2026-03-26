@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import './Login.css';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
 import LocalQuestLogo from '../../../components/common/LocalQuestLogo';
+import { resolveBackendBaseUrl } from '../../../config/runtimeUrls';
 import { userApi } from '../../../api/UserApi';
 import { setAuth } from '../../../store/authSlice';
 
@@ -27,6 +28,7 @@ function Login() {
     const [isFindingPassword, setIsFindingPassword] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useDispatch();
 
     const handleLogin = async (e) => {
@@ -58,7 +60,8 @@ function Login() {
                 }
             }));
 
-            navigate('/main');
+            const redirectPath = new URLSearchParams(location.search).get('redirect');
+            navigate(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/main', { replace: true });
         } catch (error) {
             const errorMessage = error.response?.data || '로그인에 실패했습니다.';
             alert(errorMessage);
@@ -194,7 +197,7 @@ function Login() {
     };
 
     const handleSocialLogin = (provider) => {
-        const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+        const apiBaseUrl = resolveBackendBaseUrl();
         window.location.href = `${apiBaseUrl}/api/users/oauth/${provider}/start`;
     };
 

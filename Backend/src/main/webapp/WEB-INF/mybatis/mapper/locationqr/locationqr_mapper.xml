@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN"
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="locationqr_mapper">
+	<select id="findLatestLocationQrByLocationId" parameterType="int" resultType="LocationQrDTO">
+		SELECT *
+		FROM (
+			SELECT
+				QR_ID as qrId,
+				LOCATION_ID as locationId,
+				QR_AUTH_KEY as qrAuthKey,
+				QR_IMAGE_URL as qrImageUrl,
+				IS_ACTIVE as isActive,
+				CREATED_AT as createdAt
+			FROM LQ_LOCATION_QR
+			WHERE LOCATION_ID = #{locationId}
+			ORDER BY IS_ACTIVE DESC, QR_ID DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
+
+	<select id="findActiveLocationQrByAuthKey" parameterType="string" resultType="LocationQrDTO">
+		SELECT *
+		FROM (
+			SELECT
+				QR_ID as qrId,
+				LOCATION_ID as locationId,
+				QR_AUTH_KEY as qrAuthKey,
+				QR_IMAGE_URL as qrImageUrl,
+				IS_ACTIVE as isActive,
+				CREATED_AT as createdAt
+			FROM LQ_LOCATION_QR
+			WHERE QR_AUTH_KEY = #{qrAuthKey}
+			  AND NVL(IS_ACTIVE, 1) = 1
+			ORDER BY QR_ID DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
+
+	<select id="findLatestLocationQrByAuthKey" parameterType="string" resultType="LocationQrDTO">
+		SELECT *
+		FROM (
+			SELECT
+				QR_ID as qrId,
+				LOCATION_ID as locationId,
+				QR_AUTH_KEY as qrAuthKey,
+				QR_IMAGE_URL as qrImageUrl,
+				IS_ACTIVE as isActive,
+				CREATED_AT as createdAt
+			FROM LQ_LOCATION_QR
+			WHERE QR_AUTH_KEY = #{qrAuthKey}
+			ORDER BY QR_ID DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
+
+	<insert id="saveLocationQr" parameterType="LocationQrDTO">
+		<selectKey keyProperty="qrId" resultType="int" order="BEFORE">
+			SELECT SEQ_LQ_LOCATION_QR_PK.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO LQ_LOCATION_QR (
+			QR_ID,
+			LOCATION_ID,
+			QR_AUTH_KEY,
+			QR_IMAGE_URL,
+			IS_ACTIVE,
+			CREATED_AT
+		) VALUES (
+			#{qrId},
+			#{locationId},
+			#{qrAuthKey},
+			#{qrImageUrl},
+			#{isActive},
+			SYSDATE
+		)
+	</insert>
+
+	<insert id="saveLocationQrWithoutSequence" parameterType="LocationQrDTO">
+		<selectKey keyProperty="qrId" resultType="int" order="BEFORE">
+			SELECT NVL(MAX(QR_ID), 0) + 1 FROM LQ_LOCATION_QR
+		</selectKey>
+		INSERT INTO LQ_LOCATION_QR (
+			QR_ID,
+			LOCATION_ID,
+			QR_AUTH_KEY,
+			QR_IMAGE_URL,
+			IS_ACTIVE,
+			CREATED_AT
+		) VALUES (
+			#{qrId},
+			#{locationId},
+			#{qrAuthKey},
+			#{qrImageUrl},
+			#{isActive},
+			SYSDATE
+		)
+	</insert>
+
+	<update id="updateLocationQr" parameterType="LocationQrDTO">
+		UPDATE LQ_LOCATION_QR
+		SET
+			QR_AUTH_KEY = #{qrAuthKey},
+			QR_IMAGE_URL = #{qrImageUrl},
+			IS_ACTIVE = #{isActive}
+		WHERE QR_ID = #{qrId}
+	</update>
+</mapper>
