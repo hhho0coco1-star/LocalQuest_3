@@ -121,7 +121,6 @@ function MainPage() {
   const topQuestTrackRef = useRef(null);
   const topQuestDragRef = useRef({
     isPointerDown: false,
-    pointerId: null,
     startX: 0,
     startScrollLeft: 0,
     hasDragged: false,
@@ -603,20 +602,18 @@ function MainPage() {
       return;
     }
 
-    if (event.pointerType === 'mouse' && event.button !== 0) {
+    if (event.button !== 0) {
       return;
     }
 
     topQuestDragRef.current = {
       isPointerDown: true,
-      pointerId: event.pointerId,
       startX: event.clientX,
       startScrollLeft: track.scrollLeft,
       hasDragged: false,
     };
 
     setIsTopQuestDragging(false);
-    track.setPointerCapture?.(event.pointerId);
   }, []);
 
   const handleTopQuestPointerMove = useCallback(
@@ -640,7 +637,6 @@ function MainPage() {
 
       track.scrollLeft = dragState.startScrollLeft - deltaX;
       updateTopQuestScrollState();
-      event.preventDefault();
     },
     [updateTopQuestScrollState]
   );
@@ -653,21 +649,12 @@ function MainPage() {
       return;
     }
 
-    const didDrag = dragState.hasDragged;
-
-    if (track && dragState.pointerId !== null) {
-      try {
-        if (track.hasPointerCapture?.(dragState.pointerId)) {
-          track.releasePointerCapture(dragState.pointerId);
-        }
-      } catch (error) {
-        // Ignore capture release failures.
-      }
+    if (dragState.hasDragged) {
+      topQuestSuppressClickUntilRef.current = Date.now() + 220;
     }
 
     topQuestDragRef.current = {
       isPointerDown: false,
-      pointerId: null,
       startX: 0,
       startScrollLeft: 0,
       hasDragged: false,
@@ -675,22 +662,36 @@ function MainPage() {
 
     setIsTopQuestDragging(false);
     updateTopQuestScrollState();
-
-    if (didDrag) {
-      topQuestSuppressClickUntilRef.current = Date.now() + 180;
-    }
   }, [updateTopQuestScrollState]);
 
   const handleTopQuestCardClick = useCallback(
     (quest) => {
-      if (isTopQuestDragging || topQuestSuppressClickUntilRef.current > Date.now()) {
+      if (Date.now() < topQuestSuppressClickUntilRef.current) {
         return;
       }
 
-      handleQuestSelect(quest);
+      window.location.href = `/explore/${quest.questId}`;
     },
-    [handleQuestSelect, isTopQuestDragging]
+    []
   );
+
+  useEffect(() => {
+    const handleWindowMouseMove = (event) => {
+      handleTopQuestPointerMove(event);
+    };
+
+    const handleWindowMouseUp = () => {
+      finishTopQuestDrag();
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [finishTopQuestDrag, handleTopQuestPointerMove]);
 
   // 마커와 오버레이는 퀘스트 목록/선택 상태가 바뀔 때마다 다시 그린다.
   useEffect(() => {
@@ -967,10 +968,7 @@ function MainPage() {
                   ref={topQuestTrackRef}
                   className={`hot-quest-track${isTopQuestDragging ? ' is-dragging' : ''}`}
                   onScroll={updateTopQuestScrollState}
-                  onPointerDown={handleTopQuestPointerDown}
-                  onPointerMove={handleTopQuestPointerMove}
-                  onPointerUp={finishTopQuestDrag}
-                  onPointerCancel={finishTopQuestDrag}
+                  onMouseDown={handleTopQuestPointerDown}
                 >
                   {topRatedQuests.map((quest, index) => (
                     <button
@@ -1134,7 +1132,7 @@ function MainPage() {
                   </div>
 
                   <div className="quest-panel-action-row">
-                    <Link className="quest-panel-primary-link" to={`/quest/${selectedQuest.questId}`}>
+                    <Link className="quest-panel-primary-link" to={`/explore/${selectedQuest.questId}`}>
                       퀘스트 상세보기
                     </Link>
                   </div>
