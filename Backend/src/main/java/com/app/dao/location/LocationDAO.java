@@ -11,6 +11,8 @@ public interface LocationDAO {
 
     public int saveLocation(LocationDTO location);
 
+    public int updateLocation(LocationDTO location);
+
     public int updateRepresentativeLocation(LocationDTO location);
 
     public int deleteUnusedLocationsByIds(List<Integer> locationIds);

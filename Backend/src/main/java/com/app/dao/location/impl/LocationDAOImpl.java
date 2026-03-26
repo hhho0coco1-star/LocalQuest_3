@@ -39,6 +39,11 @@ public class LocationDAOImpl implements LocationDAO {
     }
 
     @Override
+    public int updateLocation(LocationDTO location) {
+        return sqlSessionTemplate.update("location_mapper.updateLocation", location);
+    }
+
+    @Override
     public int updateRepresentativeLocation(LocationDTO location) {
         return sqlSessionTemplate.update("location_mapper.updateRepresentativeLocation", location);
     }

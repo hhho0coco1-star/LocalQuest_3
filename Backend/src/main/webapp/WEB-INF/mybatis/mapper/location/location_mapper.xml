@@ -136,6 +136,21 @@
 		WHERE LOCATION_ID = #{locationId}
 	</update>
 
+	<update id="updateLocation" parameterType="LocationDTO">
+		UPDATE LQ_LOCATION
+		SET
+			NAME = #{name},
+			ZIP_CODE = #{zipCode},
+			ADDRESS = #{address},
+			ADDRESS_DETAIL = #{addressDetail},
+			LATITUDE = #{latitude},
+			LONGITUDE = #{longitude},
+			LOCATION_TYPE = #{locationType},
+			LOCATION_CATEGORY = #{locationCategory},
+			DESCRIPTION = #{description}
+		WHERE LOCATION_ID = #{locationId}
+	</update>
+
 	<delete id="deleteUnusedLocationsByIds" parameterType="list">
 		DELETE FROM LQ_LOCATION l
 		WHERE l.LOCATION_ID IN

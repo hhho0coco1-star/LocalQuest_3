@@ -7,6 +7,11 @@ import './MyQuestDetail.css';
 
 const STAR_OPTIONS = [1, 2, 3, 4, 5];
 const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"]';
+const GPS_FALLBACK_LOCATION = {
+  name: '대흥로 215',
+  latitude: 36.80740752813,
+  longitude: 127.147164,
+};
 
 const getDifficultyText = (rewardExp) => {
   if (rewardExp >= 300) return '어려움';
@@ -120,6 +125,38 @@ const loadKakaoMapSdk = (appKey) =>
     script.addEventListener('error', () => reject(new Error('sdk-load-failed')), { once: true });
     document.head.appendChild(script);
   });
+
+const getGpsPositionWithFallback = async () => {
+  if (!navigator.geolocation) {
+    return {
+      latitude: GPS_FALLBACK_LOCATION.latitude,
+      longitude: GPS_FALLBACK_LOCATION.longitude,
+      usedFallback: true,
+    };
+  }
+
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
+    });
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      usedFallback: false,
+    };
+  } catch (error) {
+    return {
+      latitude: GPS_FALLBACK_LOCATION.latitude,
+      longitude: GPS_FALLBACK_LOCATION.longitude,
+      usedFallback: true,
+    };
+  }
+};
 
 function MyQuestDetail() {
   const navigate = useNavigate();
@@ -348,31 +385,25 @@ function MyQuestDetail() {
 
   const handleGpsVerification = async (location) => {
     if (!location || isSubmittingGps) return;
-    if (!navigator.geolocation) {
-      openVerificationFailure(location.name, '이 기기에서는 위치 인증을 지원하지 않습니다.');
-      return;
-    }
 
     try {
       setIsSubmittingGps(true);
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        });
-      });
+      const position = await getGpsPositionWithFallback();
 
       const response = await questApi.verifyQuestGps(
         userQuestId,
         location.questLocationId,
-        position.coords.latitude,
-        position.coords.longitude
+        position.latitude,
+        position.longitude
       );
       const result = response.data || {};
       if (result.verified) {
         if (result.detail) setDetail(result.detail);
-        alert(result.message || 'GPS 인증이 완료되었습니다.');
+        alert(
+          position.usedFallback
+            ? `${result.message || 'GPS 인증이 완료되었습니다.'} 현재 위치를 확인하지 못해 기본 위치(${GPS_FALLBACK_LOCATION.name})로 인증했습니다.`
+            : (result.message || 'GPS 인증이 완료되었습니다.')
+        );
         return;
       }
       openVerificationFailure(location.name, result.message || 'GPS 인증에 실패했습니다.', result.reason || '');

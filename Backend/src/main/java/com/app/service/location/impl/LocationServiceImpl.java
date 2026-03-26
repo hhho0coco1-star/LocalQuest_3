@@ -34,6 +34,12 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     @Transactional
+    public int updateLocation(LocationDTO location) {
+        return dao.updateLocation(location);
+    }
+
+    @Override
+    @Transactional
     public int updateRepresentativeLocation(LocationDTO location) {
         return dao.updateRepresentativeLocation(location);
     }
