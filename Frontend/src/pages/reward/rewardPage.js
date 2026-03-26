@@ -94,6 +94,56 @@ function toSafeNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function resolveUserIdFromClient(authUserId = 0) {
+  const normalizedAuthUserId = toSafeNumber(authUserId, 0);
+  if (normalizedAuthUserId > 0) {
+    return normalizedAuthUserId;
+  }
+
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const queryUserId = toSafeNumber(
+    new URLSearchParams(window.location.search).get("userId"),
+    0,
+  );
+  if (queryUserId > 0) {
+    return queryUserId;
+  }
+
+  const storageKeys = ["lq_user_id", "userId", "user_id"];
+  for (const key of storageKeys) {
+    const storedValue = toSafeNumber(window.localStorage.getItem(key), 0);
+    if (storedValue > 0) {
+      return storedValue;
+    }
+  }
+
+  const rawAuth = window.localStorage.getItem("lq_auth");
+  if (rawAuth) {
+    try {
+      const parsedAuth = JSON.parse(rawAuth);
+      const nestedUserId = toSafeNumber(
+        parsedAuth?.user?.userId ??
+          parsedAuth?.user?.USER_ID ??
+          parsedAuth?.user?.user_id ??
+          parsedAuth?.userId ??
+          parsedAuth?.USER_ID ??
+          parsedAuth?.user_id,
+        0,
+      );
+      if (nestedUserId > 0) {
+        return nestedUserId;
+      }
+    } catch {
+      // ignore malformed local storage payload
+    }
+  }
+
+  return 0;
+}
+
 function formatDateLabel(dateValue) {
   if (!dateValue) {
     return "-";
@@ -302,10 +352,14 @@ function toRankingRow(row) {
 
 function RewardPage() {
   const authNickname = useSelector((state) => state.auth?.user?.nickname ?? "");
-  const authUserId = useSelector((state) => toSafeNumber(state.auth?.user?.userId, 0));
+  const reduxAuthUserId = useSelector((state) => toSafeNumber(state.auth?.user?.userId, 0));
   const resolvedNickname = useMemo(
     () => resolveNicknameFromClient(authNickname),
     [authNickname],
+  );
+  const authUserId = useMemo(
+    () => resolveUserIdFromClient(reduxAuthUserId),
+    [reduxAuthUserId],
   );
 
   const [levelBox, setLevelBox] = useState(null);
