@@ -24,6 +24,7 @@ import com.app.dto.inquiry.InquiryDTO;
 import com.app.dto.inquiry.InquiryStatus;
 import com.app.dto.location.LocationDTO;
 import com.app.dto.locationqr.BusinessQrInfoDTO;
+import com.app.dto.notice.NoticeDTO;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
@@ -33,6 +34,7 @@ import com.app.service.businessinquiry.BusinessInquiryService;
 import com.app.service.inquiry.InquiryService;
 import com.app.service.location.LocationService;
 import com.app.service.locationqr.LocationQrService;
+import com.app.service.notice.NoticeService;
 import com.app.service.quest.QuestService;
 import com.app.service.reward.RewardItemService;
 import com.app.service.user.UserService;
@@ -69,6 +71,9 @@ public class AdminController {
 	@Autowired
 	private LocationQrService locationQrService;
 
+	@Autowired
+	private NoticeService noticeService;
+
 	// 관리자 메인 페이지
 	@GetMapping("")
 	public String admin() {
@@ -76,6 +81,80 @@ public class AdminController {
 	}
 	
 	// 1. 회원 목록 조회
+	@GetMapping("/notice")
+	public String noticeAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "pinned", required = false) Integer pinned,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    Integer normalizedPinned = (pinned != null && (pinned == 0 || pinned == 1)) ? pinned : null;
+	    List<NoticeDTO> noticeList = Collections.emptyList();
+	    String noticeLoadError = null;
+
+	    try {
+	        List<NoticeDTO> allNoticeList = noticeService.findNoticeList();
+	        if (allNoticeList == null || allNoticeList.isEmpty()) {
+	            noticeList = Collections.emptyList();
+	        } else {
+	            List<NoticeDTO> filteredNoticeList = new ArrayList<>();
+	            String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+	            for (NoticeDTO notice : allNoticeList) {
+	                if (notice == null) {
+	                    continue;
+	                }
+
+	                if (normalizedPinned != null && notice.getIsPinned() != normalizedPinned.intValue()) {
+	                    continue;
+	                }
+
+	                if (keywordLower != null) {
+	                    String title = notice.getTitle() == null ? "" : notice.getTitle();
+	                    String content = notice.getContent() == null ? "" : notice.getContent();
+	                    boolean matched = title.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || content.toLowerCase(Locale.ROOT).contains(keywordLower);
+
+	                    if (!matched) {
+	                        continue;
+	                    }
+	                }
+
+	                filteredNoticeList.add(notice);
+	            }
+
+	            noticeList = filteredNoticeList;
+	        }
+	    } catch (Exception e) {
+	        noticeLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("noticeList", noticeList);
+	    model.addAttribute("noticeLoadError", noticeLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentPinned", normalizedPinned);
+	    return "admin/admin-notice";
+	}
+
+	@GetMapping("/notice/detail")
+	@ResponseBody
+	public Map<String, Object> getNoticeDetailForAdmin(@RequestParam int noticeId) {
+	    NoticeDTO notice = noticeService.findNoticeById(noticeId);
+
+	    if (notice == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("noticeId", notice.getNoticeId());
+	    result.put("title", notice.getTitle());
+	    result.put("content", notice.getContent());
+	    result.put("viewCount", notice.getViewCount());
+	    result.put("isPinned", notice.getIsPinned());
+	    result.put("createdAt", notice.getCreatedAt() != null ? notice.getCreatedAt().toString() : null);
+	    return result;
+	}
+
 	// Admin QnA page
 	@GetMapping("/qna")
 	public String inquiryAdmin(
