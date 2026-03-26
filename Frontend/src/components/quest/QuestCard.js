@@ -40,22 +40,27 @@ function QuestCard({
       </div>
 
       <div className="quest-card-meta">
-        <span>
-          <HiOutlineLocationMarker />
-          {quest.location}
-        </span>
-        <span>
-          <FaRegClock />
-          {quest.duration}
-        </span>
+        {quest.location ? (
+          <span>
+            <HiOutlineLocationMarker />
+            {quest.location}
+          </span>
+        ) : null}
+        {quest.duration ? (
+          <span>
+            <FaRegClock />
+            {quest.duration}
+          </span>
+        ) : null}
+        <div className="quest-card-meta-right">
+          <div className="quest-card-reward">
+            <strong>{quest.rewardPoint}</strong>
+            <strong>{quest.rewardExp}</strong>
+          </div>
+        </div>
       </div>
 
       <div className="quest-card-bottom">
-        <div>
-          <strong>{quest.reward}</strong>
-          <span>보상</span>
-        </div>
-
         <div className="quest-card-actions">
           <button
             type="button"

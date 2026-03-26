@@ -5,7 +5,7 @@ import QuestCard from '../../../components/quest/QuestCard';
 import { questApi } from '../../../api/QuestApi';
 import './QuestList.css';
 
-const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '제한 없음');
+const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '');
 
 const toQuestCardModel = (quest) => ({
   id: Number(quest.questId),
@@ -13,9 +13,10 @@ const toQuestCardModel = (quest) => ({
   description: quest.description,
   difficultyKey: quest.rewardExp >= 300 ? 'hard' : quest.rewardExp >= 180 ? 'normal' : 'easy',
   difficultyLabel: quest.rewardExp >= 300 ? '어려움' : quest.rewardExp >= 180 ? '보통' : '쉬움',
-  location: '위치 정보 준비 중',
+  location: '',
   duration: formatDuration(quest.timeLimit),
-  reward: `${quest.rewardPoint}P`,
+  rewardPoint: `${quest.rewardPoint}P`,
+  rewardExp: `${quest.rewardExp} EXP`,
   status: quest.status,
 });
 
@@ -97,7 +98,7 @@ function QuestList() {
 
   const handleAcceptQuest = async (questId) => {
     if (!isAuthenticated) {
-      alert('로그인 후 퀘스트를 수락할 수 있습니다.');
+      alert('로그인해야 퀘스트를 수락할 수 있습니다.');
       navigate('/login');
       return;
     }
@@ -161,7 +162,7 @@ function QuestList() {
         <section className="quest-list-hero">
           <div className="quest-list-hero-copy">
             <span className="quest-list-eyebrow">QUEST BOARD</span>
-            <h1>지금 참여할 수 있는 로컬 퀘스트를 확인해보세요.</h1>
+            <h1>지금 참여할 수 있는 퀘스트를 확인해보세요.</h1>
           </div>
 
           <div className="quest-list-summary-card">

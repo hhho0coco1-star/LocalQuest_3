@@ -28,7 +28,7 @@ const formatDateTime = (value) => {
   return `${year}.${month}.${date} ${hours}:${minutes}`;
 };
 
-const formatDueDateTime = (value) => (value ? formatDateTime(value) : '마감 정보 없음');
+const formatDueDateTime = (value) => (value ? formatDateTime(value) : '제한 없음');
 
 const getQuestStatusLabel = (status) => {
   if (status === 'IN_PROGRESS') return '진행 중';
@@ -55,6 +55,21 @@ const getVerificationLabel = (locationCategory) => {
     default:
       return 'GPS 인증';
   }
+};
+
+const isLocationCompleted = (location) => Number(location?.isCompleted) === 1;
+
+const canVerifyLocationInOrder = (locations, targetLocation) => {
+  if (!Array.isArray(locations) || !targetLocation) return true;
+  const targetOrder = Number(targetLocation.visitOrder);
+  if (!Number.isFinite(targetOrder) || targetOrder <= 1) return true;
+
+  return !locations.some((location) => {
+    const visitOrder = Number(location?.visitOrder);
+    if (!Number.isFinite(visitOrder)) return false;
+    if (Number(location?.questLocationId) === Number(targetLocation.questLocationId)) return false;
+    return visitOrder < targetOrder && !isLocationCompleted(location);
+  });
 };
 
 const loadKakaoMapSdk = (appKey) =>
@@ -555,9 +570,9 @@ function MyQuestDetail() {
               <div className="my-quest-detail-progress-grid">
                 <article><span>진행률</span><strong>{detail.progressPercent}%</strong></article>
                 <article><span>완료한 장소</span><strong>{detail.completedLocationCount}/{detail.totalLocationCount}</strong></article>
-                <article><span>시작일</span><strong>{formatDateTime(detail.startedAt)}</strong></article>
-                <article><span>마감</span><strong>{formatDueDateTime(detail.dueAt)}</strong></article>
-                <article><span>완료일</span><strong>{formatDateTime(detail.completedAt)}</strong></article>
+                <article><span>시작 시간</span><strong>{formatDateTime(detail.startedAt)}</strong></article>
+                <article><span>종료 시간</span><strong>{formatDueDateTime(detail.dueAt)}</strong></article>
+                <article><span>완료 시간</span><strong>{formatDateTime(detail.completedAt)}</strong></article>
               </div>
               <div className="my-quest-detail-progress-bar"><span style={{ width: `${detail.progressPercent}%` }} /></div>
               {detail.questStatus !== 'COMPLETED' ? (
@@ -581,7 +596,8 @@ function MyQuestDetail() {
                 <div className="quest-detail-location-list">
                   {detail.locations.map((location) => {
                     const uploadedReceipt = receiptUploads[location.questLocationId];
-                    const isCompleted = Number(location.isCompleted) === 1;
+                    const isCompleted = isLocationCompleted(location);
+                    const isOrderReady = canVerifyLocationInOrder(detail.locations, location);
                     const clickable = hasValidCoordinates(location);
                     return (
                       <article key={location.questLocationId || location.locationId} className={`quest-detail-location-item my-quest-detail-location-item${isCompleted ? ' is-completed' : ''}${clickable ? ' is-clickable' : ''}`} onClick={() => openMapModal(location)} onKeyDown={(event) => {
@@ -599,14 +615,14 @@ function MyQuestDetail() {
                           </div>
                           {location.address ? <p>{location.address}</p> : null}
                           {location.addressDetail ? <p>{location.addressDetail}</p> : null}
-                          {clickable ? <span className="quest-detail-location-map-hint">클릭해서 지도 보기</span> : null}
                           {location.description ? <span className="quest-detail-location-note">{location.description}</span> : null}
+                          {clickable ? <span className="quest-detail-location-map-hint">클릭해서 지도 보기</span> : null}
                           {isCompleted ? (
                             <span className="my-quest-detail-completed-at">완료일 {formatDateTime(location.completedAt)}</span>
                           ) : (
                             <div className="my-quest-detail-verification">
-                              <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationCategory)} 하기`}</button>
-                              <span className="my-quest-detail-type-note">{getVerificationLabel(location.locationCategory)}</span>
+                              {isOrderReady ? <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationCategory)} 하기`}</button> : null}
+                              {!isOrderReady ? <span className="my-quest-detail-order-note">이전 순서를 먼저 인증해야 합니다.</span> : null}
                               {uploadedReceipt ? <span className="my-quest-detail-uploaded-note">영수증 업로드됨: {uploadedReceipt.fileName}</span> : null}
                             </div>
                           )}

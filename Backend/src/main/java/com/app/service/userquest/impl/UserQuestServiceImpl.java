@@ -703,6 +703,22 @@ public class UserQuestServiceImpl implements UserQuestService {
         return null;
     }
 
+    private void ensurePreviousLocationsCompleted(UserQuestDetailDTO detail, UserQuestDetailLocationDTO targetLocation) {
+        if (detail.getLocations() == null || targetLocation == null || targetLocation.getVisitOrder() <= 1) {
+            return;
+        }
+
+        for (UserQuestDetailLocationDTO location : detail.getLocations()) {
+            if (location == null || location.getQuestLocationId() == targetLocation.getQuestLocationId()) {
+                continue;
+            }
+
+            if (location.getVisitOrder() < targetLocation.getVisitOrder() && location.getIsCompleted() != 1) {
+                throw new IllegalStateException("이전 방문 순서를 먼저 인증해 주세요.");
+            }
+        }
+    }
+
     private VerificationContext requireVerificationContext(int userId, int userQuestId, int questLocationId) {
         UserQuestDetailDTO detail = getUserQuestDetail(userId, userQuestId);
         if (detail == null) {
@@ -726,6 +742,8 @@ public class UserQuestServiceImpl implements UserQuestService {
         if (targetLocation.getIsCompleted() == 1) {
             return new VerificationContext(detail, targetLocation, userQuestProgressId, true);
         }
+
+        ensurePreviousLocationsCompleted(detail, targetLocation);
 
         return new VerificationContext(detail, targetLocation, userQuestProgressId, false);
     }
