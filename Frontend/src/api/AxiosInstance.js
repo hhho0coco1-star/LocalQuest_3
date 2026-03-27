@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { TOKEN_STORAGE_KEY, AUTH_STORAGE_KEY } from '../store/authSlice';
+import { emitBadgeAchievedEvent } from '../pages/reward/badge/badgeToastEvent';
 
 const api = axios.create({
     baseURL: '', // package.json에 proxy를 설정했다면 비워두거나 '/' 사용
@@ -24,7 +25,13 @@ api.interceptors.request.use(
 
 // 인터셉터(Interceptor) 설정: 요청 보내기 전이나 응답 받은 후 공통 처리 가능
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        emitBadgeAchievedEvent(response?.data?.newlyAwardedBadges, {
+            source: 'axios',
+            requestUrl: response?.config?.url || ''
+        });
+        return response;
+    },
     (error) => {
         const requestUrl = error.config?.url || '';
         const isLoginRequest = requestUrl.includes('/api/users/login');

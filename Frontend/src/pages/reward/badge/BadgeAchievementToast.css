@@ -1,0 +1,34 @@
+.badge-achievement-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 10030;
+  max-width: min(640px, calc(100vw - 28px));
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.32);
+  word-break: keep-all;
+}
+
+.badge-achievement-toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 640px) {
+  .badge-achievement-toast {
+    bottom: 18px;
+    font-size: 12px;
+    padding: 10px 14px;
+  }
+}

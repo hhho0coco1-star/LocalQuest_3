@@ -1,8 +1,6 @@
 package com.app.service.reward.impl;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +18,7 @@ import com.app.dto.reward.RewardShopItem;
 import com.app.dto.reward.RewardWeeklyStats;
 import com.app.dto.reward.RewardWalletCoupon;
 import com.app.dto.user.User;
+import com.app.service.badge.BadgeOperationService;
 import com.app.service.reward.RewardService;
 
 @Service
@@ -27,35 +26,12 @@ public class RewardServiceImpl implements RewardService {
 
 	private static final int WEEKLY_XP_GOAL = 700;
 	private static final String DEFAULT_REWARD_STATUS = "ON_SALE";
-	private static final List<RewardBadgeRule> BADGE_RULES = List.of(
-		new RewardBadgeRule(
-			"첫 교환 달성",
-			"리워드 상점에서 첫 교환을 완료했어요.",
-			"누적 교환 1회 달성",
-			"badge_first_exchange",
-			1,
-			0
-		),
-		new RewardBadgeRule(
-			"꾸준한 교환러",
-			"리워드 상점 교환을 꾸준히 이어가고 있어요.",
-			"누적 교환 3회 달성",
-			"badge_exchange_runner",
-			3,
-			0
-		),
-		new RewardBadgeRule(
-			"포인트 마스터",
-			"리워드 상점에서 포인트를 전략적으로 사용했어요.",
-			"누적 사용 포인트 3000P 달성",
-			"badge_point_master",
-			0,
-			3000
-		)
-	);
 
 	@Autowired
 	private RewardDAO rewardDAO;
+
+	@Autowired
+	private BadgeOperationService badgeOperationService;
 
 	@Override
 	public RewardBoxSummary getRewardBoxSummary(String nickname) {
@@ -169,6 +145,8 @@ public class RewardServiceImpl implements RewardService {
 			return Collections.emptyList();
 		}
 
+		badgeOperationService.evaluateAndGrantBadgesByNickname(nickname.trim());
+
 		List<RewardBadgeDTO> badges = rewardDAO.findUserBadgesByNickname(nickname.trim());
 		if (badges == null || badges.isEmpty()) {
 			return Collections.emptyList();
@@ -239,7 +217,7 @@ public class RewardServiceImpl implements RewardService {
 			normalizeWalletCoupon(walletCoupon);
 		}
 
-		List<RewardBadgeDTO> newlyAwardedBadges = evaluateAndAwardBadges(userId);
+		List<RewardBadgeDTO> newlyAwardedBadges = badgeOperationService.evaluateAndGrantBadges(userId);
 
 		RewardExchangeResultDTO result = new RewardExchangeResultDTO();
 		result.setExchangeId(exchangeId > 0 ? Long.valueOf(exchangeId) : null);
@@ -262,57 +240,6 @@ public class RewardServiceImpl implements RewardService {
 		stats.setTopPercent(100);
 		stats.setWeeklyProgress(0);
 		return stats;
-	}
-
-	private List<RewardBadgeDTO> evaluateAndAwardBadges(int userId) {
-		int exchangeCount = rewardDAO.countUserRewardExchange(userId);
-		int totalUsedPoint = rewardDAO.sumUserUsedPoint(userId);
-
-		if (exchangeCount <= 0) {
-			return Collections.emptyList();
-		}
-
-		List<RewardBadgeDTO> newlyAwardedBadges = new ArrayList<>();
-		for (RewardBadgeRule rule : BADGE_RULES) {
-			if (!rule.matches(exchangeCount, totalUsedPoint)) {
-				continue;
-			}
-
-			Integer badgeId = rewardDAO.findBadgeIdByName(rule.getName());
-			if (badgeId == null) {
-				RewardBadgeDTO badgeToCreate = new RewardBadgeDTO();
-				badgeToCreate.setName(rule.getName());
-				badgeToCreate.setDescription(rule.getDescription());
-				badgeToCreate.setConditionText(rule.getConditionText());
-				badgeToCreate.setIconUrl(rule.getIconUrl());
-				rewardDAO.insertBadge(badgeToCreate);
-				badgeId = rewardDAO.findBadgeIdByName(rule.getName());
-			}
-
-			if (badgeId == null) {
-				continue;
-			}
-
-			if (rewardDAO.existsUserBadge(userId, badgeId.intValue()) > 0) {
-				continue;
-			}
-
-			rewardDAO.insertUserBadge(userId, badgeId.intValue());
-
-			RewardBadgeDTO earnedBadge = rewardDAO.findBadgeById(badgeId.intValue());
-			if (earnedBadge == null) {
-				earnedBadge = new RewardBadgeDTO();
-				earnedBadge.setBadgeId(badgeId.longValue());
-				earnedBadge.setName(rule.getName());
-				earnedBadge.setDescription(rule.getDescription());
-				earnedBadge.setConditionText(rule.getConditionText());
-				earnedBadge.setIconUrl(rule.getIconUrl());
-			}
-			earnedBadge.setEarnedAt(new Date());
-			newlyAwardedBadges.add(earnedBadge);
-		}
-
-		return newlyAwardedBadges;
 	}
 
 	private void normalizeWalletCoupon(RewardWalletCoupon coupon) {
@@ -363,50 +290,4 @@ public class RewardServiceImpl implements RewardService {
 		return Math.max(min, Math.min(max, value));
 	}
 
-	private static class RewardBadgeRule {
-		private final String name;
-		private final String description;
-		private final String conditionText;
-		private final String iconUrl;
-		private final int requiredExchangeCount;
-		private final int requiredUsedPoint;
-
-		private RewardBadgeRule(
-			String name,
-			String description,
-			String conditionText,
-			String iconUrl,
-			int requiredExchangeCount,
-			int requiredUsedPoint
-		) {
-			this.name = name;
-			this.description = description;
-			this.conditionText = conditionText;
-			this.iconUrl = iconUrl;
-			this.requiredExchangeCount = requiredExchangeCount;
-			this.requiredUsedPoint = requiredUsedPoint;
-		}
-
-		private boolean matches(int exchangeCount, int totalUsedPoint) {
-			boolean exchangeSatisfied = requiredExchangeCount <= 0 || exchangeCount >= requiredExchangeCount;
-			boolean pointSatisfied = requiredUsedPoint <= 0 || totalUsedPoint >= requiredUsedPoint;
-			return exchangeSatisfied && pointSatisfied;
-		}
-
-		private String getName() {
-			return name;
-		}
-
-		private String getDescription() {
-			return description;
-		}
-
-		private String getConditionText() {
-			return conditionText;
-		}
-
-		private String getIconUrl() {
-			return iconUrl;
-		}
-	}
 }
