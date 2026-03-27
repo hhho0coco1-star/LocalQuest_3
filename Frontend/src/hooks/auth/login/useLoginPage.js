@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { userApi } from '../../../../api/UserApi';
-import { resolveBackendBaseUrl } from '../../../../config/runtimeUrls';
-import { setAuth } from '../../../../store/authSlice';
-import { resolveApiErrorMessage } from '../../../../utils/errorMessage';
+import { userApi } from '../../../api/UserApi';
+import { resolveBackendBaseUrl } from '../../../config/runtimeUrls';
+import { setAuth } from '../../../store/authSlice';
+import { resolveApiErrorMessage } from '../../../utils/errorMessage';
 import {
     resolveLoginRedirectPath,
     toAuthPayload,
     validateFindIdInput,
     validateFindPasswordInput,
-} from '../utils/loginUtils';
+} from '../../../utils/auth/login/loginUtils';
 
 export function useLoginPage() {
     const [userId, setUserId] = useState('');

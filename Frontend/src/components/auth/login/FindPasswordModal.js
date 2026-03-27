@@ -1,5 +1,5 @@
-import Button from '../../../../components/common/Button';
-import Input from '../../../../components/common/Input';
+import Button from '../../common/Button';
+import Input from '../../common/Input';
 
 function FindPasswordModal({
     isOpen,

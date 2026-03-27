@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { badgeApi } from '../../../api/BadgeApi';
-import { resolveApiErrorMessage } from '../../../utils/errorMessage';
+import { badgeApi } from '../../api/BadgeApi';
+import { resolveApiErrorMessage } from '../../utils/errorMessage';
 import {
     buildFilteredMyBadgeItems,
     buildMyBadgeHints,
     buildMyBadgeItems,
     buildMyBadgeSummary,
     normalizeBadgeDashboard,
-} from '../utils/myPageUtils';
+} from '../../utils/mypage/myPageUtils';
 
 export function useMyPageBadges(activeTab) {
     const [myBadgeCatalog, setMyBadgeCatalog] = useState([]);

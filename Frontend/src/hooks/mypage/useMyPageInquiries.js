@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { inquiryApi } from '../../../api/InquiryApi';
-import { resolveApiErrorMessage } from '../../../utils/errorMessage';
+import { inquiryApi } from '../../api/InquiryApi';
+import { resolveApiErrorMessage } from '../../utils/errorMessage';
 
 export function useMyPageInquiries(activeTab) {
     const [myInquiries, setMyInquiries] = useState([]);

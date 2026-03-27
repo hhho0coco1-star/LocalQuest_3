@@ -1,7 +1,7 @@
 import {
     formatReviewCreatedAt,
     resolveInquiryStatusLabel,
-} from '../utils/myPageUtils';
+} from '../../utils/mypage/myPageUtils';
 
 function InquiryTab({
     isMyInquiriesLoading,

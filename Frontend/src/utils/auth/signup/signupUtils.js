@@ -1,4 +1,4 @@
-import { isValidEmail, isValidUserId } from '../../../../utils/authValidation';
+import { isValidEmail, isValidUserId } from '../../authValidation';
 
 const NICKNAME_REGEX = /^[A-Za-z0-9\uAC00-\uD7A3_]{2,20}$/;
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,20}$/;

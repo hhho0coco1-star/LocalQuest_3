@@ -1,10 +1,10 @@
-import BadgeTab from './components/BadgeTab';
-import InquiryTab from './components/InquiryTab';
-import MyPageTabNav from './components/MyPageTabNav';
-import ProfileTab from './components/ProfileTab';
-import WithdrawTab from './components/WithdrawTab';
-import { useMyPage } from './hooks/useMyPage';
-import { MY_PAGE_TABS } from './utils/myPageUtils';
+import BadgeTab from '../../components/mypage/BadgeTab';
+import InquiryTab from '../../components/mypage/InquiryTab';
+import MyPageTabNav from '../../components/mypage/MyPageTabNav';
+import ProfileTab from '../../components/mypage/ProfileTab';
+import WithdrawTab from '../../components/mypage/WithdrawTab';
+import { useMyPage } from '../../hooks/mypage/useMyPage';
+import { MY_PAGE_TABS } from '../../utils/mypage/myPageUtils';
 import './MyPage.css';
 
 function MyPage() {

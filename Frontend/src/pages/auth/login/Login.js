@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
 import LocalQuestLogo from '../../../components/common/LocalQuestLogo';
-import FindIdModal from './components/FindIdModal';
-import FindPasswordModal from './components/FindPasswordModal';
-import SocialLoginSection from './components/SocialLoginSection';
-import { useLoginPage } from './hooks/useLoginPage';
+import FindIdModal from '../../../components/auth/login/FindIdModal';
+import FindPasswordModal from '../../../components/auth/login/FindPasswordModal';
+import SocialLoginSection from '../../../components/auth/login/SocialLoginSection';
+import { useLoginPage } from '../../../hooks/auth/login/useLoginPage';
 import './Login.css';
 
 function Login() {
