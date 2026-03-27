@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.app.dto.business.BusinessDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
+import com.app.dto.faq.FaqDTO;
 import com.app.dto.inquiry.InquiryDTO;
 import com.app.dto.inquiry.InquiryStatus;
 import com.app.dto.location.LocationDTO;
@@ -31,6 +32,7 @@ import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
 import com.app.service.businessinquiry.BusinessInquiryService;
+import com.app.service.faq.FaqService;
 import com.app.service.inquiry.InquiryService;
 import com.app.service.location.LocationService;
 import com.app.service.locationqr.LocationQrService;
@@ -73,6 +75,9 @@ public class AdminController {
 
 	@Autowired
 	private NoticeService noticeService;
+
+	@Autowired
+	private FaqService faqService;
 
 	// 관리자 메인 페이지
 	@GetMapping("")
@@ -152,6 +157,88 @@ public class AdminController {
 	    result.put("viewCount", notice.getViewCount());
 	    result.put("isPinned", notice.getIsPinned());
 	    result.put("createdAt", notice.getCreatedAt() != null ? notice.getCreatedAt().toString() : null);
+	    return result;
+	}
+
+	@GetMapping("/faq")
+	public String faqAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "category", required = false) String category,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    String normalizedCategory = (category != null && !category.trim().isEmpty()) ? category.trim() : null;
+	    List<FaqDTO> faqList = Collections.emptyList();
+	    List<String> faqCategoryOptions = new ArrayList<>();
+	    String faqLoadError = null;
+
+	    try {
+	        List<FaqDTO> allFaqList = faqService.findAllFaq();
+	        if (allFaqList == null || allFaqList.isEmpty()) {
+	            faqList = Collections.emptyList();
+	        } else {
+	            List<FaqDTO> filteredFaqList = new ArrayList<>();
+	            String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+	            for (FaqDTO faq : allFaqList) {
+	                if (faq == null) {
+	                    continue;
+	                }
+
+	                String faqCategory = faq.getCategory() == null ? "" : faq.getCategory().trim();
+	                if (!faqCategory.isEmpty() && !faqCategoryOptions.contains(faqCategory)) {
+	                    faqCategoryOptions.add(faqCategory);
+	                }
+
+	                if (normalizedCategory != null && !faqCategory.equalsIgnoreCase(normalizedCategory)) {
+	                    continue;
+	                }
+
+	                if (keywordLower != null) {
+	                    String question = faq.getQuestion() == null ? "" : faq.getQuestion();
+	                    String answer = faq.getAnswer() == null ? "" : faq.getAnswer();
+	                    boolean matched = question.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || answer.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || faqCategory.toLowerCase(Locale.ROOT).contains(keywordLower);
+
+	                    if (!matched) {
+	                        continue;
+	                    }
+	                }
+
+	                filteredFaqList.add(faq);
+	            }
+
+	            faqList = filteredFaqList;
+	        }
+	    } catch (Exception e) {
+	        faqLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("faqList", faqList);
+	    model.addAttribute("faqCategoryOptions", faqCategoryOptions);
+	    model.addAttribute("faqLoadError", faqLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentCategory", normalizedCategory);
+	    return "admin/admin-faq";
+	}
+
+	@GetMapping("/faq/detail")
+	@ResponseBody
+	public Map<String, Object> getFaqDetailForAdmin(@RequestParam int faqId) {
+	    FaqDTO faq = faqService.findFaqById(faqId);
+
+	    if (faq == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("faqId", faq.getFaqId());
+	    result.put("category", faq.getCategory());
+	    result.put("question", faq.getQuestion());
+	    result.put("answer", faq.getAnswer());
+	    result.put("viewCount", faq.getViewCount());
+	    result.put("createdAt", faq.getCreatedAt() != null ? faq.getCreatedAt().toString() : null);
 	    return result;
 	}
 
