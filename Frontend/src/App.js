@@ -21,6 +21,7 @@ import CustomerService from './pages/support/CustomerService';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import QrVerify from './pages/quest/QrVerify/QrVerify'
+import { syncPushSubscriptionByServerSetting } from './push/pushSync';
 
 const resolveSafeRedirectPath = (value) => {
   if (!value || typeof value !== 'string') {
@@ -99,6 +100,15 @@ function AppRoutes({ isAuthenticated }) {
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const userId = useSelector((state) => state.auth.user?.userId ?? null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    syncPushSubscriptionByServerSetting().catch(() => null);
+  }, [isAuthenticated, userId]);
 
   return (
     <Router>
