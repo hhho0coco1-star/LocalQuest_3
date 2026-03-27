@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { questApi } from '../../../api/QuestApi';
+import { hasValidCoordinates, loadKakaoMapSdk } from '../../../utils/kakaoMap';
 import '../QuestDetail/QuestDetail.css';
 import './MyQuestDetail.css';
 
 const STAR_OPTIONS = [1, 2, 3, 4, 5];
-const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"]';
 const GPS_FALLBACK_LOCATION = {
   name: '대흥로 215',
   latitude: 36.80740752813,
@@ -43,9 +43,6 @@ const getQuestStatusLabel = (status) => {
   return status || '상태 정보 없음';
 };
 
-const hasValidCoordinates = (location) =>
-  Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
-
 const normalizeLocationCategory = (locationCategory) => {
   if (!locationCategory) return 'VISIT';
   return String(locationCategory).trim().toUpperCase();
@@ -76,55 +73,6 @@ const canVerifyLocationInOrder = (locations, targetLocation) => {
     return visitOrder < targetOrder && !isLocationCompleted(location);
   });
 };
-
-const loadKakaoMapSdk = (appKey) =>
-  new Promise((resolve, reject) => {
-    if (!appKey) {
-      reject(new Error('missing-key'));
-      return;
-    }
-    if (window.kakao?.maps?.LatLng) {
-      resolve(window.kakao);
-      return;
-    }
-    const handleReady = () => {
-      if (window.kakao?.maps?.LatLng) {
-        resolve(window.kakao);
-        return;
-      }
-      if (window.kakao?.maps?.load) {
-        window.kakao.maps.load(() => {
-          if (window.kakao?.maps?.LatLng) {
-            resolve(window.kakao);
-            return;
-          }
-          reject(new Error('sdk-load-failed'));
-        });
-        return;
-      }
-      reject(new Error('sdk-load-failed'));
-    };
-    const existingScript = document.querySelector(KAKAO_MAP_SCRIPT_SELECTOR);
-    if (existingScript) {
-      if (existingScript.getAttribute('data-loaded') === 'true') {
-        handleReady();
-        return;
-      }
-      existingScript.addEventListener('load', handleReady, { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('sdk-load-failed')), { once: true });
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
-    script.async = true;
-    script.setAttribute('data-kakao-map-sdk', 'true');
-    script.addEventListener('load', () => {
-      script.setAttribute('data-loaded', 'true');
-      handleReady();
-    }, { once: true });
-    script.addEventListener('error', () => reject(new Error('sdk-load-failed')), { once: true });
-    document.head.appendChild(script);
-  });
 
 const getGpsPositionWithFallback = async () => {
   if (!navigator.geolocation) {

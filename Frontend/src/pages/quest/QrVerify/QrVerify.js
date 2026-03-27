@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { clearAuth } from '../../../store/authSlice';
+import { emitBadgeAchievedEvent } from '../../reward/badge/badgeToastEvent';
 import './QrVerify.css';
 
 const readResponseBody = async (response) => {
@@ -66,6 +67,10 @@ function QrVerify() {
 
         setResult(payload);
         setMessage(payload?.message || 'QR 인증이 완료되었습니다.');
+        emitBadgeAchievedEvent(payload?.newlyAwardedBadges, {
+          source: 'qr-verify',
+          requestUrl: '/api/qr/verify'
+        });
 
         if ((payload?.verifiedQuestCount || 0) > 0 || (payload?.completedQuestCount || 0) > 0) {
           setStatus('success');

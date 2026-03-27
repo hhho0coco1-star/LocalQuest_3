@@ -248,70 +248,6 @@
   line-height: 1.5;
 }
 
-.mypage-review-panel {
-  border: 1px solid #e6e9f2;
-  border-radius: 14px;
-  background-color: #f8faff;
-  padding: 24px;
-}
-
-.mypage-review-panel h2 {
-  margin: 0;
-  color: #1f2940;
-  font-size: 24px;
-}
-
-.mypage-review-empty {
-  margin: 14px 0 0;
-  color: #5e6780;
-  font-size: 15px;
-}
-
-.mypage-review-list {
-  margin-top: 16px;
-  display: grid;
-  gap: 12px;
-}
-
-.mypage-review-item {
-  border: 1px solid #dde4f3;
-  border-radius: 12px;
-  background-color: #ffffff;
-  padding: 14px 16px;
-}
-
-.mypage-review-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.mypage-review-head strong {
-  color: #20293d;
-  font-size: 16px;
-}
-
-.mypage-review-head span {
-  color: #6f7890;
-  font-size: 13px;
-}
-
-.mypage-review-rating {
-  margin: 10px 0 0;
-  color: #d93958;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.mypage-review-content {
-  margin: 8px 0 0;
-  color: #3d475f;
-  font-size: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
 .mypage-inquiry-panel {
   border: 1px solid #e6e9f2;
   border-radius: 14px;
@@ -407,6 +343,402 @@
   white-space: pre-wrap;
 }
 
+.mypage-badge-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.mypage-badge-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mypage-badge-summary-card,
+.mypage-badge-hint-card,
+.mypage-badge-board {
+  border: 1px solid #e6e9f2;
+  border-radius: 14px;
+  background-color: #f8faff;
+}
+
+.mypage-badge-summary-card,
+.mypage-badge-hint-card {
+  padding: 16px 18px;
+}
+
+.mypage-badge-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mypage-badge-box-head h2 {
+  margin: 0;
+  color: #1e2538;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.mypage-badge-box-head span {
+  color: #e64b66;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mypage-badge-metrics-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #e4e9f4;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mypage-badge-metrics-grid div {
+  background-color: #ffffff;
+  padding: 14px 8px 12px;
+  text-align: center;
+}
+
+.mypage-badge-metrics-grid div + div {
+  border-left: 1px solid #ecf0f7;
+}
+
+.mypage-badge-metrics-grid strong {
+  display: block;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.mypage-badge-metrics-grid div:nth-child(1) strong {
+  color: #ee4554;
+}
+
+.mypage-badge-metrics-grid div:nth-child(2) strong {
+  color: #707b93;
+}
+
+.mypage-badge-metrics-grid div:nth-child(3) strong {
+  color: #3d74e8;
+}
+
+.mypage-badge-metrics-grid div:nth-child(4) strong {
+  color: #ea8c00;
+}
+
+.mypage-badge-metrics-grid p {
+  margin: 8px 0 0;
+  color: #8a92a7;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mypage-badge-hint-empty {
+  margin: 16px 0 0;
+  color: #546079;
+  font-size: 14px;
+}
+
+.mypage-badge-hint-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.mypage-badge-hint-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mypage-badge-hint-list strong {
+  color: #202942;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mypage-badge-hint-list em {
+  margin-left: auto;
+  color: #7d879e;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.mypage-badge-hint-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background-color: #ef4b5c;
+}
+
+.mypage-badge-hint-dot.is-habit {
+  background-color: #ef4b5c;
+}
+
+.mypage-badge-hint-dot.is-explorer {
+  background-color: #4379e9;
+}
+
+.mypage-badge-hint-dot.is-achiever {
+  background-color: #f19700;
+}
+
+.mypage-badge-hint-dot.is-benefit {
+  background-color: #28a86b;
+}
+
+.mypage-badge-hint-dot.is-other {
+  background-color: #8a96b1;
+}
+
+.mypage-badge-hint-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.mypage-badge-board {
+  padding: 20px 20px 16px;
+}
+
+.mypage-badge-board-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mypage-badge-board-head h3 {
+  margin: 0;
+  color: #1d2438;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.mypage-badge-board-head p {
+  margin: 8px 0 0;
+  color: #68738d;
+  font-size: 14px;
+}
+
+.mypage-badge-earned-chip {
+  border-radius: 999px;
+  background-color: #fff2f4;
+  color: #e94a65;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+
+.mypage-badge-filter-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mypage-badge-filter-caption {
+  margin: 0;
+  color: #6b7690;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mypage-badge-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mypage-badge-filter-chip {
+  border: 1px solid #d8deea;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #556079;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 9px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.mypage-badge-filter-chip.is-active {
+  border-color: #151a3a;
+  background-color: #151a3a;
+  color: #ffffff;
+}
+
+.mypage-badge-earned-only {
+  border: 1px solid #d2d9e7;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #626f8a;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mypage-badge-earned-only.is-active {
+  border-color: #e95f75;
+  background-color: #fff2f4;
+  color: #e74a66;
+}
+
+.mypage-badge-section {
+  margin-top: 16px;
+  border: 1px solid #e5e9f3;
+  border-radius: 12px;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.mypage-badge-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #edf1f8;
+  background-color: #f9fbff;
+}
+
+.mypage-badge-section-head p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #2a3349;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mypage-badge-section-head span {
+  color: #8892a8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mypage-badge-item-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mypage-badge-item {
+  border-right: 1px solid #edf1f7;
+  border-bottom: 1px solid #edf1f7;
+  padding: 14px 14px 12px;
+  background-color: #fbfcff;
+}
+
+.mypage-badge-item:nth-child(3n) {
+  border-right: none;
+}
+
+.mypage-badge-item.is-earned {
+  background-color: #ffffff;
+}
+
+.mypage-badge-item-icon-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background-color: #f1f4fb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mypage-badge-item-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.mypage-badge-item-image {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.mypage-badge-lock {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  font-size: 13px;
+}
+
+.mypage-badge-item strong {
+  display: block;
+  margin-top: 12px;
+  color: #26314b;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.mypage-badge-item p {
+  margin: 6px 0 0;
+  color: #7b859f;
+  font-size: 13px;
+  line-height: 1.4;
+  min-height: 34px;
+}
+
+.mypage-badge-code {
+  display: inline-flex;
+  margin-top: 10px;
+  border-radius: 8px;
+  background-color: #ffeef1;
+  color: #ea6378;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.mypage-badge-progress-meta {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #8a94ab;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mypage-badge-progress-track {
+  margin-top: 6px;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background-color: #edf2fb;
+  overflow: hidden;
+}
+
+.mypage-badge-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff7f95, #ff4f70);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.mypage-badge-empty {
+  margin: 18px 0 0;
+  color: #6f7b95;
+  font-size: 14px;
+}
+
 @media (max-width: 900px) {
   .mypage-layout {
     grid-template-columns: 1fr;
@@ -420,6 +752,22 @@
   .mypage-tab-button {
     flex: 1;
     text-align: center;
+  }
+
+  .mypage-badge-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-badge-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mypage-badge-item:nth-child(3n) {
+    border-right: 1px solid #edf1f7;
+  }
+
+  .mypage-badge-item:nth-child(2n) {
+    border-right: none;
   }
 }
 
@@ -451,5 +799,39 @@
 
   .lq-button.mypage-action-button {
     width: 100%;
+  }
+
+  .mypage-badge-board {
+    padding: 16px 14px 14px;
+  }
+
+  .mypage-badge-board-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mypage-badge-board-head h3 {
+    font-size: 26px;
+  }
+
+  .mypage-badge-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mypage-badge-earned-only {
+    width: 100%;
+  }
+
+  .mypage-badge-metrics-grid strong {
+    font-size: 28px;
+  }
+
+  .mypage-badge-item-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-badge-item {
+    border-right: none;
   }
 }

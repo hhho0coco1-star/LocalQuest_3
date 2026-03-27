@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
+import { badgeApi } from '../../api/BadgeApi';
 import { inquiryApi } from '../../api/InquiryApi';
 import { pushApi } from '../../api/PushApi';
-import { questApi } from '../../api/QuestApi';
 import { userApi } from '../../api/UserApi';
 import { clearAuth, updateUserProfile } from '../../store/authSlice';
 import './MyPage.css';
@@ -13,26 +13,31 @@ const PASSWORD_MASK = '********';
 
 const MY_PAGE_TABS = [
     { key: 'profile', label: '개인정보 수정' },
-    { key: 'exploreStats', label: '탐험 통계' },
+    { key: 'myBadges', label: '내 배지' },
     { key: 'inquiryHistory', label: '1:1 문의내역' },
-    { key: 'myReviews', label: '내 리뷰' },
     { key: 'withdraw', label: '회원 탈퇴' },
 ];
 
-const TAB_PLACEHOLDER_CONTENT = {
-    exploreStats: {
-        title: '탐험 통계',
-        description: '탐험 통계 기능은 준비 중입니다.',
-    },
-    inquiryHistory: {
-        title: '1:1 문의내역',
-        description: '1:1 문의내역 기능은 준비 중입니다.',
-    },
-    myReviews: {
-        title: '내 리뷰',
-        description: '작성한 리뷰를 확인할 수 있습니다.',
-    },
-};
+const BADGE_ICON_FALLBACK = '🏅';
+
+function toSafeNumber(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeBadgeDashboard(rawDashboard) {
+    if (!rawDashboard || typeof rawDashboard !== 'object') {
+        return {
+            catalog: [],
+            earnedBadges: [],
+        };
+    }
+
+    return {
+        catalog: Array.isArray(rawDashboard.catalog) ? rawDashboard.catalog : [],
+        earnedBadges: Array.isArray(rawDashboard.earnedBadges) ? rawDashboard.earnedBadges : [],
+    };
+}
 
 function formatDateValue(value) {
     if (!value) {
@@ -112,12 +117,6 @@ function toDate(value) {
     }
 
     return new Date(value);
-}
-
-function renderStarText(ratingValue) {
-    const rating = Number(ratingValue) || 0;
-    const boundedRating = Math.max(0, Math.min(5, rating));
-    return `${'★'.repeat(boundedRating)}${'☆'.repeat(5 - boundedRating)} (${boundedRating})`;
 }
 
 function resolveInquiryStatusLabel(statusValue) {
@@ -201,12 +200,14 @@ function MyPage() {
     });
     const [feedbackMessage, setFeedbackMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-    const [myReviews, setMyReviews] = useState([]);
-    const [isMyReviewsLoading, setIsMyReviewsLoading] = useState(false);
-    const [myReviewsError, setMyReviewsError] = useState('');
     const [myInquiries, setMyInquiries] = useState([]);
     const [isMyInquiriesLoading, setIsMyInquiriesLoading] = useState(false);
     const [myInquiriesError, setMyInquiriesError] = useState('');
+    const [myBadgeCatalog, setMyBadgeCatalog] = useState([]);
+    const [myEarnedBadges, setMyEarnedBadges] = useState([]);
+    const [isMyBadgeLoading, setIsMyBadgeLoading] = useState(false);
+    const [myBadgeError, setMyBadgeError] = useState('');
+    const [showEarnedBadgeOnly, setShowEarnedBadgeOnly] = useState(false);
 
     useEffect(() => {
         let isCancelled = false;
@@ -285,21 +286,23 @@ function MyPage() {
     useEffect(() => {
         let isCancelled = false;
 
-        const fetchMyReviews = async () => {
-            if (activeTab !== 'myReviews') {
+        const fetchMyBadgeDashboard = async () => {
+            if (activeTab !== 'myBadges') {
                 return;
             }
 
-            setIsMyReviewsLoading(true);
-            setMyReviewsError('');
+            setIsMyBadgeLoading(true);
+            setMyBadgeError('');
 
             try {
-                const response = await questApi.getMyQuestReviews();
+                const response = await badgeApi.getMyBadgeDashboard();
                 if (isCancelled) {
                     return;
                 }
 
-                setMyReviews(Array.isArray(response.data) ? response.data : []);
+                const normalized = normalizeBadgeDashboard(response.data);
+                setMyBadgeCatalog(normalized.catalog);
+                setMyEarnedBadges(normalized.earnedBadges);
             } catch (error) {
                 if (isCancelled) {
                     return;
@@ -307,17 +310,18 @@ function MyPage() {
 
                 const message =
                     error.response?.data?.message ??
-                    '내 리뷰 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
-                setMyReviewsError(message);
-                setMyReviews([]);
+                    '배지 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+                setMyBadgeError(message);
+                setMyBadgeCatalog([]);
+                setMyEarnedBadges([]);
             } finally {
                 if (!isCancelled) {
-                    setIsMyReviewsLoading(false);
+                    setIsMyBadgeLoading(false);
                 }
             }
         };
 
-        fetchMyReviews();
+        fetchMyBadgeDashboard();
 
         return () => {
             isCancelled = true;
@@ -364,6 +368,85 @@ function MyPage() {
             isCancelled = true;
         };
     }, [activeTab]);
+
+    const myBadgeItems = useMemo(() => {
+        const earnedBadgeById = new Map();
+        const earnedBadgeByName = new Map();
+
+        myEarnedBadges.forEach((badge) => {
+            const badgeId = toSafeNumber(badge?.badgeId);
+            const badgeName = String(badge?.name ?? '').trim();
+            if (badgeId > 0) {
+                earnedBadgeById.set(badgeId, badge);
+            }
+            if (badgeName) {
+                earnedBadgeByName.set(badgeName, badge);
+            }
+        });
+
+        return myBadgeCatalog.map((badge, index) => {
+            const badgeId = toSafeNumber(badge?.badgeId) || index + 1;
+            const badgeName = String(badge?.name ?? '').trim();
+            const badgeCode = `B${String(badgeId).padStart(3, '0')}`;
+            const rawIconUrl = String(badge?.iconUrl ?? '').trim();
+            const isImageIcon = /^https?:\/\//i.test(rawIconUrl) || rawIconUrl.startsWith('/');
+            const iconText = !isImageIcon && rawIconUrl && [...rawIconUrl].length <= 2
+                ? rawIconUrl
+                : BADGE_ICON_FALLBACK;
+            const linkedEarnedBadge =
+                earnedBadgeById.get(badgeId) ??
+                earnedBadgeByName.get(badgeName) ??
+                null;
+            const isEarned = Boolean(linkedEarnedBadge);
+
+            return {
+                badgeId,
+                badgeCode,
+                name: badgeName || `배지 #${badgeId}`,
+                description: badge?.description || '-',
+                conditionText: badge?.conditionText || '-',
+                iconUrl: isImageIcon ? rawIconUrl : '',
+                iconText,
+                earnedAtLabel: linkedEarnedBadge?.earnedAt
+                    ? formatDateValue(linkedEarnedBadge.earnedAt)
+                    : '-',
+                isEarned,
+            };
+        });
+    }, [myBadgeCatalog, myEarnedBadges]);
+
+    const myBadgeSummary = useMemo(() => {
+        const total = myBadgeItems.length;
+        const earned = myBadgeItems.filter((badge) => badge.isEarned).length;
+        const unearned = Math.max(0, total - earned);
+        const completionRate = total > 0 ? Math.round((earned / total) * 100) : 0;
+        return {
+            total,
+            earned,
+            unearned,
+            completionRate,
+        };
+    }, [myBadgeItems]);
+
+    const myBadgeHints = useMemo(() => {
+        return myBadgeItems
+            .filter((badge) => !badge.isEarned)
+            .sort((a, b) => a.badgeId - b.badgeId)
+            .slice(0, 2);
+    }, [myBadgeItems]);
+
+    const filteredMyBadgeItems = useMemo(() => {
+        const baseItems = showEarnedBadgeOnly
+            ? myBadgeItems.filter((badge) => badge.isEarned)
+            : myBadgeItems;
+
+        return [...baseItems].sort((a, b) => {
+            if (a.isEarned !== b.isEarned) {
+                return a.isEarned ? -1 : 1;
+            }
+            return a.badgeId - b.badgeId;
+        });
+    }, [showEarnedBadgeOnly, myBadgeItems]);
 
     const hasChanged = useMemo(() => {
         const trimmedNickname = formState.nickname.trim();
@@ -653,6 +736,114 @@ function MyPage() {
                                     </div>
                                 </form>
                             )
+                        ) : activeTab === 'myBadges' ? (
+                            <section className="mypage-badge-panel">
+                                {isMyBadgeLoading ? (
+                                    <div className="mypage-loading">배지 정보를 불러오는 중입니다.</div>
+                                ) : myBadgeError ? (
+                                    <p className="mypage-feedback-message is-error">{myBadgeError}</p>
+                                ) : (
+                                    <>
+                                        <div className="mypage-badge-summary-grid">
+                                            <article className="mypage-badge-summary-card">
+                                                <div className="mypage-badge-box-head">
+                                                    <h2>배지 현황</h2>
+                                                    <span>{myBadgeSummary.total}종 전체</span>
+                                                </div>
+                                                <div className="mypage-badge-metrics-grid">
+                                                    <div>
+                                                        <strong>{myBadgeSummary.earned}</strong>
+                                                        <p>획득 완료</p>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{myBadgeSummary.unearned}</strong>
+                                                        <p>미획득</p>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{myBadgeSummary.total}</strong>
+                                                        <p>전체 배지</p>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{myBadgeSummary.completionRate}%</strong>
+                                                        <p>달성률</p>
+                                                    </div>
+                                                </div>
+                                            </article>
+
+                                            <article className="mypage-badge-hint-card">
+                                                <div className="mypage-badge-box-head">
+                                                    <h2>다음 배지 힌트</h2>
+                                                </div>
+                                                {myBadgeHints.length === 0 ? (
+                                                    <p className="mypage-badge-hint-empty">축하합니다. 모든 배지를 획득했습니다.</p>
+                                                ) : (
+                                                    <ul className="mypage-badge-hint-list">
+                                                        {myBadgeHints.map((hint) => (
+                                                            <li key={hint.badgeId}>
+                                                                <span className="mypage-badge-hint-dot" />
+                                                                <strong>{hint.name}</strong>
+                                                                <em>{hint.conditionText}</em>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </article>
+                                        </div>
+
+                                        <article className="mypage-badge-board">
+                                            <div className="mypage-badge-board-head">
+                                                <div>
+                                                    <h3>내 배지</h3>
+                                                    <p>퀘스트를 완료하고 특별한 배지를 획득하세요</p>
+                                                </div>
+                                                <span className="mypage-badge-earned-chip">{myBadgeSummary.earned}개 획득</span>
+                                            </div>
+
+                                            <div className="mypage-badge-filter-row">
+                                                <p className="mypage-badge-filter-caption">
+                                                    USER_ID 기준으로 DB에서 조회한 배지 목록입니다.
+                                                </p>
+
+                                                <button
+                                                    type="button"
+                                                    className={`mypage-badge-earned-only${showEarnedBadgeOnly ? ' is-active' : ''}`}
+                                                    onClick={() => setShowEarnedBadgeOnly((prev) => !prev)}
+                                                >
+                                                    획득한 배지만
+                                                </button>
+                                            </div>
+
+                                            {filteredMyBadgeItems.length === 0 ? (
+                                                <p className="mypage-badge-empty">조건에 맞는 배지가 없습니다.</p>
+                                            ) : (
+                                                <div className="mypage-badge-item-grid">
+                                                    {filteredMyBadgeItems.map((badge) => (
+                                                        <article key={badge.badgeId} className={`mypage-badge-item${badge.isEarned ? ' is-earned' : ''}`}>
+                                                            <div className="mypage-badge-item-icon-wrap">
+                                                                {badge.iconUrl ? (
+                                                                    <img className="mypage-badge-item-image" src={badge.iconUrl} alt="" />
+                                                                ) : (
+                                                                    <span className="mypage-badge-item-icon">{badge.iconText}</span>
+                                                                )}
+                                                                {!badge.isEarned ? <span className="mypage-badge-lock">🔒</span> : null}
+                                                            </div>
+
+                                                            <strong>{badge.name}</strong>
+                                                            <p>{badge.conditionText}</p>
+                                                            <span className="mypage-badge-code">{badge.badgeCode}</span>
+
+                                                            <div className="mypage-badge-progress-meta">
+                                                                <span>{badge.isEarned ? '획득 완료' : '미획득'}</span>
+                                                                <span>{badge.isEarned ? `획득일 ${badge.earnedAtLabel}` : '획득 전'}</span>
+                                                            </div>
+                                                        </article>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </article>
+                                    </>
+                                )}
+                            </section>
                         ) : activeTab === 'inquiryHistory' ? (
                             <section className="mypage-inquiry-panel">
                                 <h2>1:1 문의내역</h2>
@@ -685,31 +876,7 @@ function MyPage() {
                                     </div>
                                 )}
                             </section>
-                        ) : activeTab === 'myReviews' ? (
-                            <section className="mypage-review-panel">
-                                <h2>내 리뷰</h2>
-                                {isMyReviewsLoading ? (
-                                    <div className="mypage-loading">내 리뷰를 불러오는 중입니다.</div>
-                                ) : myReviewsError ? (
-                                    <p className="mypage-feedback-message is-error">{myReviewsError}</p>
-                                ) : myReviews.length === 0 ? (
-                                    <p className="mypage-review-empty">작성한 리뷰가 없습니다.</p>
-                                ) : (
-                                    <div className="mypage-review-list">
-                                        {myReviews.map((review) => (
-                                            <article key={review.reviewId} className="mypage-review-item">
-                                                <div className="mypage-review-head">
-                                                    <strong>{review.questTitle || `퀘스트 #${review.questId}`}</strong>
-                                                    <span>{formatReviewCreatedAt(review.createdAt)}</span>
-                                                </div>
-                                                <p className="mypage-review-rating">{renderStarText(review.rating)}</p>
-                                                <p className="mypage-review-content">{review.content || '-'}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-                                )}
-                            </section>
-                        ) : activeTab === 'withdraw' ? (
+                        ) : (
                             <section className="mypage-withdraw-panel">
                                 <h2>회원 탈퇴</h2>
                                 <p>회원 탈퇴 시 계정 정보와 활동 내역은 삭제되며 복구할 수 없습니다.</p>
@@ -724,11 +891,6 @@ function MyPage() {
                                         disabled={isWithdrawing}
                                     />
                                 </div>
-                            </section>
-                        ) : (
-                            <section className="mypage-placeholder-panel">
-                                <h2>{TAB_PLACEHOLDER_CONTENT[activeTab]?.title ?? '준비 중'}</h2>
-                                <p>{TAB_PLACEHOLDER_CONTENT[activeTab]?.description ?? '해당 기능은 준비 중입니다.'}</p>
                             </section>
                         )}
                     </div>
