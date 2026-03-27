@@ -40,6 +40,11 @@ public class NoticeServiceImpl implements NoticeService {
         return noticeDAO.getNoticeById(noticeId);
     }
 
+    @Override
+    public NoticeDTO findNoticeById(int noticeId) {
+        return noticeDAO.getNoticeById(noticeId);
+    }
+
     // 3. 수정
     @Override
     @Transactional
