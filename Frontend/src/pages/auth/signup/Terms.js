@@ -1,6 +1,6 @@
 import Button from '../../../components/common/Button';
 import { TERMS } from '../../../data/termsData';
-import { useTermsPage } from './hooks/useTermsPage';
+import { useTermsPage } from '../../../hooks/auth/signup/useTermsPage';
 import './Terms.css';
 
 function Terms() {

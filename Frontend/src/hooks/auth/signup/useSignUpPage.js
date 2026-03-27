@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { userApi } from '../../../../api/UserApi';
-import { resolveApiErrorMessage } from '../../../../utils/errorMessage';
+import { userApi } from '../../../api/UserApi';
+import { resolveApiErrorMessage } from '../../../utils/errorMessage';
 import {
     createYearOptions,
     DAY_OPTIONS,
@@ -10,7 +10,7 @@ import {
     MONTH_OPTIONS,
     validateSignUpForm,
     validateUniqueFieldValue,
-} from '../utils/signupUtils';
+} from '../../../utils/auth/signup/signupUtils';
 
 function getUniqueFieldCheckApi(fieldName, value) {
     if (fieldName === 'userId') {

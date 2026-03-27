@@ -5,7 +5,7 @@ import {
     createSingleCheckedTerms,
     hasRequiredTermsAgreement,
     INITIAL_TERMS_CHECKS,
-} from '../utils/termsUtils';
+} from '../../../utils/auth/signup/termsUtils';
 
 export function useTermsPage() {
     const navigate = useNavigate();

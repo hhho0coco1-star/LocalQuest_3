@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { pushApi } from '../../../api/PushApi';
-import { userApi } from '../../../api/UserApi';
+import { pushApi } from '../../api/PushApi';
+import { userApi } from '../../api/UserApi';
 import {
     deactivatePushSubscriptionForCurrentDevice,
     ensurePushSubscriptionForCurrentDevice,
     isPushSupported as isPushSupportedBrowser,
     parseYnToBoolean,
-} from '../../../push/pushSync';
-import { clearAuth, updateUserProfile } from '../../../store/authSlice';
-import { resolveApiErrorMessage } from '../../../utils/errorMessage';
+} from '../../push/pushSync';
+import { clearAuth, updateUserProfile } from '../../store/authSlice';
+import { resolveApiErrorMessage } from '../../utils/errorMessage';
 import {
     PASSWORD_MASK,
     hasProfileFormChanged,
     normalizeProfile,
-} from '../utils/myPageUtils';
+} from '../../utils/mypage/myPageUtils';
 
 function toUserProfilePayload(profile) {
     return {

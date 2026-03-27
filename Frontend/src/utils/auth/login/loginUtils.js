@@ -1,4 +1,4 @@
-import { isValidEmail, isValidUserId } from '../../../../utils/authValidation';
+import { isValidEmail, isValidUserId } from '../../authValidation';
 
 export function validateFindIdInput(name, email) {
     const trimmedName = String(name ?? '').trim();

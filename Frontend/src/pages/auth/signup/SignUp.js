@@ -1,9 +1,9 @@
 import Input from '../../../components/common/Input';
 import Button from '../../../components/common/Button';
-import BirthDateSelect from './components/BirthDateSelect';
-import GenderSelect from './components/GenderSelect';
-import UniqueCheckField from './components/UniqueCheckField';
-import { useSignUpPage } from './hooks/useSignUpPage';
+import BirthDateSelect from '../../../components/auth/signup/BirthDateSelect';
+import GenderSelect from '../../../components/auth/signup/GenderSelect';
+import UniqueCheckField from '../../../components/auth/signup/UniqueCheckField';
+import { useSignUpPage } from '../../../hooks/auth/signup/useSignUpPage';
 import './SignUp.css';
 
 function Signup() {

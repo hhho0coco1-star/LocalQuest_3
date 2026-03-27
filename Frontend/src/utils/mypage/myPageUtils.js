@@ -1,4 +1,4 @@
-import { formatDateYmd, formatDateYmdHm } from '../../../utils/dateTime';
+import { formatDateYmd, formatDateYmdHm } from '../dateTime';
 
 export const PASSWORD_MASK = '********';
 export const BADGE_ICON_FALLBACK = '🏅';
