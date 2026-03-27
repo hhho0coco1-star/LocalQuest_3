@@ -67,12 +67,9 @@ public class UserValidator {
 		String monthText = trimToEmpty(request.getBirthMonth());
 		String dayText = trimToEmpty(request.getBirthDay());
 
-		if (password.isEmpty()) {
-			return "비밀번호를 입력해주세요.";
-		}
-
-		if (!PASSWORD_PATTERN.matcher(password).matches()) {
-			return "비밀번호는 8~20자 영문/숫자/특수문자를 모두 포함해야 합니다.";
+		String passwordMessage = validatePasswordPolicy(password);
+		if (passwordMessage != null) {
+			return passwordMessage;
 		}
 
 		if (!password.equals(confirmPassword)) {
@@ -142,6 +139,19 @@ public class UserValidator {
 
 		if (password.isEmpty()) {
 			return "비밀번호를 입력해주세요.";
+		}
+
+		return null;
+	}
+
+	public String validatePasswordPolicy(String password) {
+		String value = password == null ? "" : password;
+		if (value.isEmpty()) {
+			return "비밀번호를 입력해주세요.";
+		}
+
+		if (!PASSWORD_PATTERN.matcher(value).matches()) {
+			return "비밀번호는 8~20자 영문/숫자/특수문자를 모두 포함해야 합니다.";
 		}
 
 		return null;

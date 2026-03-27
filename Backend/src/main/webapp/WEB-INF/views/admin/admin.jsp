@@ -987,7 +987,7 @@
                     }
                 },
                 error: function(xhr) {
-                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
+                    alert("서버 통신 오류 (" + xhr.status + ")");
                 }
             });
         }
@@ -1355,7 +1355,7 @@
                     alert(res && res.message ? res.message : failMessage);
                 },
                 error: function(xhr) {
-                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
+                    alert("서버 통신 오류 (" + xhr.status + ")");
                 }
             });
         }
