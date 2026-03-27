@@ -95,10 +95,16 @@ public class BadgeOperationServiceImpl implements BadgeOperationService {
 		BadgeMetrics metrics = loadMetrics(userId);
 		List<RewardBadgeDTO> newlyAwardedBadges = new ArrayList<>();
 
-		for (BadgeRule rule : BADGE_RULES) {
+		for (int idx = 0; idx < BADGE_RULES.size(); idx++) {
+			BadgeRule rule = BADGE_RULES.get(idx);
 			if (!rule.matches(metrics)) {
 				continue;
 			}
+
+			String badgeCategory = resolveBadgeCategory(rule.getIconUrl());
+			String badgeDifficulty = resolveBadgeDifficulty(rule.getIconUrl());
+			String triggerType = resolveTriggerType(rule.getIconUrl());
+			int displayOrder = idx + 1;
 
 			Integer badgeId = badgeOperationDAO.findBadgeIdByName(rule.getName());
 			if (badgeId == null) {
@@ -107,6 +113,11 @@ public class BadgeOperationServiceImpl implements BadgeOperationService {
 				badge.setDescription(rule.getDescription());
 				badge.setConditionText(rule.getConditionText());
 				badge.setIconUrl(rule.getIconUrl());
+				badge.setBadgeCategory(badgeCategory);
+				badge.setBadgeDifficulty(badgeDifficulty);
+				badge.setTriggerType(triggerType);
+				badge.setDisplayOrder(Integer.valueOf(displayOrder));
+				badge.setIsActive("Y");
 				badgeOperationDAO.insertBadge(badge);
 				badgeId = badgeOperationDAO.findBadgeIdByName(rule.getName());
 			}
@@ -128,6 +139,11 @@ public class BadgeOperationServiceImpl implements BadgeOperationService {
 			awarded.setDescription(rule.getDescription());
 			awarded.setConditionText(rule.getConditionText());
 			awarded.setIconUrl(rule.getIconUrl());
+			awarded.setBadgeCategory(badgeCategory);
+			awarded.setBadgeDifficulty(badgeDifficulty);
+			awarded.setTriggerType(triggerType);
+			awarded.setDisplayOrder(Integer.valueOf(displayOrder));
+			awarded.setIsActive("Y");
 			awarded.setEarnedAt(new Date());
 			newlyAwardedBadges.add(awarded);
 		}
@@ -158,6 +174,49 @@ public class BadgeOperationServiceImpl implements BadgeOperationService {
 		metrics.rewardExchangeCount = badgeOperationDAO.countRewardExchangeByUserId(userId);
 		metrics.usedPointSum = badgeOperationDAO.sumUsedPointByUserId(userId);
 		return metrics;
+	}
+
+	private String resolveBadgeCategory(String iconUrl) {
+		String key = normalizeIconKey(iconUrl);
+		if ("badge_local_explorer".equals(key)) {
+			return "EXPLORE";
+		}
+		if ("badge_first_reviewer".equals(key) || "badge_trusted_reviewer".equals(key)) {
+			return "COMPLETE";
+		}
+		if ("badge_first_exchange".equals(key) || "badge_exchange_runner".equals(key) || "badge_point_master".equals(key)) {
+			return "BENEFIT";
+		}
+		return "HABIT";
+	}
+
+	private String resolveBadgeDifficulty(String iconUrl) {
+		String key = normalizeIconKey(iconUrl);
+		if ("badge_local_regular".equals(key) || "badge_point_master".equals(key)) {
+			return "HARD";
+		}
+		if ("badge_quest_runner".equals(key)
+			|| "badge_local_explorer".equals(key)
+			|| "badge_trusted_reviewer".equals(key)
+			|| "badge_exchange_runner".equals(key)) {
+			return "MID";
+		}
+		return "EASY";
+	}
+
+	private String resolveTriggerType(String iconUrl) {
+		String key = normalizeIconKey(iconUrl);
+		if ("badge_first_reviewer".equals(key) || "badge_trusted_reviewer".equals(key)) {
+			return "REVIEW_CREATE";
+		}
+		if ("badge_first_exchange".equals(key) || "badge_exchange_runner".equals(key) || "badge_point_master".equals(key)) {
+			return "REWARD_EXCHANGE";
+		}
+		return "QUEST_COMPLETE";
+	}
+
+	private String normalizeIconKey(String iconUrl) {
+		return iconUrl == null ? "" : iconUrl.trim().toLowerCase();
 	}
 
 	private static final class BadgeMetrics {
