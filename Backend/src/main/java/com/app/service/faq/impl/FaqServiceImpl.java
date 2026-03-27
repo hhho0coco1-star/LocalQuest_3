@@ -35,7 +35,13 @@ public class FaqServiceImpl implements FaqService {
         return faqDAO.getFaqByCategory(category);
     }
 
-    // 2-3. 상세 조회 (비즈니스 로직: 조회수 증가 후 데이터 가져오기)
+    // 2-3. 상세 조회 (조회수 증가 없이 관리자 화면용 조회)
+    @Override
+    public FaqDTO findFaqById(int faqId) {
+        return faqDAO.getFaqById(faqId);
+    }
+
+    // 2-4. 상세 조회 (비즈니스 로직: 조회수 증가 후 데이터 가져오기)
     @Override
     @Transactional
     public FaqDTO findFaqDetail(int faqId) {
