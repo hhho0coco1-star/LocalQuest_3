@@ -35,6 +35,11 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
+    public Map<String, Object> getBusinessAuthSummary(int businessId) {
+        return dao.getBusinessAuthSummary(businessId);
+    }
+
+    @Override
     public BusinessDashboardDTO getBusinessDashboardByBusinessId(int businessId) {
         return dao.getBusinessDashboardByBusinessId(businessId);
     }
@@ -59,6 +64,7 @@ public class BusinessServiceImpl implements BusinessService {
     @Override
     @Transactional
     public boolean deleteBusiness(int businessId) {
-        return dao.deleteBusiness(businessId) > 0;
+        // Hard delete is intentionally disabled; use suspend/resume instead.
+        return false;
     }
 }

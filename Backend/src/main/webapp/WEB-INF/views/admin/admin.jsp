@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <!DOCTYPE html>
 <html>
@@ -7,7 +7,7 @@
     <title>LOCALQUEST ADMIN</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
+        // 전역 경로 변수 (JSP 어디서든 사용 가능)
         const ctx = "${pageContext.request.contextPath}";
         let questCountdownTimer = null;
         let adminQuestSelectedLocations = [];
@@ -20,9 +20,11 @@
             rating: 5,
             content: ''
         };
+        let businessDetailAuthLoadedFor = 0;
+        let businessDetailAuthLoading = false;
 
         /**
-         * 肄섑뀗痢?濡쒕뜑
+         * 콘텐츠 로더
          */
         function loadAdminContent(url, element) {
             $('.admin-content-area').empty(); 
@@ -655,15 +657,15 @@
         }
 
         /**
-         * [?듯빀] ?뚯썝 沅뚰븳 蹂寃??⑥닔
+         * [통합] 회원 권한 변경 함수
          */
         function updateRole(userId, newRole) {
             if (userId === 1) {
-                alert("留덉뒪??愿由ъ옄??蹂寃쏀븷 ???놁뒿?덈떎.");
+                alert("마스터 관리자는 변경할 수 없습니다.");
                 return;
             }
 
-            if (!confirm("沅뚰븳??蹂寃쏀븯?쒓쿋?듬땲源?")) {
+            if (!confirm("권한을 변경하시겠습니까?")) {
                 loadAdminContent(ctx + '/admin/users');
                 return;
             }
@@ -674,58 +676,195 @@
                 data: { userId: userId, role: newRole },
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("沅뚰븳??蹂寃쎈릺?덉뒿?덈떎.");
+                        alert("권한이 변경되었습니다.");
                     } else {
-                        alert("蹂寃??ㅽ뙣");
+                        alert("변경 실패");
                         loadAdminContent(ctx + '/admin/users');
                     }
                 },
                 error: function(xhr) {
-                    alert("?쒕쾭 ?듭떊 ?먮윭 (肄붾뱶: " + xhr.status + ")");
+                    alert("서버 통신 오류 (코드: " + xhr.status + ")");
                 }
             });
         }
         
-        let currentSortOrder = 'DESC'; // 湲곕낯 ?뺣젹 ?곹깭 (理쒖떊??
+        let currentSortOrder = 'DESC'; // 기본 정렬 상태 (최신순)
 
         /**
-         * ?뚯썝 寃???⑥닔
+         * 회원 검색 함수
          */
         function searchUser() {
             const type = $('#searchType').val();
             const keyword = $('#keyword').val();
             
-            // 寃???쒖뿉??contextPath(ctx) ?쒖슜
+            // 검색 시에도 contextPath(ctx)를 사용합니다.
             const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword);
             loadAdminContent(url);
         }
 
         /**
-         * ?뚯썝踰덊샇 ?뺣젹 ?⑥닔 (?대씪?댁뼵???ъ씠???뱀? ?쒕쾭 ?ъ씠???좏깮 媛??
-         * ?ш린?쒕뒗 媛??源붾걫??'?쒕쾭 ?ъ슂泥? 諛⑹떇??異붿쿇?⑸땲??
+         * 회원번호 정렬 함수 (서버 정렬 기준 유지)
+         * 현재는 서버 요청 방식으로 처리합니다.
          */
+        function searchAdminInquiry() {
+            const keyword = ($('#adminInquiryKeyword').val() || '').trim();
+            const status = ($('#adminInquiryStatus').val() || '').trim();
+            const userId = ($('#adminInquiryUserId').val() || '').trim();
+            let url = ctx + "/admin/qna";
+            const params = [];
+
+            if (keyword) {
+                params.push("keyword=" + encodeURIComponent(keyword));
+            }
+            if (status) {
+                params.push("status=" + encodeURIComponent(status));
+            }
+            if (userId) {
+                params.push("userId=" + encodeURIComponent(userId));
+            }
+            if (params.length > 0) {
+                url += "?" + params.join("&");
+            }
+
+            loadAdminContent(url);
+        }
+
+        function loadAdminInquiryDetail(inquiryId, onSuccess) {
+            $.ajax({
+                url: ctx + "/admin/qna/detail",
+                type: "GET",
+                dataType: "json",
+                data: { inquiryId: inquiryId },
+                success: function(res) {
+                    if (res && typeof onSuccess === "function") {
+                        onSuccess(res);
+                        return;
+                    }
+                    alert("문의 정보를 찾을 수 없습니다.");
+                },
+                error: function(xhr) {
+                    alert("서버 통신 오류 (" + xhr.status + ")");
+                }
+            });
+        }
+
+        function resetAdminInquiryModal() {
+            $('#adminInquiryDetailId').val('');
+            $('#adminInquiryDetailInquiryId').text('-');
+            $('#adminInquiryDetailUserId').text('-');
+            $('#adminInquiryDetailStatus').text('-');
+            $('#adminInquiryDetailCreatedAt').text('-');
+            $('#adminInquiryDetailAnsweredAt').text('-');
+            $('#adminInquiryDetailTitle').text('-');
+            $('#adminInquiryDetailContent').text('-');
+            $('#adminInquiryDetailAnswerContent').text('-');
+            $('#adminInquiryAnswerContent').val('');
+            $('#adminInquiryAnswerReadBlock').hide();
+            $('#adminInquiryAnswerEditor').hide();
+            $('#adminInquiryModalTitle').text('문의 상세');
+        }
+
+        function openAdminInquiryDetailModal(inquiryId, focusAnswer) {
+            resetAdminInquiryModal();
+            $('#adminInquiryModal').fadeIn(200);
+
+            loadAdminInquiryDetail(inquiryId, function(data) {
+                const status = String(data.status || '').toUpperCase();
+                const isPending = status === 'PENDING';
+
+                $('#adminInquiryDetailId').val(data.inquiryId || '');
+                $('#adminInquiryDetailInquiryId').text(data.inquiryId || '-');
+                $('#adminInquiryDetailUserId').text(data.userId || '-');
+                $('#adminInquiryDetailStatus').text(data.status || '-');
+                $('#adminInquiryDetailCreatedAt').text(data.createdAt || '-');
+                $('#adminInquiryDetailAnsweredAt').text(data.answeredAt || '-');
+                $('#adminInquiryDetailTitle').text(data.title || '-');
+                $('#adminInquiryDetailContent').text(data.content || '-');
+                $('#adminInquiryDetailAnswerContent').text(data.answerContent || '-');
+
+                if (isPending) {
+                    $('#adminInquiryModalTitle').text('문의 답변');
+                    $('#adminInquiryAnswerEditor').show();
+                    if (focusAnswer) {
+                        $('#adminInquiryAnswerContent').trigger('focus');
+                    }
+                } else {
+                    $('#adminInquiryModalTitle').text('문의 상세');
+                    $('#adminInquiryAnswerReadBlock').show();
+                }
+            });
+        }
+
+        function openAdminInquiryAnswerModal(inquiryId) {
+            openAdminInquiryDetailModal(inquiryId, true);
+        }
+
+        function closeAdminInquiryDetailModal() {
+            $('#adminInquiryModal').fadeOut(200);
+        }
+
+        function submitAdminInquiryAnswer() {
+            const inquiryId = Number($('#adminInquiryDetailId').val()) || 0;
+            const answerContent = ($('#adminInquiryAnswerContent').val() || '').trim();
+
+            if (!inquiryId) {
+                alert("문의 정보를 다시 불러와주세요.");
+                return;
+            }
+            if (!answerContent) {
+                alert("답변 내용을 입력해주세요.");
+                return;
+            }
+
+            $.ajax({
+                url: ctx + "/admin/qna/answer",
+                type: "POST",
+                data: {
+                    inquiryId: inquiryId,
+                    answerContent: answerContent
+                },
+                success: function(res) {
+                    const normalized = String(res || '').trim();
+                    if (normalized === "success") {
+                        alert("답변이 등록되었습니다.");
+                        closeAdminInquiryDetailModal();
+                        searchAdminInquiry();
+                        return;
+                    }
+                    if (normalized === "fail:empty_answer") {
+                        alert("답변 내용을 입력해주세요.");
+                        return;
+                    }
+                    alert("답변 등록에 실패했습니다.");
+                },
+                error: function(xhr) {
+                    alert("서버 통신 오류 (" + xhr.status + ")");
+                }
+            });
+        }
+
         function sortUserList() {
             currentSortOrder = (currentSortOrder === 'DESC') ? 'ASC' : 'DESC';
             const type = $('#searchType').val();
             const keyword = $('#keyword').val();
             
-            // 寃??議곌굔 ?좎??섎㈃???뺣젹留?蹂寃쏀빐???ㅼ떆 濡쒕뱶
+            // 기존 검색 조건을 유지한 채 정렬만 변경합니다.
             const url = ctx + "/admin/users?sort=" + currentSortOrder + "&type=" + type + "&keyword=" + keyword;
             loadAdminContent(url);
         }
         
         /**
-         * ?뚯썝 ?곹깭 蹂寃?(?뺤? ??
+         * 회원 상태 변경 함수
          */
         function updateStatus(userId, newStatus) {
             if (userId === 1) {
-                alert("留덉뒪??愿由ъ옄???뺤??????놁뒿?덈떎.");
+                alert("마스터 관리자는 상태를 변경할 수 없습니다.");
                 return;
             }
 
-            // [?뺤씤 ?덉감] ??踰???臾쇱뼱蹂닿린
+            // 확인 문구 설정
             const actionText = (newStatus === 'WITHDRAWN') ? "삭제" : "변경";
-            if (!confirm("?대떦 ?뚯썝???뺣쭚濡?" + actionText + "?섏떆寃좎뒿?덇퉴?")) {
+            if (!confirm("해당 회원을 정말로 " + actionText + "하시겠습니까?")) {
                 return;
             }
 
@@ -738,22 +877,22 @@
                 },
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("?곹깭媛 ?뺤긽?곸쑝濡?蹂寃쎈릺?덉뒿?덈떎.");
+                        alert("상태가 정상적으로 변경되었습니다.");
                         
-                        // [?곹깭 ?좎? 濡쒕뱶] ?꾩옱 ?붾㈃??寃?됱뼱? ?뺣젹媛믪쓣 洹몃?濡?臾쇨퀬 ?ㅼ떆 濡쒕뱶
+                        // 현재 검색어/정렬 조건을 유지한 채 다시 로드합니다.
                         const type = $('#searchType').val();
                         const keyword = $('#keyword').val();
-                        // ?뺣젹 ?꾩씠肄??곹깭瑜??듯빐 ?꾩옱 ?뺣젹 ?뺤씤 (?곷떒 ?ㅻ뜑????λ맂 媛??쒖슜)
+                        // 정렬 아이콘 상태로 현재 정렬을 확인합니다.
                         const sort = $('#sortIcon').hasClass('fa-sort-up') ? 'ASC' : 'DESC';
                         
                         const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword) + "&sort=" + sort;
                         loadAdminContent(url);
                     } else {
-                        alert("蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.");
+                        alert("변경에 실패했습니다.");
                     }
                 },
                 error: function(xhr) {
-                    alert("?쒕쾭 ?듭떊 ?먮윭媛 諛쒖깮?덉뒿?덈떎.");
+                    alert("서버 통신 오류가 발생했습니다.");
                 }
             });
         }
@@ -785,8 +924,74 @@
         
 
         /**
-         * [湲곗〈 ?⑥닔 蹂댁셿] ?깅줉/?섏젙 ?듯빀 ?쒖텧
+         * [기존 함수 보완] 등록/수정 통합 제출
          */
+        function updateQuestStatus(questId, status, actionType) {
+            const normalizedStatus = String(status || '').toUpperCase();
+            const currentFilterStatus = String($('#filterStatus').val() || '').toUpperCase();
+            const clickEvent = typeof event !== 'undefined' ? event : window.event;
+            const $sourceButton = clickEvent
+                ? $(clickEvent.currentTarget || clickEvent.target || clickEvent.srcElement)
+                : $();
+            const $sourceSection = $sourceButton.closest('.adm-q-section');
+
+            let resolvedAction = String(actionType || '').toLowerCase();
+            if (!resolvedAction) {
+                if (normalizedStatus === 'DELETED') {
+                    resolvedAction = 'delete';
+                } else if ($sourceSection.hasClass('adm-q-section-deleted') || currentFilterStatus === 'DELETED') {
+                    resolvedAction = 'restore';
+                } else if (normalizedStatus === 'INACTIVE') {
+                    resolvedAction = 'deactivate';
+                } else {
+                    resolvedAction = 'activate';
+                }
+            }
+
+            let confirmMessage = '\uD018\uC2A4\uD2B8 \uC0C1\uD0DC\uB97C \uBCC0\uACBD\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+            let successMessage = '\uD018\uC2A4\uD2B8 \uC0C1\uD0DC\uAC00 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+            let failMessage = '\uD018\uC2A4\uD2B8 \uC0C1\uD0DC \uBCC0\uACBD\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+
+            if (resolvedAction === 'delete') {
+                confirmMessage = '\uD018\uC2A4\uD2B8\uB97C \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uC0AD\uC81C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            } else if (resolvedAction === 'restore') {
+                confirmMessage = '\uC0AD\uC81C\uB41C \uD018\uC2A4\uD2B8\uB97C \uBCF5\uAD6C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uBCF5\uAD6C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uBCF5\uAD6C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            } else if (resolvedAction === 'deactivate') {
+                confirmMessage = '\uD018\uC2A4\uD2B8\uB97C \uBE44\uD65C\uC131\uD654\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uBE44\uD65C\uC131\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            } else if (resolvedAction === 'activate') {
+                confirmMessage = '\uD018\uC2A4\uD2B8\uB97C \uD65C\uC131\uD654\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+                successMessage = '\uD018\uC2A4\uD2B8\uAC00 \uD65C\uC131\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.';
+                failMessage = '\uD018\uC2A4\uD2B8 \uD65C\uC131\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.';
+            }
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            $.ajax({
+                url: ctx + "/admin/quests/updateStatus",
+                type: "POST",
+                data: { questId: questId, status: normalizedStatus },
+                success: function(res) {
+                    if (res === "success") {
+                        alert(successMessage);
+                        searchQuest();
+                    } else {
+                        alert(failMessage);
+                    }
+                },
+                error: function(xhr) {
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
+                }
+            });
+        }
+
         function submitQuest() {
             const form = $('#questForm')[0];
             const questId = $('#modalQuestId').val();
@@ -826,14 +1031,6 @@
                     } else {
                         if (res.trim() === "fail:title_empty") {
                             alert("퀘스트 제목을 입력해 주세요.");
-                        } else if (res.trim() === "fail:category_empty") {
-                            alert("카테고리를 선택해 주세요.");
-                        } else if (res.trim() === "fail:category_invalid") {
-                            alert("선택한 카테고리가 DB에 없습니다. 카테고리 테이블 데이터를 먼저 등록해 주세요.");
-                        } else if (res.trim() === "fail:category_not_ready") {
-                            alert("퀘스트 카테고리 데이터가 없습니다. LQ_QUEST_CATEGORY 테이블에 카테고리를 먼저 등록해 주세요.");
-                        } else if (res.trim() === "fail:category_table_missing") {
-                            alert("퀘스트 카테고리 테이블을 찾을 수 없습니다. DB 스키마를 먼저 확인해 주세요.");
                         } else if (res.trim() === "fail:description_empty") {
                             alert("퀘스트 설명을 입력해 주세요.");
                         } else if (res.trim() === "fail:invalid_id") {
@@ -863,11 +1060,11 @@
             });
         }
 
-        /* --- admin.jsp ?ㅽ겕由쏀듃 ?곸뿭 ?섏젙 --- */
+        /* --- admin.jsp 스크립트 영역 수정 --- */
 
         /**
-         * [異붽?/?섏젙] ???섏뒪??紐⑤떖 ?닿린
-         * (?섏젙 紐⑤뱶??ㅺ? ?ㅼ떆 '???깅줉'???꾨? ?뚮? ?鍮꾪빐 珥덇린??濡쒖쭅 異붽?)
+         * [추가/수정] 퀘스트 모달 열기
+         * 수정 모드와 등록 모드를 모두 초기화합니다.
          */
         function openQuestModal() {
             $('#questForm')[0].reset();
@@ -887,7 +1084,7 @@
         }
 
         /**
-         * ?섏젙 紐⑤떖 ?닿린 (湲곗〈 媛?梨꾩슦湲?
+         * 수정 모달 열기 (기존 값 채우기)
          */
         function editQuestModal(data) {
             $('#modalTitleText').html('<i class="fas fa-edit"></i> 퀘스트 수정');
@@ -895,7 +1092,6 @@
             $('#modalQuestId').val(data.id); 
             $('#modalQuestStatus').val(data.status || 'ACTIVE');
             $('#m_title').val(data.title);
-            $('#m_category').val(data.category);
             $('#m_exp').val(data.exp);
             $('#m_point').val(data.point);
             $('#m_desc').val(data.desc);
@@ -922,7 +1118,6 @@
             editQuestModal({
                 id: $card.data('id'),
                 title: $.trim($card.find('.adm-q-card-title').text()),
-                category: $.trim($questCard.find('.adm-q-category').text()),
                 exp: $card.data('exp'),
                 point: $card.data('point'),
                 desc: $.trim($card.find('.adm-q-card-desc').text()),
@@ -942,7 +1137,7 @@
         }
 
         /**
-         * 紐⑤떖 ?レ쓣 ??珥덇린??(?대? ?묒꽦?섏떊 肄붾뱶 ?좎??섎릺, 由ъ뀑 ?뺤씤)
+         * 모달을 닫을 때 초기화
          */
         function closeQuestModal() {
             $('#questModal').fadeOut(200);
@@ -963,20 +1158,20 @@
         }
         
         /**
-         * ?섏뒪??寃??諛??꾪꽣留?
+         * 퀘스트 검색 및 필터
          */
         function searchQuest() {
-            const status = $('#filterStatus').val(); // ?쒖꽦/鍮꾪솢???좏깮媛?
-            const keyword = $('#searchQuestName').val(); // 寃?됱뼱
+            const status = $('#filterStatus').val(); // 상태 선택값
+            const keyword = $('#searchQuestName').val(); // 검색어
             
-            // URL ?뚮씪誘명꽣 議고빀
+            // URL 파라미터 조합
             const url = ctx + "/admin/quests?status=" + status + "&keyword=" + encodeURIComponent(keyword);
             
-            // 湲곗〈??留뚮뱶??肄섑뀗痢?濡쒕뜑 ?⑥닔 ?몄텧
+            // 공통 콘텐츠 로더 호출
             loadAdminContent(url);
         }
         
-        /* --- Reward Item 愿??JS --- */
+        /* --- Reward Item 관련 JS --- */
 
         function searchItem() {
             const status = $('#filterItemStatus').val();
@@ -987,14 +1182,14 @@
         function openItemModal() {
             $('#modalItemId').val("0");
             $('#itemForm')[0].reset();
-            $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> ??由ъ썙???깅줉');
-            $('#itemSubmitBtn').text('?깅줉?섍린');
+            $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 리워드 등록');
+            $('#itemSubmitBtn').text('등록하기');
             $('#itemModal').fadeIn(200);
         }
 
         function editItemModal(data) {
-            $('#itemModalTitleText').html('<i class="fas fa-edit"></i> ?꾩씠???뺣낫 ?섏젙');
-            $('#itemSubmitBtn').text('?섏젙?섍린');
+            $('#itemModalTitleText').html('<i class="fas fa-edit"></i> 리워드 정보 수정');
+            $('#itemSubmitBtn').text('수정하기');
             
             $('#modalItemId').val(data.id);
             $('#i_name').val(data.name);
@@ -1014,16 +1209,16 @@
                 data: formData,
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("??λ릺?덉뒿?덈떎.");
+                        alert("저장되었습니다.");
                         closeItemModal();
                         loadAdminContent(ctx + "/admin/shop");
-                    } else { alert("?ㅽ뙣?덉뒿?덈떎."); }
+                    } else { alert("실패했습니다."); }
                 }
             });
         }
 
         function updateItemStatus(itemId, status) {
-            if(!confirm("?꾩씠???곹깭瑜?蹂寃쏀븯?쒓쿋?듬땲源?")) return;
+            if(!confirm("아이템 상태를 변경하시겠습니까?")) return;
             $.ajax({
                 url: ctx + "/admin/shop/updateStatus",
                 type: "POST",
@@ -1038,16 +1233,16 @@
 
         function closeItemModal() {
             $('#itemModal').fadeOut(200);
-            // ?좊땲硫붿씠?섏씠 ?앸궃 ???곗씠?곕? 源⑤걮?섍쾶 鍮꾩썙以띾땲??
+            // 애니메이션이 끝난 뒤 데이터를 초기화합니다.
             setTimeout(function() {
                 $('#itemForm')[0].reset();
                 $('#modalItemId').val("0");
-                $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> ??由ъ썙???깅줉');
-                $('#itemSubmitBtn').text('?깅줉?섍린');
+                $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 리워드 등록');
+                $('#itemSubmitBtn').text('등록하기');
             }, 200);
         }
         
-        /* --- Business ?온??JS --- */
+        /* --- Business 관련 JS --- */
 
         function searchBusiness() {
             const keyword = $('#searchBusinessKeyword').val() || '';
@@ -1064,11 +1259,103 @@
                     if (res) {
                         onSuccess(res);
                     } else {
-                        alert("?遺욧퍕???怨뚭탢 ????곷뮸??덈뼄.");
+                        alert("비즈니스 상세 정보를 찾을 수 없습니다.");
                     }
                 },
                 error: function(xhr) {
-                    alert("??뺤쒔 ???뻿 ?癒?쑎 (?꾨뗀諭? " + xhr.status + ")");
+                    alert("서버 통신 오류 (" + xhr.status + ")");
+                }
+            });
+        }
+
+        function normalizeBusinessOperationStatus(value) {
+            const rawStatus = value && typeof value === 'object'
+                ? value.operationStatus
+                : value;
+            const normalizedStatus = String(rawStatus || '').toUpperCase();
+
+            if (normalizedStatus === 'ACTIVE' || normalizedStatus === 'INACTIVE') {
+                return normalizedStatus;
+            }
+
+            return 'UNKNOWN';
+        }
+
+        function getBusinessOperationStatusText(status) {
+            if (status === 'ACTIVE') {
+                return '\uC6B4\uC601\uC911';
+            }
+            if (status === 'INACTIVE') {
+                return '\uC6B4\uC601\uC911\uC9C0';
+            }
+            return '\uC0C1\uD0DC\uD655\uC778\uBD88\uAC00';
+        }
+
+        function syncBusinessOperationUi(value) {
+            const status = normalizeBusinessOperationStatus(value);
+            const isActive = status === 'ACTIVE';
+            const $statusBadge = $('#detailOperationStatus');
+            const $qrButton = $('#businessDetailQrBtn');
+
+            $statusBadge
+                .removeClass('ACTIVE INACTIVE UNKNOWN')
+                .addClass(status)
+                .text(getBusinessOperationStatusText(status));
+
+            $qrButton
+                .attr('data-operation-status', status)
+                .prop('disabled', !isActive)
+                .text(isActive ? '\u0051\u0052 \uBCF4\uAE30' : getBusinessOperationStatusText(status));
+        }
+
+        function changeBusinessOperation(businessId, currentStatus) {
+            const normalizedCurrentStatus = normalizeBusinessOperationStatus(currentStatus);
+            if (!(businessId > 0)) {
+                alert('\uB9E4\uC7A5 \uC815\uBCF4\uB97C \uB2E4\uC2DC \uD655\uC778\uD574 \uC8FC\uC138\uC694.');
+                return;
+            }
+
+            if (normalizedCurrentStatus === 'UNKNOWN') {
+                alert('\uB9E4\uC7A5 \uC6B4\uC601 \uC0C1\uD0DC\uB97C \uD655\uC778\uD560 \uC218 \uC5C6\uC5B4 \uCC98\uB9AC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
+                return;
+            }
+
+            const shouldSuspend = normalizedCurrentStatus === 'ACTIVE';
+            const endpoint = shouldSuspend ? '/admin/store-info/suspend' : '/admin/store-info/resume';
+            const confirmMessage = shouldSuspend
+                ? '\uC774 \uB9E4\uC7A5\uC744 \uC6B4\uC601\uC911\uC9C0\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?'
+                : '\uC774 \uB9E4\uC7A5\uC758 \uC6B4\uC601\uC744 \uC7AC\uAC1C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?';
+            const successMessage = shouldSuspend
+                ? '\uB9E4\uC7A5\uC744 \uC6B4\uC601\uC911\uC9C0\uD588\uC2B5\uB2C8\uB2E4.'
+                : '\uB9E4\uC7A5 \uC6B4\uC601\uC744 \uC7AC\uAC1C\uD588\uC2B5\uB2C8\uB2E4.';
+            const failMessage = shouldSuspend
+                ? '\uB9E4\uC7A5 \uC6B4\uC601\uC911\uC9C0\uB97C \uCC98\uB9AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
+                : '\uB9E4\uC7A5 \uC6B4\uC601 \uC7AC\uAC1C\uB97C \uCC98\uB9AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            $.ajax({
+                url: ctx + endpoint,
+                type: "POST",
+                dataType: "json",
+                data: { businessId: businessId },
+                success: function(res) {
+                    const result = res && res.result ? res.result : 'error';
+                    if (result === 'success') {
+                        if (Number($('#businessDetailQrBtn').attr('data-business-id')) === businessId) {
+                            syncBusinessOperationUi(res);
+                        }
+                        alert(successMessage);
+                        loadBusinessAdmin('business');
+                        return;
+                    }
+
+                    alert(res && res.message ? res.message : failMessage);
+                },
+                error: function(xhr) {
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1078,8 +1365,8 @@
 
             $('#businessForm')[0].reset();
             $('#businessId').val("0");
-            $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> ??쑴已??됰뮞 ?源낆쨯');
-            $('#businessSubmitBtn').text('?源낆쨯??띾┛');
+            $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 비즈니스 등록');
+            $('#businessSubmitBtn').text('등록하기');
 
             if (!businessId) {
                 $('#businessModal').fadeIn(200);
@@ -1087,8 +1374,8 @@
             }
 
             loadBusinessDetail(businessId, function(data) {
-                $('#businessModalTitleText').html('<i class="fas fa-edit"></i> ??쑴已??됰뮞 ?類ｋ궖 ??륁젟');
-                $('#businessSubmitBtn').text('??륁젟??띾┛');
+                $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 비즈니스 정보 수정');
+                $('#businessSubmitBtn').text('수정하기');
                 $('#businessId').val(data.businessId || 0);
                 $('#businessUserId').val(data.userId || '');
                 $('#businessName').val(data.businessName || '');
@@ -1108,8 +1395,8 @@
                     $('#businessForm')[0].reset();
                 }
                 $('#businessId').val("0");
-                $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> ??쑴已??됰뮞 ?源낆쨯');
-                $('#businessSubmitBtn').text('?源낆쨯??띾┛');
+                $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 비즈니스 등록');
+                $('#businessSubmitBtn').text('등록하기');
             }, 200);
         }
 
@@ -1124,33 +1411,33 @@
                     const result = res.trim();
 
                     if (result === "success") {
-                        alert("???貫由??됰뮸??덈뼄.");
+                        alert("저장되었습니다.");
                         closeBusinessModal();
                         loadAdminContent(ctx + "/admin/store-info");
                         return;
                     }
 
                     if (result === "fail:business_name_empty") {
-                        alert("?湲??筌뤿굞????낆젾??곻폒?紐꾩뒄.");
+                        alert("비즈니스명을 입력해 주세요.");
                         return;
                     }
                     if (result === "fail:zip_code_empty") {
-                        alert("?怨좊젶甕곕뜇?뉒몴? ??낆젾??곻폒?紐꾩뒄.");
+                        alert("우편번호를 입력해 주세요.");
                         return;
                     }
                     if (result === "fail:address_empty") {
-                        alert("??됵폒?? ??낆젾??곻폒?紐꾩뒄.");
+                        alert("주소를 입력해 주세요.");
                         return;
                     }
                     if (result === "fail:user_id_invalid") {
-                        alert("?????甕곕뜇?뉒몴? ?類ㅺ맒?怨몄몵嚥? ??낆젾??곻폒?紐꾩뒄.");
+                        alert("회원 번호를 올바르게 입력해 주세요.");
                         return;
                     }
 
-                    alert("??쎈솭??됰뮸??덈뼄.");
+                    alert("저장에 실패했습니다.");
                 },
                 error: function(xhr) {
-                    alert("??뺤쒔 ???뻿 ?癒?쑎 (?꾨뗀諭? " + xhr.status + ")");
+                    alert("서버 통신 오류 (" + xhr.status + ")");
                 }
             });
         }
@@ -1166,16 +1453,147 @@
                 $('#detailPhone').text(data.phone || '-');
                 $('#detailDescription').text(data.description || '-');
                 $('#detailCreatedAt').text(data.createdAt || '-');
+                $('#businessDetailQrBtn').attr('data-business-id', data.businessId || 0);
+                syncBusinessOperationUi(data);
+                resetBusinessAuthSummary();
+                showBusinessDetailTab('basic');
+                resetBusinessQrModal();
                 $('#businessDetailModal').fadeIn(200);
             });
         }
 
         function closeBusinessDetailModal() {
+            $('#businessDetailQrBtn').attr('data-business-id', 0);
+            syncBusinessOperationUi('UNKNOWN');
+            resetBusinessAuthSummary();
+            showBusinessDetailTab('basic');
+            closeBusinessQrModal();
             $('#businessDetailModal').fadeOut(200);
         }
 
+        function formatBusinessAuthAmount(value) {
+            const numericValue = Number(value || 0);
+            return numericValue.toLocaleString('ko-KR') + '원';
+        }
+
+        function formatBusinessAuthDate(value) {
+            if (!value) {
+                return '-';
+            }
+
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) {
+                return value;
+            }
+
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            const hours = String(parsed.getHours()).padStart(2, '0');
+            const minutes = String(parsed.getMinutes()).padStart(2, '0');
+            return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes;
+        }
+
+        function resetBusinessAuthSummary() {
+            businessDetailAuthLoadedFor = 0;
+            businessDetailAuthLoading = false;
+
+            $('#businessAuthStatus')
+                .removeClass('is-error')
+                .text('비지니스 정보를 확인하려면 탭을 선택해 주세요.');
+            $('#detailAuthTotalCount').text('0');
+            $('#detailAuthQrCount').text('0');
+            $('#detailAuthReceiptCount').text('0');
+            $('#detailAuthPaymentAmount').text('0원');
+            $('#detailAuthSettlementAmount').text('0원');
+            $('#detailAuthLastAt').text('-');
+            $('#detailAuthUserCount').text('0');
+            $('#detailAuthLocationCount').text('0');
+        }
+
+        function applyBusinessAuthSummary(summary) {
+            const normalizedSummary = summary || {};
+            $('#detailAuthTotalCount').text(Number(normalizedSummary.totalAuthCount || 0).toLocaleString('ko-KR'));
+            $('#detailAuthQrCount').text(Number(normalizedSummary.qrAuthCount || 0).toLocaleString('ko-KR'));
+            $('#detailAuthReceiptCount').text(Number(normalizedSummary.receiptAuthCount || 0).toLocaleString('ko-KR'));
+            $('#detailAuthPaymentAmount').text(formatBusinessAuthAmount(normalizedSummary.totalPaymentAmount));
+            $('#detailAuthSettlementAmount').text(formatBusinessAuthAmount(normalizedSummary.totalSettlementAmount));
+            $('#detailAuthLastAt').text(formatBusinessAuthDate(normalizedSummary.lastAuthAt));
+            $('#detailAuthUserCount').text(Number(normalizedSummary.uniqueUserCount || 0).toLocaleString('ko-KR'));
+            $('#detailAuthLocationCount').text(Number(normalizedSummary.uniqueLocationCount || 0).toLocaleString('ko-KR'));
+
+            if (Number(normalizedSummary.totalAuthCount || 0) > 0) {
+                $('#businessAuthStatus')
+                    .removeClass('is-error')
+                    .text('LQ_BUSINESS_AUTH_LOG 기준 인증 요약 정보입니다.');
+            } else {
+                $('#businessAuthStatus')
+                    .removeClass('is-error')
+                    .text('등록된 인증 이력이 없습니다.');
+            }
+        }
+
+        function loadBusinessAuthSummary(businessId) {
+            if (!(businessId > 0) || businessDetailAuthLoading) {
+                return;
+            }
+
+            businessDetailAuthLoading = true;
+            $('#businessAuthStatus')
+                .removeClass('is-error')
+                .text('비지니스 정보를 불러오는 중입니다.');
+
+            $.ajax({
+                url: ctx + "/admin/store-info/auth-detail",
+                type: "GET",
+                dataType: "json",
+                data: { businessId: businessId },
+                success: function(res) {
+                    businessDetailAuthLoadedFor = businessId;
+                    applyBusinessAuthSummary(res ? res.summary : null);
+                },
+                error: function(xhr) {
+                    let message = '비지니스 정보를 불러오지 못했습니다.';
+                    if (xhr && xhr.status === 404) {
+                        message = '해당 매장 정보를 찾을 수 없습니다.';
+                    }
+                    $('#businessAuthStatus')
+                        .addClass('is-error')
+                        .text(message);
+                },
+                complete: function() {
+                    businessDetailAuthLoading = false;
+                }
+            });
+        }
+
+        function showBusinessDetailTab(tabName) {
+            $('[data-detail-tab]').removeClass('is-active');
+            $('[data-detail-panel]').removeClass('is-active');
+            $('[data-detail-tab="' + tabName + '"]').addClass('is-active');
+            $('[data-detail-panel="' + tabName + '"]').addClass('is-active');
+
+            if (tabName !== 'auth') {
+                return;
+            }
+
+            const businessId = Number($('#businessDetailQrBtn').attr('data-business-id')) || 0;
+            if (!(businessId > 0)) {
+                $('#businessAuthStatus')
+                    .addClass('is-error')
+                    .text('매장 기본 정보를 먼저 확인해 주세요.');
+                return;
+            }
+
+            if (businessDetailAuthLoadedFor === businessId) {
+                return;
+            }
+
+            loadBusinessAuthSummary(businessId);
+        }
+
         function deleteBusiness(businessId) {
-            if (!confirm("??????쑴已??됰뮞?? ?????뤿뻻野껋쥙???뉙돱?")) return;
+            if (!confirm("정말로 비즈니스를 삭제하시겠습니까?")) return;
 
             $.ajax({
                 url: ctx + "/admin/store-info/delete",
@@ -1183,14 +1601,14 @@
                 data: { businessId: businessId },
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("?????뤿???щ빍??");
+                        alert("삭제되었습니다.");
                         loadAdminContent(ctx + "/admin/store-info");
                     } else {
-                        alert("??쎈솭??됰뮸??덈뼄.");
+                        alert("삭제에 실패했습니다.");
                     }
                 },
                 error: function(xhr) {
-                    alert("??뺤쒔 ???뻿 ?癒?쑎 (?꾨뗀諭? " + xhr.status + ")");
+                    alert("서버 통신 오류 (" + xhr.status + ")");
                 }
             });
         }
@@ -1219,142 +1637,147 @@
         function searchBusiness() { loadBusinessAdmin('business'); }
         function searchBusinessInquiry() { loadBusinessAdmin('inquiry'); }
 
-        function loadBusinessInquiryDetail(inquiryId, onSuccess) {
-            $.ajax({
-                url: ctx + "/admin/store-info/inquiry/detail",
-                type: "GET",
-                dataType: "json",
-                data: { inquiryId: inquiryId },
-                success: function(res) {
-                    if (res) onSuccess(res);
-                    else alert("?곗씠?곌? ?놁뒿?덈떎.");
-                },
-                error: function(xhr) {
-                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
-                }
-            });
-        }
 
-        function openBusinessModal(businessId) {
-            if ($('#businessForm').length === 0) return;
-            $('#businessForm')[0].reset();
-            $('#businessId').val("0");
-            $('#businessInquiryId').val("");
-            $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 留ㅼ옣 ?깅줉');
-            $("#businessSubmitBtn").text('저장');
-            if (!businessId) {
-                $('#businessModal').fadeIn(200);
-                return;
-            }
-            loadBusinessDetail(businessId, function(data) {
-                $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 매장 수정');
-                $('#businessSubmitBtn').text('수정');
-                $('#businessId').val(data.businessId || 0);
-                $('#businessUserId').val(data.userId || '');
-                $('#businessName').val(data.businessName || '');
-                $('#businessZipCode').val(data.zipCode || '');
-                $('#businessAddress').val(data.address || '');
-                $('#businessAddressDetail').val(data.addressDetail || '');
-                $('#businessPhone').val(data.phone || '');
-                $('#businessDescription').val(data.description || '');
-                $('#businessModal').fadeIn(200);
-            });
+function loadBusinessInquiryDetail(inquiryId, onSuccess) {
+    $.ajax({
+        url: ctx + "/admin/store-info/inquiry/detail",
+        type: "GET",
+        dataType: "json",
+        data: { inquiryId: inquiryId },
+        success: function(res) {
+            if (res) onSuccess(res);
+            else alert("문의 정보를 찾을 수 없습니다.");
+        },
+        error: function(xhr) {
+            alert("서버 통신 오류 (" + xhr.status + ")");
         }
+    });
+}
 
-        function openBusinessContractModal(inquiryId, userId) {
-            if ($('#businessForm').length === 0) return;
-            $('#businessForm')[0].reset();
-            $('#businessId').val("0");
-            $('#businessInquiryId').val(inquiryId || '');
-            $('#businessUserId').val(userId || '');
-            $('#business-inquiry-reject-' + inquiryId).prop('disabled', true);
-            $('#businessModalTitleText').html('<i class="fas fa-file-signature"></i> 계약 완료 등록');
-            $("#businessSubmitBtn").text('계약 저장');
-            loadBusinessInquiryDetail(inquiryId, function(data) {
-                console.log('business inquiry detail', data);
-                $('#businessName').val(data.title || '');
-                $('#businessZipCode').val(data.zipCode || '');
-                $('#businessAddress').val(data.address || '');
-                $('#businessAddressDetail').val(data.addressDetail || '');
-                $('#businessPhone').val(data.phone || '');
-                $('#businessDescription').val(data.content || '');
-                $('#businessModal').fadeIn(200);
-            });
-        }
+function openBusinessModal(businessId) {
+    if ($('#businessForm').length === 0) return;
+    $('#businessForm')[0].reset();
+    $('#businessId').val("0");
+    $('#businessInquiryId').val("");
+    $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 매장 등록');
+    $("#businessSubmitBtn").text('등록');
+    if (!businessId) {
+        $('#businessModal').fadeIn(200);
+        return;
+    }
+    loadBusinessDetail(businessId, function(data) {
+        $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 매장 수정');
+        $('#businessSubmitBtn').text('수정');
+        $('#businessId').val(data.businessId || 0);
+        $('#businessUserId').val(data.userId || '');
+        $('#businessName').val(data.businessName || '');
+        $('#businessZipCode').val(data.zipCode || '');
+        $('#businessAddress').val(data.address || '');
+        $('#businessAddressDetail').val(data.addressDetail || '');
+        $('#businessPhone').val(data.phone || '');
+        $('#businessDescription').val(data.description || '');
+        $('#businessModal').fadeIn(200);
+    });
+}
 
-        function closeBusinessModal() {
-            $('#businessModal').fadeOut(200);
-            setTimeout(function() {
-                if ($('#businessForm').length > 0) $('#businessForm')[0].reset();
-                $('#businessId').val("0");
-                $('#businessInquiryId').val("");
-                $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 留ㅼ옣 ?깅줉');
-                $("#businessSubmitBtn").text('저장');
-            }, 200);
-        }
+function openBusinessContractModal(inquiryId, userId) {
+    if ($('#businessForm').length === 0) return;
+    $('#businessForm')[0].reset();
+    $('#businessId').val("0");
+    $('#businessInquiryId').val(inquiryId || '');
+    $('#businessUserId').val(userId || '');
+    $('#business-inquiry-reject-' + inquiryId).prop('disabled', true);
+    $('#businessModalTitleText').html('<i class="fas fa-file-signature"></i> 계약 완료 등록');
+    $("#businessSubmitBtn").text('계약 등록');
+    loadBusinessInquiryDetail(inquiryId, function(data) {
+        console.log('business inquiry detail', data);
+        $('#businessName').val(data.title || '');
+        $('#businessZipCode').val(data.zipCode || '');
+        $('#businessAddress').val(data.address || '');
+        $('#businessAddressDetail').val(data.addressDetail || '');
+        $('#businessPhone').val(data.phone || '');
+        $('#businessDescription').val(data.content || '');
+        $('#businessModal').fadeIn(200);
+    });
+}
 
-        function submitBusiness() {
-            const inquiryId = $('#businessInquiryId').val() || '';
-            $.ajax({
-                url: ctx + "/admin/store-info/save",
-                type: "POST",
-                data: $('#businessForm').serialize(),
-                success: function(res) {
-                    if (res.trim() === "success") {
-                        if (inquiryId) {
-                            const $status = $('#business-inquiry-status-' + inquiryId);
-                            const $actions = $('#business-inquiry-actions-' + inquiryId);
-                            if ($status.length) {
-                                $status
-                                    .removeClass('PENDING IN_PROGRESS ANSWERED CLOSED')
-                                    .addClass('ANSWERED')
-                                    .text('ANSWERED');
-                            }
-                            if ($actions.length) {
-                                $actions.addClass('is-answered');
-                                $actions.html(
-                                    '<button type="button" class="adm-b-btn-view" onclick="viewBusinessInquiryDetail(' + inquiryId + ')">상세</button>'
-                                );
-                            }
-                        }
-                        closeBusinessModal();
-                        showBusinessTab('business');
-                        loadBusinessAdmin('business');
-                    } else {
-                        if (res.trim() === "fail:business_name_empty") {
-                            alert("매장명을 입력해 주세요.");
-                        } else if (res.trim() === "fail:zip_code_empty") {
-                            alert("우편번호를 입력해 주세요.");
-                        } else if (res.trim() === "fail:address_empty") {
-                            alert("주소를 입력해 주세요.");
-                        } else if (res.trim() === "fail:user_id_invalid") {
-                            alert("회원번호를 확인해 주세요.");
-                        } else {
-                            alert(res.trim());
-                        }
+function closeBusinessModal() {
+    $('#businessModal').fadeOut(200);
+    setTimeout(function() {
+        if ($('#businessForm').length > 0) $('#businessForm')[0].reset();
+        $('#businessId').val("0");
+        $('#businessInquiryId').val("");
+        $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 매장 등록');
+        $("#businessSubmitBtn").text('등록');
+    }, 200);
+}
+
+function submitBusiness() {
+    const inquiryId = $('#businessInquiryId').val() || '';
+    $.ajax({
+        url: ctx + "/admin/store-info/save",
+        type: "POST",
+        data: $('#businessForm').serialize(),
+        success: function(res) {
+            if (res.trim() === "success") {
+                if (inquiryId) {
+                    const $status = $('#business-inquiry-status-' + inquiryId);
+                    const $actions = $('#business-inquiry-actions-' + inquiryId);
+                    if ($status.length) {
+                        $status
+                            .removeClass('PENDING IN_PROGRESS ANSWERED CLOSED')
+                            .addClass('ANSWERED')
+                            .text('ANSWERED');
                     }
-                },
-                error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    if ($actions.length) {
+                        $actions.addClass('is-answered');
+                        $actions.html(
+                            '<button type="button" class="adm-b-btn-view" onclick="viewBusinessInquiryDetail(' + inquiryId + ')">상세</button>'
+                        );
+                    }
                 }
-            });
+                closeBusinessModal();
+                showBusinessTab('business');
+                loadBusinessAdmin('business');
+            } else {
+                if (res.trim() === "fail:business_name_empty") {
+                    alert("매장명을 입력해 주세요.");
+                } else if (res.trim() === "fail:zip_code_empty") {
+                    alert("우편번호를 입력해 주세요.");
+                } else if (res.trim() === "fail:address_empty") {
+                    alert("주소를 입력해 주세요.");
+                } else if (res.trim() === "fail:user_id_invalid") {
+                    alert("회원번호를 확인해 주세요.");
+                } else {
+                    alert(res.trim());
+                }
+            }
+        },
+        error: function(xhr) {
+            alert("서버 통신 오류 (" + xhr.status + ")");
         }
+    });
+}
 
-        function deleteBusiness(businessId) {
-            if (!confirm("매장을 삭제하시겠습니까?")) return;
-            $.ajax({
-                url: ctx + "/admin/store-info/delete",
-                type: "POST",
-                data: { businessId: businessId },
-                success: function(res) {
-                    if (res.trim() === "success") loadBusinessAdmin('business');
-                    else alert("??젣???ㅽ뙣?덉뒿?덈떎.");
-                },
-                error: function(xhr) {
-                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
-                }
-            });
+function deleteBusiness(businessId) {
+    if (!confirm("매장을 삭제하시겠습니까?")) return;
+    $.ajax({
+        url: ctx + "/admin/store-info/delete",
+        type: "POST",
+        data: { businessId: businessId },
+        success: function(res) {
+            if (res.trim() === "success") loadBusinessAdmin('business');
+            else alert("삭제에 실패했습니다.");
+        },
+        error: function(xhr) {
+            alert("서버 통신 오류 (" + xhr.status + ")");
         }
+    });
+}
+
+function deleteBusiness(businessId) {
+    alert('\uB9E4\uC7A5 \uC644\uC804\uC0AD\uC81C\uB294 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC6B4\uC601\uC911\uC9C0 \uB610\uB294 \uC6B4\uC601\uC7AC\uAC1C \uAE30\uB2A5\uC744 \uC0AC\uC6A9\uD574 \uC8FC\uC138\uC694.');
+}
 
         function viewBusinessInquiryDetail(inquiryId) {
             loadBusinessInquiryDetail(inquiryId, function(data) {
@@ -1366,6 +1789,301 @@
                 $('#detailInquiryCreatedAt').text(data.createdAt || '-');
                 $('#businessInquiryDetailModal').fadeIn(200);
             });
+        }
+
+        function resetBusinessQrModal() {
+            $('#businessQrStatus')
+                .removeClass('is-error')
+                .text('\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4.');
+            $('#businessQrBusinessName').text('-');
+            $('#businessQrLocationName').text('-');
+            $('#businessQrAddress').text('-');
+            $('#businessQrAuthKey').text('-');
+            $('#businessQrImage')
+                .removeClass('is-ready')
+                .attr('src', '');
+        }
+
+        function openBusinessQrModal() {
+            const businessId = Number($('#businessDetailQrBtn').attr('data-business-id')) || 0;
+            if (!(businessId > 0)) {
+                alert('\uB9E4\uC7A5 \uC0C1\uC138 \uC815\uBCF4\uB97C \uBA3C\uC800 \uD655\uC778\uD574 \uC8FC\uC138\uC694.');
+                return;
+            }
+
+            resetBusinessQrModal();
+            $('#businessQrModal').fadeIn(200);
+
+            $.ajax({
+                url: ctx + "/admin/store-info/qr",
+                type: "GET",
+                dataType: "json",
+                data: { businessId: businessId },
+                success: function(res) {
+                    if (!res || !res.imageUrl) {
+                        $('#businessQrStatus')
+                            .addClass('is-error')
+                            .text('\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+                        return;
+                    }
+
+                    const addressText = [res.address || '', res.addressDetail || '']
+                        .filter(function(value) { return !!value; })
+                        .join(' ');
+
+                    $('#businessQrStatus')
+                        .removeClass('is-error')
+                        .text('\uB9E4\uC7A5 \u0051\u0052 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.');
+                    $('#businessQrBusinessName').text(res.businessName || '-');
+                    $('#businessQrLocationName').text(res.locationName || '-');
+                    $('#businessQrAddress').text(addressText || '-');
+                    $('#businessQrAuthKey').text(res.qrAuthKey || '-');
+                    $('#businessQrImage')
+                        .addClass('is-ready')
+                        .attr('src', res.imageUrl + '&_ts=' + Date.now());
+                },
+                error: function(xhr) {
+                    let message = '\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+                    if (xhr && xhr.status === 404) {
+                        message = '\uD574\uB2F9 \uB9E4\uC7A5 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
+                    }
+                    $('#businessQrStatus')
+                        .addClass('is-error')
+                        .text(message);
+                }
+            });
+        }
+
+        function openBusinessQrModal() {
+            const businessId = Number($('#businessDetailQrBtn').attr('data-business-id')) || 0;
+            const operationStatus = normalizeBusinessOperationStatus($('#businessDetailQrBtn').attr('data-operation-status'));
+            if (!(businessId > 0)) {
+                alert('\uB9E4\uC7A5 \uC0C1\uC138 \uC815\uBCF4\uB97C \uBA3C\uC800 \uD655\uC778\uD574 \uC8FC\uC138\uC694.');
+                return;
+            }
+            if (operationStatus !== 'ACTIVE') {
+                alert(
+                    operationStatus === 'INACTIVE'
+                        ? '\uC6B4\uC601\uC911\uC9C0\uB41C \uB9E4\uC7A5\uC740 \u0051\u0052\uC744 \uBCFC \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.'
+                        : '\uB9E4\uC7A5 \uC6B4\uC601 \uC0C1\uD0DC\uB97C \uBA3C\uC800 \uD655\uC778\uD574 \uC8FC\uC138\uC694.'
+                );
+                return;
+            }
+
+            resetBusinessQrModal();
+            $('#businessQrModal').fadeIn(200);
+
+            $.ajax({
+                url: ctx + "/admin/store-info/qr",
+                type: "GET",
+                dataType: "json",
+                data: { businessId: businessId },
+                success: function(res) {
+                    if (!res || !res.imageUrl) {
+                        $('#businessQrStatus')
+                            .addClass('is-error')
+                            .text('\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+                        return;
+                    }
+
+                    if (res.active === false) {
+                        syncBusinessOperationUi('INACTIVE');
+                        $('#businessQrStatus')
+                            .addClass('is-error')
+                            .text('\uC6B4\uC601\uC911\uC9C0\uB41C \uB9E4\uC7A5\uC785\uB2C8\uB2E4. \u0051\u0052 \uC0AC\uC6A9 \uC804\uC5D0 \uBA3C\uC800 \uC6B4\uC601\uC744 \uC7AC\uAC1C\uD574 \uC8FC\uC138\uC694.');
+                        return;
+                    }
+
+                    const addressText = [res.address || '', res.addressDetail || '']
+                        .filter(function(value) { return !!value; })
+                        .join(' ');
+
+                    $('#businessQrStatus')
+                        .removeClass('is-error')
+                        .text('\uB9E4\uC7A5 \u0051\u0052 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.');
+                    $('#businessQrBusinessName').text(res.businessName || '-');
+                    $('#businessQrLocationName').text(res.locationName || '-');
+                    $('#businessQrAddress').text(addressText || '-');
+                    $('#businessQrAuthKey').text(res.qrAuthKey || '-');
+                    $('#businessQrImage')
+                        .addClass('is-ready')
+                        .attr('src', res.imageUrl + '&_ts=' + Date.now());
+                },
+                error: function(xhr) {
+                    let message = '\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    if (xhr && xhr.status === 404) {
+                        message = '\uD574\uB2F9 \uB9E4\uC7A5 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
+                    }
+                    $('#businessQrStatus')
+                        .addClass('is-error')
+                        .text(message);
+                }
+            });
+        }
+
+        function closeBusinessQrModal() {
+            $('#businessQrModal').fadeOut(200);
+            setTimeout(function() {
+                resetBusinessQrModal();
+            }, 200);
+        }
+
+        function printBusinessQr() {
+            const imageSrc = $('#businessQrImage').attr('src') || '';
+
+            if (!imageSrc || !$('#businessQrImage').hasClass('is-ready')) {
+                alert('\uCD9C\uB825\uD560 \u0051\u0052 \uC774\uBBF8\uC9C0\uAC00 \uC544\uC9C1 \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.');
+                return;
+            }
+
+            const printWindow = window.open('', 'businessQrPrint', 'width=900,height=900');
+            if (!printWindow) {
+                alert('\uD31D\uC5C5 \uCC28\uB2E8\uC73C\uB85C \uCD9C\uB825 \uCC3D\uC744 \uC5F4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+                return;
+            }
+
+            const absoluteImageSrc = (function() {
+                try {
+                    return new URL(imageSrc, window.location.origin).toString();
+                } catch (error) {
+                    return imageSrc;
+                }
+            })();
+            const escapedBusinessName = '';
+            const escapedLocationName = '';
+            const escapedAddress = '';
+            const escapedAuthKey = '';
+            const escapedImageSrc = escapeAdminHtml(absoluteImageSrc);
+
+            printWindow.document.open();
+            printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>매장 QR 출력</title>
+    <style>
+        @page {
+            size: auto;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .print-wrap {
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .print-title,
+        .print-meta {
+            display: none !important;
+        }
+        .print-card {
+            border: none;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+        }
+        .print-qr {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+        }
+        .print-qr img {
+            width: 360px;
+            height: 360px;
+            object-fit: contain;
+            border: none;
+            padding: 0;
+            box-sizing: border-box;
+            background: #ffffff;
+        }
+        .print-qr-only {
+            width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .print-qr-only img {
+            width: 360px;
+            height: 360px;
+            object-fit: contain;
+            background: #ffffff;
+        }
+        @media print {
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-qr-only">
+        <h1 class="print-title">매장 QR 코드</h1>
+        <div class="print-card">
+            <div class="print-qr">
+                <img id="printBusinessQrImage" src="${escapedImageSrc}" alt="매장 QR 코드" />
+            </div>
+            <div class="print-meta">
+                <div class="print-row">
+                    <div class="print-label">매장명</div>
+                    <div class="print-value">${escapedBusinessName}</div>
+                </div>
+                <div class="print-row">
+                    <div class="print-label">대표 장소명</div>
+                    <div class="print-value">${escapedLocationName}</div>
+                </div>
+                <div class="print-row">
+                    <div class="print-label">주소</div>
+                    <div class="print-value">${escapedAddress}</div>
+                </div>
+                <div class="print-row">
+                    <div class="print-label">인증키</div>
+                    <div class="print-value">${escapedAuthKey}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            const image = document.getElementById('printBusinessQrImage');
+            const doPrint = function() {
+                window.focus();
+                setTimeout(function() {
+                    window.print();
+                }, 150);
+            };
+
+            if (image && image.complete) {
+                doPrint();
+                return;
+            }
+
+            if (image) {
+                image.onload = doPrint;
+                image.onerror = doPrint;
+                return;
+            }
+
+            doPrint();
+        })();
+    <\/script>
+</body>
+</html>`);
+            printWindow.document.close();
         }
 
         function closeBusinessInquiryDetailModal() {
@@ -1438,7 +2156,7 @@
         }
 
         function deleteBusinessInquiry(inquiryId) {
-            if (!confirm("臾몄쓽湲????젣?섏떆寃좎뒿?덇퉴?")) return;
+            if (!confirm("문의글을 삭제하시겠습니까?")) return;
             $.ajax({
                 url: ctx + "/admin/store-info/inquiry/delete",
                 type: "POST",

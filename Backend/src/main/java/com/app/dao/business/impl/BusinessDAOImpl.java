@@ -36,6 +36,11 @@ public class BusinessDAOImpl implements BusinessDAO {
     }
 
     @Override
+    public Map<String, Object> getBusinessAuthSummary(int businessId) {
+        return sqlSessionTemplate.selectOne(NAMESPACE + ".getBusinessAuthSummary", businessId);
+    }
+
+    @Override
     public BusinessDashboardDTO getBusinessDashboardByBusinessId(int businessId) {
         return sqlSessionTemplate.selectOne(NAMESPACE + ".getBusinessDashboardByBusinessId", businessId);
     }

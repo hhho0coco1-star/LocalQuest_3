@@ -9,7 +9,6 @@ public class ReceiptDTO {
     private int receiptId;
     private int userId;
     private int userQuestProgressId;
-    private String category;
     private String verifyStatus;
     private String filePath;
     private String fileUploadName;

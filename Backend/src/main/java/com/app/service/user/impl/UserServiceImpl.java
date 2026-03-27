@@ -147,19 +147,30 @@ public class UserServiceImpl implements UserService{
 		}
 
 		UserNotificationSettingDTO existingSetting = pushDAO.findNotificationSettingByUserId(userId);
-		if (existingSetting != null) {
+		String agreeYn = marketingAgree ? "Y" : "N";
+
+		if (existingSetting == null) {
+			UserNotificationSettingDTO newSetting = new UserNotificationSettingDTO();
+			newSetting.setUserId(userId);
+			newSetting.setPushAgree(agreeYn);
+			newSetting.setMarketingAgree(agreeYn);
+			newSetting.setLunchPushAgree(agreeYn);
+			newSetting.setDinnerPushAgree(agreeYn);
+			newSetting.setWeekendPushAgree(agreeYn);
+			newSetting.setPreferredTimezone("Asia/Seoul");
+			pushDAO.insertNotificationSetting(newSetting);
 			return;
 		}
 
-		UserNotificationSettingDTO newSetting = new UserNotificationSettingDTO();
-		newSetting.setUserId(userId);
-		newSetting.setPushAgree("N");
-		newSetting.setMarketingAgree(marketingAgree ? "Y" : "N");
-		newSetting.setLunchPushAgree("N");
-		newSetting.setDinnerPushAgree("N");
-		newSetting.setWeekendPushAgree("N");
-		newSetting.setPreferredTimezone("Asia/Seoul");
-		pushDAO.insertNotificationSetting(newSetting);
+		existingSetting.setPushAgree(agreeYn);
+		existingSetting.setMarketingAgree(agreeYn);
+		existingSetting.setLunchPushAgree(agreeYn);
+		existingSetting.setDinnerPushAgree(agreeYn);
+		existingSetting.setWeekendPushAgree(agreeYn);
+		if (trimToEmpty(existingSetting.getPreferredTimezone()).isEmpty()) {
+			existingSetting.setPreferredTimezone("Asia/Seoul");
+		}
+		pushDAO.updateNotificationSetting(existingSetting);
 	}
 
 	@Override

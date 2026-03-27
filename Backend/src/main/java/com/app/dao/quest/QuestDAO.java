@@ -13,8 +13,6 @@ public interface QuestDAO {
 
     List<QuestDTO> selectAllQuests();
 
-    List<String> selectQuestCategories();
-
     List<QuestMapDTO> selectQuestMapList();
 
     List<QuestTopRatedDTO> selectTopRatedQuests(int limit);

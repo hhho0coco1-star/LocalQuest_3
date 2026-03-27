@@ -41,11 +41,6 @@ public class QuestDAOImpl implements QuestDAO {
     }
 
     @Override
-    public List<String> selectQuestCategories() {
-        return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestCategories");
-    }
-
-    @Override
     public List<QuestMapDTO> selectQuestMapList() {
         return sqlSessionTemplate.selectList(NAMESPACE + ".selectQuestMapList");
     }

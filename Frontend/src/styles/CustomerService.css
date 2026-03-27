@@ -1,4 +1,4 @@
-﻿.cs-main-container {
+.cs-main-container {
   max-width: 1000px;
   margin: 0 auto;
   padding: 40px 20px 100px;
@@ -240,23 +240,24 @@
   cursor: pointer;
 }
 
-.inquiry-preview-box {
-  margin-top: 24px;
-  padding: 20px 22px;
-  border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid #ececec;
+.inquiry-submit-btn:disabled,
+.inquiry-login-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
-.inquiry-preview-box h4 {
-  margin: 0 0 12px;
+.inquiry-status-message {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inquiry-status-message.is-error {
   color: #D93D5E;
 }
 
-.inquiry-preview-box p {
-  margin: 8px 0;
-  color: #444;
-  line-height: 1.6;
+.inquiry-status-message.is-success {
+  color: #1f7a4d;
 }
 
 .inquiry-login-guide {

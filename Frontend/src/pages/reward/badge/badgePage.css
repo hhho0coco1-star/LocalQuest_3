@@ -1,0 +1,136 @@
+.badge-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.badge-main {
+  width: min(1200px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 36px 0 48px;
+}
+
+.badge-main-head p {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: #94a3b8;
+  font-weight: 800;
+}
+
+.badge-main-head h1 {
+  margin: 10px 0 6px;
+  font-size: clamp(30px, 3.4vw, 42px);
+  line-height: 1.2;
+}
+
+.badge-main-head span {
+  display: block;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.badge-empty-box {
+  margin-top: 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.badge-grid {
+  margin-top: 20px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.badge-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.badge-card.is-earned {
+  border-color: #fda4af;
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.12);
+}
+
+.badge-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.badge-card-top strong {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.badge-card-top span {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badge-card.is-earned .badge-card-top span {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.badge-card p {
+  margin: 9px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.badge-card small {
+  display: block;
+  margin-top: 7px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.badge-card-foot {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 9px;
+}
+
+.badge-card-foot em {
+  font-style: normal;
+  font-size: 11px;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .badge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .badge-main {
+    width: min(1200px, calc(100% - 28px));
+    padding: 24px 0 36px;
+  }
+
+  .badge-grid {
+    grid-template-columns: 1fr;
+  }
+}

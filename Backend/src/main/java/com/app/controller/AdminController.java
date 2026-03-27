@@ -5,9 +5,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -20,14 +20,21 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.app.dto.business.BusinessDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
+import com.app.dto.inquiry.InquiryDTO;
+import com.app.dto.inquiry.InquiryStatus;
 import com.app.dto.location.LocationDTO;
+import com.app.dto.locationqr.BusinessQrInfoDTO;
+import com.app.dto.notice.NoticeDTO;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
 import com.app.service.businessinquiry.BusinessInquiryService;
+import com.app.service.inquiry.InquiryService;
 import com.app.service.location.LocationService;
+import com.app.service.locationqr.LocationQrService;
+import com.app.service.notice.NoticeService;
 import com.app.service.quest.QuestService;
 import com.app.service.reward.RewardItemService;
 import com.app.service.user.UserService;
@@ -58,13 +65,189 @@ public class AdminController {
 	@Autowired
 	private BusinessInquiryService businessInquiryService;
 
-	// 관리자 메인 ?�이지
+	@Autowired
+	private InquiryService inquiryService;
+
+	@Autowired
+	private LocationQrService locationQrService;
+
+	@Autowired
+	private NoticeService noticeService;
+
+	// 관리자 메인 페이지
 	@GetMapping("")
 	public String admin() {
 		return "admin/admin";
 	}
 	
-	// 1. ?�원 목록 조회 (?�렬 �?검???�합 권장)
+	// 1. 회원 목록 조회
+	@GetMapping("/notice")
+	public String noticeAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "pinned", required = false) Integer pinned,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    Integer normalizedPinned = (pinned != null && (pinned == 0 || pinned == 1)) ? pinned : null;
+	    List<NoticeDTO> noticeList = Collections.emptyList();
+	    String noticeLoadError = null;
+
+	    try {
+	        List<NoticeDTO> allNoticeList = noticeService.findNoticeList();
+	        if (allNoticeList == null || allNoticeList.isEmpty()) {
+	            noticeList = Collections.emptyList();
+	        } else {
+	            List<NoticeDTO> filteredNoticeList = new ArrayList<>();
+	            String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+	            for (NoticeDTO notice : allNoticeList) {
+	                if (notice == null) {
+	                    continue;
+	                }
+
+	                if (normalizedPinned != null && notice.getIsPinned() != normalizedPinned.intValue()) {
+	                    continue;
+	                }
+
+	                if (keywordLower != null) {
+	                    String title = notice.getTitle() == null ? "" : notice.getTitle();
+	                    String content = notice.getContent() == null ? "" : notice.getContent();
+	                    boolean matched = title.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || content.toLowerCase(Locale.ROOT).contains(keywordLower);
+
+	                    if (!matched) {
+	                        continue;
+	                    }
+	                }
+
+	                filteredNoticeList.add(notice);
+	            }
+
+	            noticeList = filteredNoticeList;
+	        }
+	    } catch (Exception e) {
+	        noticeLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("noticeList", noticeList);
+	    model.addAttribute("noticeLoadError", noticeLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentPinned", normalizedPinned);
+	    return "admin/admin-notice";
+	}
+
+	@GetMapping("/notice/detail")
+	@ResponseBody
+	public Map<String, Object> getNoticeDetailForAdmin(@RequestParam int noticeId) {
+	    NoticeDTO notice = noticeService.findNoticeById(noticeId);
+
+	    if (notice == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("noticeId", notice.getNoticeId());
+	    result.put("title", notice.getTitle());
+	    result.put("content", notice.getContent());
+	    result.put("viewCount", notice.getViewCount());
+	    result.put("isPinned", notice.getIsPinned());
+	    result.put("createdAt", notice.getCreatedAt() != null ? notice.getCreatedAt().toString() : null);
+	    return result;
+	}
+
+	// Admin QnA page
+	@GetMapping("/qna")
+	public String inquiryAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "status", required = false) String status,
+	        @RequestParam(value = "userId", required = false) Integer userId,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    String normalizedStatusCandidate = (status != null) ? status.trim() : null;
+	    String normalizedStatus = (normalizedStatusCandidate != null
+	            && InquiryStatus.ADMIN_SEARCH_STATUSES.contains(normalizedStatusCandidate))
+	            ? normalizedStatusCandidate
+	            : null;
+	    Integer normalizedUserId = (userId != null && userId > 0) ? userId : null;
+	    List<InquiryDTO> inquiryList = Collections.emptyList();
+	    String inquiryLoadError = null;
+	    Map<String, Object> inquiryParams = new HashMap<>();
+
+	    inquiryParams.put("keyword", normalizedKeyword);
+	    inquiryParams.put("status", normalizedStatus);
+	    inquiryParams.put("userId", normalizedUserId);
+
+	    try {
+	        inquiryList = inquiryService.findAdminInquiryList(inquiryParams);
+	    } catch (Exception e) {
+	        inquiryLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("statusOptions", InquiryStatus.ADMIN_SEARCH_STATUSES);
+	    model.addAttribute("inquiryList", inquiryList);
+	    model.addAttribute("inquiryLoadError", inquiryLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentStatus", normalizedStatus);
+	    model.addAttribute("currentUserId", normalizedUserId);
+	    return "admin/admin-qna-manage-v3";
+	}
+
+	@GetMapping("/qna/detail")
+	@ResponseBody
+	public Map<String, Object> getInquiryDetail(@RequestParam int inquiryId) {
+	    InquiryDTO inquiry = inquiryService.findInquiryById(inquiryId);
+
+	    if (inquiry == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("inquiryId", inquiry.getInquiryId());
+	    result.put("userId", inquiry.getUserId());
+	    result.put("title", inquiry.getTitle());
+	    result.put("content", inquiry.getContent());
+	    result.put("status", inquiry.getStatus());
+	    result.put("answerContent", inquiry.getAnswerContent());
+	    result.put("createdAt", inquiry.getCreatedAt() != null ? inquiry.getCreatedAt().toString() : null);
+	    result.put("answeredAt", inquiry.getAnsweredAt() != null ? inquiry.getAnsweredAt().toString() : null);
+	    return result;
+	}
+
+	@PostMapping("/qna/answer")
+	@ResponseBody
+	public String answerInquiry(@RequestParam int inquiryId, @RequestParam String answerContent) {
+	    String normalizedAnswerContent = answerContent == null ? "" : answerContent.trim();
+	    if (normalizedAnswerContent.isEmpty()) {
+	        return "fail:empty_answer";
+	    }
+
+	    InquiryDTO inquiry = new InquiryDTO();
+	    inquiry.setInquiryId(inquiryId);
+	    inquiry.setAnswerContent(normalizedAnswerContent);
+	    inquiry.setStatus(InquiryStatus.ANSWERED);
+
+	    try {
+	        int result = inquiryService.saveInquiryAnswer(inquiry);
+	        return result > 0 ? "success" : "fail";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "error";
+	    }
+	}
+
+	@PostMapping("/qna/delete")
+	@ResponseBody
+	public String deleteInquiry(@RequestParam int inquiryId) {
+	    try {
+	        int result = inquiryService.removeInquiry(inquiryId);
+	        return result > 0 ? "success" : "fail";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "error";
+	    }
+	}
+
 	@GetMapping("/users")
 	public String getUserList(
 	        @RequestParam(value="sort", defaultValue="DESC") String sort,
@@ -72,22 +255,22 @@ public class AdminController {
 	        @RequestParam(value="keyword", required=false) String keyword,
 	        Model model) {
 	    
-	    // Service?�서 ?�렬�?검?�을 ?�시??처리?�도�??�깁?�다.
+	    // Service에서 정렬과 검색을 함께 처리합니다.
 	    List<User> userList = userService.searchUsers(type, keyword, sort);
 	    model.addAttribute("userList", userList);
 	    
 	    return "admin/admin-user"; 
 	}
 
-	// 2. ?�원 검??(검?�어?� ?�렬값을 ?�께 ?�비?�로 ?�달)
+	// 2. 회원 검색
 	@GetMapping("/search")
 	public String searchUsers(
 	        @RequestParam("type") String type, 
 	        @RequestParam("keyword") String keyword, 
-	        @RequestParam(value="sort", defaultValue="DESC") String sort, // ?�렬 ?�라미터 추�?
+	        @RequestParam(value="sort", defaultValue="DESC") String sort, // 정렬 파라미터
 	        Model model) {
 	    
-	    // [?�정 ?�심] ?�제 ?�비??메서?�는 3개의 ?�자�?받습?�다.
+	    // 검색 메서드는 type, keyword, sort 세 가지 값을 받습니다.
 	    List<User> searchList = userService.searchUsers(type, keyword, sort);
 	    
 	    model.addAttribute("userList", searchList);
@@ -98,38 +281,38 @@ public class AdminController {
 	    return "admin/admin-user";
 	}
     
-    // ?�원?�보 ?�태 변�?관리자, 비니지?? ?�용??
+    // 회원 정보 권한 변경
     @PostMapping("/users/updateRole")
     @ResponseBody
     public String updateRole(@RequestParam int userId, @RequestParam String role) {
-        // 1. 마스??관리자 보호 (백엔??최종 방어)
+        // 1. 마스터 관리자 보호 (백엔드 최종 방어)
         if (userId == 1) {
             return "fail";
         }
         
         try {
-            // 2. ?�비???�출 결과�?변?�에 ?�습?�다.
+            // 서비스 호출 결과를 화면 응답으로 변환합니다.
             boolean isUpdated = userService.changeUserRole(userId, role);
             
-            // 3. ?�제 ?�데?�트 ?�공 ?��????�라 ?�답
+            // 실제 업데이트 결과에 따라 응답을 반환합니다.
             return isUpdated ? "success" : "fail";
         } catch (Exception e) {
-            e.printStackTrace(); // ?�러 로그 ?�인??
+            e.printStackTrace(); // 서버 로그 확인
             return "error";
         }
     }
     
-    // ?�원?�보 ?�태변�?
+    // 회원 상태 변경
     @PostMapping("/users/updateStatus")
     @ResponseBody
     public String updateStatus(@RequestParam int userId, @RequestParam String status) {
-        // 1. 마스??관리자 보호 (백엔??최종 방어)
+        // 1. 마스터 관리자 보호 (백엔드 최종 방어)
         if (userId == 1) {
             return "fail";
         }
         
         try {
-            // [?�정 ?�심] ?�비?�의 ?�라미터 ?�식(int, String)??맞춰???�출?�니??
+            // 서비스 메서드 시그니처(int, String)에 맞춰 호출합니다.
             boolean isUpdated = userService.changeUserStatus(userId, status); 
             
             return isUpdated ? "success" : "fail";
@@ -142,7 +325,7 @@ public class AdminController {
     // ================ Quest ================
     
     /**
-     * 1. ?�스??관�?메인 ?�이지 (?�체 목록 조회)
+     * 1. 퀘스트 관리 메인 페이지 (전체 목록 조회)
      */
     @GetMapping("/quests")
     public String questList(
@@ -150,13 +333,16 @@ public class AdminController {
         @RequestParam(value="keyword", required=false) String keyword,
         Model model) {
         
-        // 1. 검??조건??Map???�기
+        // 1. 검색 조건 정리
         String normalizedStatus = (status != null && !status.trim().isEmpty()) ? status.trim() : null;
         String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 
-        // 2. ?�합 ?�비???�출 
-        // (params가 비어?�으�?MyBatis ?�적 쿼리가 ?�체�?조회?�니??
+        // 2. 관리자 전체 목록을 조회한 뒤 필터링합니다.
+        // status/keyword가 비어 있으면 전체 목록을 보여줍니다.
         List<QuestDTO> questList;
+        List<QuestDTO> activeQuestList = Collections.emptyList();
+        List<QuestDTO> inactiveQuestList = Collections.emptyList();
+        List<QuestDTO> deletedQuestList = Collections.emptyList();
         String questLoadError = null;
         try {
             List<QuestDTO> allQuests = questService.getAdminQuestList();
@@ -164,6 +350,9 @@ public class AdminController {
                 questList = Collections.emptyList();
             } else {
                 List<QuestDTO> filteredQuestList = new ArrayList<>();
+                List<QuestDTO> groupedActiveQuestList = new ArrayList<>();
+                List<QuestDTO> groupedInactiveQuestList = new ArrayList<>();
+                List<QuestDTO> groupedDeletedQuestList = new ArrayList<>();
                 String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
 
                 for (QuestDTO quest : allQuests) {
@@ -171,11 +360,7 @@ public class AdminController {
                         continue;
                     }
 
-                    String questStatus = quest.getStatus();
-                    if (questStatus == null || questStatus.trim().isEmpty()) {
-                        questStatus = "ACTIVE";
-                        quest.setStatus(questStatus);
-                    }
+                    String questStatus = normalizeQuestStatus(quest);
 
                     if (normalizedStatus != null && !normalizedStatus.equalsIgnoreCase(questStatus)) {
                         continue;
@@ -189,39 +374,58 @@ public class AdminController {
                     }
 
                     filteredQuestList.add(quest);
+
+                    if ("DELETED".equalsIgnoreCase(questStatus)) {
+                        groupedDeletedQuestList.add(quest);
+                    } else if ("INACTIVE".equalsIgnoreCase(questStatus)) {
+                        groupedInactiveQuestList.add(quest);
+                    } else {
+                        groupedActiveQuestList.add(quest);
+                    }
                 }
 
                 questList = filteredQuestList;
+                activeQuestList = groupedActiveQuestList;
+                inactiveQuestList = groupedInactiveQuestList;
+                deletedQuestList = groupedDeletedQuestList;
             }
         } catch (Exception e) {
             e.printStackTrace();
             questList = java.util.Collections.emptyList();
-            questLoadError = "?�스??목록 조회 �??�류가 발생?�습?�다.";
+            questLoadError = "퀘스트 목록 조회 중 오류가 발생했습니다.";
         }
-        List<String> questCategoryList;
-        try {
-            questCategoryList = questService.getQuestCategories();
-            if (questCategoryList == null || questCategoryList.isEmpty()) {
-                questCategoryList = Arrays.asList("DAILY", "MAIN", "SUB", "EVENT");
-            }
-        } catch (Exception e) {
-            questCategoryList = Arrays.asList("DAILY", "MAIN", "SUB", "EVENT");
-        }
-        
         model.addAttribute("questList", questList);
-        model.addAttribute("questCategoryList", questCategoryList);
+        model.addAttribute("activeQuestList", activeQuestList);
+        model.addAttribute("inactiveQuestList", inactiveQuestList);
+        model.addAttribute("deletedQuestList", deletedQuestList);
+        model.addAttribute("activeQuestCount", activeQuestList.size());
+        model.addAttribute("inactiveQuestCount", inactiveQuestList.size());
+        model.addAttribute("deletedQuestCount", deletedQuestList.size());
         model.addAttribute("questLoadError", questLoadError);
         
-        // 3. 검??조건 ?��? (?�면 input/select 박스 ?�태 ?��???
+        // 3. 검색 조건 유지
         model.addAttribute("currentStatus", normalizedStatus);
         model.addAttribute("currentKeyword", normalizedKeyword);
         
         return "admin/admin-quest";
     }
+
+    private String normalizeQuestStatus(QuestDTO quest) {
+        if (quest == null || quest.getStatus() == null || quest.getStatus().trim().isEmpty()) {
+            if (quest != null) {
+                quest.setStatus("ACTIVE");
+            }
+            return "ACTIVE";
+        }
+
+        String normalizedStatus = quest.getStatus().trim().toUpperCase(Locale.ROOT);
+        quest.setStatus(normalizedStatus);
+        return normalizedStatus;
+    }
     /**
-     * 2. ?�스???�태 변�?(비동�?처리)
-     * @param questId 변경할 ?�스??번호
-     * @param status 변경할 ?�태 ('ACTIVE', 'INACTIVE', 'DELETED')
+     * 2. 퀘스트 상태 변경 (비동기 처리)
+     * @param questId 변경할 퀘스트 번호
+     * @param status 변경할 상태 ('ACTIVE', 'INACTIVE', 'DELETED')
      */
     @PostMapping("/quests/updateStatus")
     @ResponseBody
@@ -235,7 +439,56 @@ public class AdminController {
         }
     }
 
-    // 3. ?�스???�록 (관리자??
+    // 3. 퀘스트 등록
+    @GetMapping("/locations")
+    public String locationList(
+        @RequestParam(value = "keyword", required = false) String keyword,
+        @RequestParam(value = "category", required = false) String category,
+        Model model) {
+
+        String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        String normalizedCategory = (category != null && !category.trim().isEmpty()) ? category.trim().toUpperCase(Locale.ROOT) : null;
+
+        List<LocationDTO> locationList;
+        String locationLoadError = null;
+        try {
+            List<LocationDTO> allLocations = locationService.searchLocations(normalizedKeyword);
+            if (allLocations == null || allLocations.isEmpty()) {
+                locationList = Collections.emptyList();
+            } else if (normalizedCategory == null) {
+                locationList = allLocations;
+            } else {
+                List<LocationDTO> filteredLocationList = new ArrayList<>();
+                for (LocationDTO location : allLocations) {
+                    if (location == null) {
+                        continue;
+                    }
+
+                    String locationCategory = location.getLocationCategory() == null
+                        ? "VISIT"
+                        : location.getLocationCategory().trim().toUpperCase(Locale.ROOT);
+
+                    if (normalizedCategory.equals(locationCategory)) {
+                        filteredLocationList.add(location);
+                    }
+                }
+                locationList = filteredLocationList;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            locationList = Collections.emptyList();
+            locationLoadError = "장소 목록 조회 중 오류가 발생했습니다.";
+        }
+
+        model.addAttribute("locationList", locationList);
+        model.addAttribute("locationCount", locationList.size());
+        model.addAttribute("locationLoadError", locationLoadError);
+        model.addAttribute("currentKeyword", normalizedKeyword);
+        model.addAttribute("currentCategory", normalizedCategory);
+
+        return "admin/admin-location";
+    }
+
     @GetMapping("/locations/search")
     @ResponseBody
     public List<Map<String, Object>> searchLocations(
@@ -269,36 +522,61 @@ public class AdminController {
         }
     }
 
+    @PostMapping("/locations/save")
+    @ResponseBody
+    public String saveLocation(LocationDTO location) {
+        try {
+            if (location == null) {
+                return "fail:location_invalid";
+            }
+            if (location.getName() == null || location.getName().trim().isEmpty()) {
+                return "fail:location_name_empty";
+            }
+            if (location.getZipCode() == null || location.getZipCode().trim().isEmpty()) {
+                return "fail:zip_code_empty";
+            }
+            if (location.getAddress() == null || location.getAddress().trim().isEmpty()) {
+                return "fail:address_empty";
+            }
+            if (location.getLatitude() == null || location.getLongitude() == null) {
+                return "fail:coordinate_empty";
+            }
+            if (location.getLocationCategory() == null || location.getLocationCategory().trim().isEmpty()) {
+                return "fail:location_category_empty";
+            }
+
+            location.setBusinessId(null);
+            if (location.getLocationType() == null || location.getLocationType().trim().isEmpty()) {
+                location.setLocationType("QUEST_SPOT");
+            }
+            location.setLocationCategory(location.getLocationCategory().trim().toUpperCase(Locale.ROOT));
+
+            if (location.getLocationId() > 0) {
+                return locationService.updateLocation(location) == 1 ? "success" : "fail";
+            }
+
+            return locationService.saveLocation(location) == 1 ? "success" : "fail";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
     @PostMapping("/quests/register")
     @ResponseBody
     public String registerQuest(
         QuestDTO quest,
         @RequestParam(value = "locationsJson", required = false) String locationsJson) { 
         try {
-            // ?�이?��? ???�어?�는지 ?�버 콘솔?�서 ?�인 (?�버깅용)
-            System.out.println(">>> ?�스???�록 ?�청 ?�이?? " + quest);
+            // 요청 데이터 확인용 로그
+            System.out.println(">>> 퀘스트 등록 요청 데이터: " + quest);
             
-            // ?�수값이 비어?�는지 간단 체크 (?�버 �?검�?
+            // 필수값 검증
             if (quest.getTitle() == null || quest.getTitle().trim().isEmpty()) {
                 return "fail:title_empty";
             }
-            if (quest.getCategory() == null || quest.getCategory().trim().isEmpty()) {
-                return "fail:category_empty";
-            }
             if (quest.getDescription() == null || quest.getDescription().trim().isEmpty()) {
                 return "fail:description_empty";
-            }
-            List<String> questCategoryList = null;
-            try {
-                questCategoryList = questService.getQuestCategories();
-            } catch (Exception e) {
-                return "fail:category_table_missing";
-            }
-            if (questCategoryList == null || questCategoryList.isEmpty()) {
-                return "fail:category_not_ready";
-            }
-            if (!questCategoryList.contains(quest.getCategory())) {
-                return "fail:category_invalid";
             }
 
             List<QuestLocationInfoDTO> locations = parseQuestLocations(locationsJson);
@@ -312,11 +590,11 @@ public class AdminController {
 
             boolean isRegistered = questService.registerQuest(quest, locations);
             
-            // ?�공 ??반드??"success"�?반환?�도�?보장
+            // 성공 시에는 반드시 "success"를 반환합니다.
             return isRegistered ? "success" : "fail";
             
         } catch (Exception e) {
-            System.err.println("!!! ?�스???�록 �??�러 발생 !!!");
+            System.err.println("!!! 퀘스트 등록 중 서버 에러 발생 !!!");
             
             e.printStackTrace();
             if (isQuestLocationStorageUnavailable(e)) {
@@ -333,41 +611,26 @@ public class AdminController {
     }
     
     /**
-     * ?�스???�보 ?�정 처리 (Ajax)
+     * 퀘스트 정보 수정 처리 (Ajax)
      */
     @PostMapping("/quests/update")
-    @ResponseBody // Ajax ?�청???�??문자???�이?��? 직접 반환?�기 ?�해 ?�수!
+    @ResponseBody // Ajax 요청이므로 문자열을 직접 반환합니다.
     public String updateQuest(
         QuestDTO quest,
         @RequestParam(value = "locationsJson", required = false) String locationsJson) {
         try {
-            // 1. ?�어???�이??로그 ?�인 (?�버깅용)
-            System.out.println(">>> ?�스???�정 ?�청 ?�이?? " + quest);
+            // 요청 데이터 확인용 로그
+            System.out.println(">>> 퀘스트 수정 요청 데이터: " + quest);
 
-            // 2. ?�비???�출 (?�공 ??true 반환)
+            // 입력값 검증
             if (quest.getQuestId() <= 0) {
                 return "fail:invalid_id";
             }
             if (quest.getTitle() == null || quest.getTitle().trim().isEmpty()) {
                 return "fail:title_empty";
             }
-            if (quest.getCategory() == null || quest.getCategory().trim().isEmpty()) {
-                return "fail:category_empty";
-            }
             if (quest.getDescription() == null || quest.getDescription().trim().isEmpty()) {
                 return "fail:description_empty";
-            }
-            List<String> questCategoryList = null;
-            try {
-                questCategoryList = questService.getQuestCategories();
-            } catch (Exception e) {
-                return "fail:category_table_missing";
-            }
-            if (questCategoryList == null || questCategoryList.isEmpty()) {
-                return "fail:category_not_ready";
-            }
-            if (!questCategoryList.contains(quest.getCategory())) {
-                return "fail:category_invalid";
             }
 
             List<QuestLocationInfoDTO> locations = parseQuestLocations(locationsJson);
@@ -381,12 +644,12 @@ public class AdminController {
 
             boolean isUpdated = questService.updateQuest(quest, locations);
 
-            // 3. 결과 반환 (JS??res.trim() === "success"?� 매칭)
+            // 결과 반환
             return isUpdated ? "success" : "fail";
 
         } catch (Exception e) {
-            // ?�러 발생 ??콘솔??출력?�고 error 반환
-            System.err.println("!!! ?�스???�정 �??�버 ?�러 발생 !!!");
+            // 예외는 콘솔에 남기고 error를 반환합니다.
+            System.err.println("!!! 퀘스트 수정 중 서버 에러 발생 !!!");
             e.printStackTrace();
             if (isQuestLocationStorageUnavailable(e)) {
                 return "fail:location_tables_missing";
@@ -487,7 +750,7 @@ public class AdminController {
     // ================ Reward_Item ================
     
     /**
-     * 1. 리워???�이??목록 조회 (검??�??�터 ?�합)
+     * 1. 리워드 아이템 목록 조회 (검색/필터 통합)
      * URL: /admin/shop
      */
     @GetMapping("/shop")
@@ -500,19 +763,19 @@ public class AdminController {
         params.put("status", (status != null && !status.isEmpty()) ? status : null);
         params.put("keyword", (keyword != null && !keyword.isEmpty()) ? keyword : null);
 
-        // ?�비???�출
+        // 서비스 조회
         List<RewardItemDTO> itemList = rewardItemService.getSearchItems(params);
         model.addAttribute("itemList", itemList);
         
-        // ?�터 ?�태 ?��???
+        // 필터 상태 유지
         model.addAttribute("currentStatus", status);
         model.addAttribute("currentKeyword", keyword);
 
-        return "admin/admin-reward-item"; // admin-shop.jsp �??�동
+        return "admin/admin-reward-item"; // admin-shop.jsp로 이동
     }
 
     /**
-     * 2. ?�이???�록 �??�정 처리 (Ajax)
+     * 2. 리워드 아이템 저장/수정 처리 (Ajax)
      * URL: /admin/shop/save
      */
     @PostMapping("/shop/save")
@@ -520,7 +783,7 @@ public class AdminController {
     public String saveItem(RewardItemDTO item) {
         try {
             boolean result;
-            // PK??rewardItemId가 0?�면 ?�록, ?�니�??�정
+            // rewardItemId가 0이면 등록, 아니면 수정
             if (item.getRewardItemId() == 0) {
                 result = rewardItemService.registerItem(item);
             } else {
@@ -528,14 +791,14 @@ public class AdminController {
             }
             return result ? "success" : "fail";
         } catch (Exception e) {
-            System.err.println("!!! ?�점 ?�이???�??�??�러 발생 !!!");
+            System.err.println("!!! 상점 아이템 저장 중 서버 에러 발생 !!!");
             e.printStackTrace();
             return "error";
         }
     }
 
     /**
-     * 3. ?�이???�태 변�?(?�매�? ?�절, ?��?, ??�� ??Ajax)
+     * 3. 리워드 아이템 상태 변경 (Ajax)
      * URL: /admin/shop/updateStatus
      */
     @PostMapping("/shop/updateStatus")
@@ -553,7 +816,7 @@ public class AdminController {
     // ================ Business ================
     
     /**
-     * 1. 비즈?�스 목록 조회 �?관리자 ?�이지 진입
+     * 1. 비즈니스 목록 조회 및 관리자 페이지 진입
      */
     @GetMapping("/store-info")
     public String businessList(
@@ -580,6 +843,7 @@ public class AdminController {
 
         try {
             businessList = businessService.getBusinessList(businessParams);
+            populateBusinessOperationInfo(businessList);
         } catch (Exception e) {
             businessError = e.getClass().getSimpleName() + ": " + e.getMessage();
             e.printStackTrace();
@@ -604,7 +868,7 @@ public class AdminController {
     }
 
     /**
-     * 2. 비즈?�스 ?�세 조회 (Ajax)
+     * 2. 비즈니스 상세 조회 (Ajax)
      */
     @GetMapping("/store-info/detail")
     @ResponseBody
@@ -625,6 +889,9 @@ public class AdminController {
         result.put("phone", business.getPhone());
         result.put("description", business.getDescription());
         result.put("createdAt", business.getCreatedAt() != null ? business.getCreatedAt().toString() : null);
+        applyBusinessOperationInfo(business);
+        result.put("operationActive", business.getOperationActive());
+        result.put("operationStatus", business.getOperationStatus());
 
         return result;
     }
@@ -653,7 +920,7 @@ public class AdminController {
     }
 
     /**
-     * 3. 비즈?�스 ?�록/?�정 처리 (Ajax)
+     * 3. 비즈니스 등록/수정 처리 (Ajax)
      */
     @PostMapping("/store-info/save")
     @ResponseBody
@@ -686,7 +953,7 @@ public class AdminController {
 
             return result ? "success" : "fail";
         } catch (Exception e) {
-            System.err.println("!!! 비즈?�스 ?�??�??�러 발생 !!!");
+            System.err.println("!!! 비즈니스 저장 중 서버 에러 발생 !!!");
             e.printStackTrace();
             return "error";
         }
@@ -717,7 +984,7 @@ public class AdminController {
     }
 
     /**
-     * 4. 비즈?�스 ??�� 처리 (Ajax)
+     * 4. 비즈니스 삭제 처리 (Ajax)
      */
     @PostMapping("/store-info/delete")
     @ResponseBody
@@ -741,12 +1008,86 @@ public class AdminController {
             }
             return isDeleted ? "success" : "fail";
         } catch (Exception e) {
-            System.err.println("!!! 비즈?�스 ??�� �??�러 발생 !!!");
+            System.err.println("!!! 비즈니스 삭제 중 서버 에러 발생 !!!");
             e.printStackTrace();
             return "error";
         }
     }
-    
+
+    @PostMapping("/store-info/suspend")
+    @ResponseBody
+    public Map<String, Object> suspendBusinessOperation(@RequestParam int businessId) {
+        try {
+            BusinessQrInfoDTO qrInfo = locationQrService.suspendBusinessOperation(businessId);
+            return createBusinessOperationResponse("success", "Business operation suspended.", qrInfo);
+        } catch (NoSuchElementException e) {
+            return createBusinessOperationResponse("fail", e.getMessage(), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return createBusinessOperationResponse("error", "Failed to suspend business operation.", null);
+        }
+    }
+
+    @PostMapping("/store-info/resume")
+    @ResponseBody
+    public Map<String, Object> resumeBusinessOperation(@RequestParam int businessId) {
+        try {
+            BusinessQrInfoDTO qrInfo = locationQrService.resumeBusinessOperation(businessId);
+            return createBusinessOperationResponse("success", "Business operation resumed.", qrInfo);
+        } catch (NoSuchElementException e) {
+            return createBusinessOperationResponse("fail", e.getMessage(), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return createBusinessOperationResponse("error", "Failed to resume business operation.", null);
+        }
+    }
+
+    private void populateBusinessOperationInfo(List<BusinessDTO> businessList) {
+        if (businessList == null || businessList.isEmpty()) {
+            return;
+        }
+
+        for (BusinessDTO business : businessList) {
+            applyBusinessOperationInfo(business);
+        }
+    }
+
+    private void applyBusinessOperationInfo(BusinessDTO business) {
+        if (business == null) {
+            return;
+        }
+
+        try {
+            BusinessQrInfoDTO operationInfo = locationQrService.getBusinessOperationInfo(business.getBusinessId());
+            boolean active = operationInfo.isActive();
+            business.setOperationActive(active);
+            business.setOperationStatus(active ? "ACTIVE" : "INACTIVE");
+        } catch (Exception e) {
+            e.printStackTrace();
+            business.setOperationActive(null);
+            business.setOperationStatus("UNKNOWN");
+        }
+    }
+
+    private Map<String, Object> createBusinessOperationResponse(
+        String result,
+        String message,
+        BusinessQrInfoDTO qrInfo) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("result", result);
+        response.put("message", message);
+
+        if (qrInfo != null) {
+            response.put("businessId", qrInfo.getBusinessId());
+            response.put("locationId", qrInfo.getLocationId());
+            response.put("qrId", qrInfo.getQrId());
+            response.put("operationActive", qrInfo.isActive());
+            response.put("operationStatus", qrInfo.isActive() ? "ACTIVE" : "INACTIVE");
+        }
+
+        return response;
+    }
+
 }
 
 

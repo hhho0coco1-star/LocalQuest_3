@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.app.auth.SessionAuthKeys;
 import com.app.dto.questreview.QuestReviewDTO;
 import com.app.dto.questreview.QuestReviewListItemDTO;
+import com.app.dto.reward.RewardBadgeDTO;
 import com.app.service.questreview.QuestReviewService;
 
 @RestController
@@ -38,6 +39,24 @@ public class QuestReviewAPIController {
     public ResponseEntity<List<QuestReviewListItemDTO>> getQuestReviews(@PathVariable("questId") int questId) {
         try {
             return ResponseEntity.ok(questReviewService.getQuestReviewsByQuestId(questId));
+        } catch (Exception exception) {
+            if (isQuestReviewStorageUnavailable(exception)) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+            throw exception;
+        }
+    }
+
+    @GetMapping("/reviews/me")
+    public ResponseEntity<?> getMyQuestReviews(HttpSession session) {
+        Integer loginUserId = resolveLoginUserId(session);
+        if (loginUserId == null || loginUserId <= 0) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(messageBody("\uB85C\uADF8\uC778\uD55C\u0020\uC0AC\uC6A9\uC790\uB9CC\u0020\uB9AC\uBDF0\u0020\uBAA9\uB85D\uC744\u0020\uBCFC\u0020\uC218\u0020\uC788\uC2B5\uB2C8\uB2E4\u002E"));
+        }
+
+        try {
+            return ResponseEntity.ok(questReviewService.getQuestReviewsByUserId(loginUserId));
         } catch (Exception exception) {
             if (isQuestReviewStorageUnavailable(exception)) {
                 return ResponseEntity.ok(Collections.emptyList());
@@ -72,8 +91,13 @@ public class QuestReviewAPIController {
         questReview.setContent(content);
 
         try {
-            questReviewService.saveQuestReview(questReview);
-            return ResponseEntity.ok(messageBody("\uB9AC\uBDF0\uAC00\u0020\uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4\u002E"));
+            List<RewardBadgeDTO> newlyAwardedBadges = questReviewService.saveQuestReview(questReview);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("message", "\uB9AC\uBDF0\uAC00\u0020\uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4\u002E");
+            response.put("newlyAwardedBadges", newlyAwardedBadges);
+
+            return ResponseEntity.ok(response);
         } catch (DuplicateKeyException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(messageBody("\uC774\uBBF8\u0020\uD574\uB2F9\u0020\uD018\uC2A4\uD2B8\uC5D0\u0020\uB9AC\uBDF0\uB97C\u0020\uC791\uC131\uD588\uC2B5\uB2C8\uB2E4\u002E"));

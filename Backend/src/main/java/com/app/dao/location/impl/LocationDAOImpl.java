@@ -22,6 +22,11 @@ public class LocationDAOImpl implements LocationDAO {
     }
 
     @Override
+    public LocationDTO findRepresentativeLocationByBusinessId(int businessId) {
+        return sqlSessionTemplate.selectOne("location_mapper.findRepresentativeLocationByBusinessId", businessId);
+    }
+
+    @Override
     public int saveLocation(LocationDTO location) {
         try {
             return sqlSessionTemplate.insert("location_mapper.saveLocation", location);
@@ -34,11 +39,26 @@ public class LocationDAOImpl implements LocationDAO {
     }
 
     @Override
+    public int updateLocation(LocationDTO location) {
+        return sqlSessionTemplate.update("location_mapper.updateLocation", location);
+    }
+
+    @Override
+    public int updateRepresentativeLocation(LocationDTO location) {
+        return sqlSessionTemplate.update("location_mapper.updateRepresentativeLocation", location);
+    }
+
+    @Override
     public int deleteUnusedLocationsByIds(List<Integer> locationIds) {
         if (locationIds == null || locationIds.isEmpty()) {
             return 0;
         }
         return sqlSessionTemplate.delete("location_mapper.deleteUnusedLocationsByIds", locationIds);
+    }
+
+    @Override
+    public String findActiveQrAuthKeyByLocationId(int locationId) {
+        return sqlSessionTemplate.selectOne("location_mapper.findActiveQrAuthKeyByLocationId", locationId);
     }
 
     private boolean isLocationSequenceUnavailable(Throwable throwable) {

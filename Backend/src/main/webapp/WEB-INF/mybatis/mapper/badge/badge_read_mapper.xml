@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+		   "-//mybatis.org//DTD Mapper 3.0//EN"
+		   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="badge_read_mapper">
+
+	<select id="findBadgeCatalog" resultType="RewardBadgeDTO">
+		SELECT
+			BADGE_ID,
+			NAME,
+			DESCRIPTION,
+			CONDITION_TEXT,
+			ICON_URL,
+			CAST(NULL AS DATE) AS EARNED_AT
+		FROM LQ_BADGE
+		ORDER BY BADGE_ID ASC
+	</select>
+
+	<select id="findUserBadgesByNickname" parameterType="string" resultType="RewardBadgeDTO">
+		SELECT
+			B.BADGE_ID,
+			B.NAME,
+			B.DESCRIPTION,
+			B.CONDITION_TEXT,
+			B.ICON_URL,
+			UB.EARNED_AT
+		FROM LQ_USER_BADGE UB
+		INNER JOIN LQ_USER U
+			ON U.USER_ID = UB.USER_ID
+		INNER JOIN LQ_BADGE B
+			ON B.BADGE_ID = UB.BADGE_ID
+		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND U.NICKNAME = #{_parameter}
+		ORDER BY UB.EARNED_AT DESC, UB.USER_BADGE_ID DESC
+	</select>
+
+	<select id="findUserBadgesByUserId" parameterType="int" resultType="RewardBadgeDTO">
+		SELECT
+			B.BADGE_ID,
+			B.NAME,
+			B.DESCRIPTION,
+			B.CONDITION_TEXT,
+			B.ICON_URL,
+			UB.EARNED_AT
+		FROM LQ_USER_BADGE UB
+		INNER JOIN LQ_USER U
+			ON U.USER_ID = UB.USER_ID
+		INNER JOIN LQ_BADGE B
+			ON B.BADGE_ID = UB.BADGE_ID
+		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND UB.USER_ID = #{value}
+		ORDER BY UB.EARNED_AT DESC, UB.USER_BADGE_ID DESC
+	</select>
+
+</mapper>

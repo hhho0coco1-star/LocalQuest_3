@@ -21,6 +21,70 @@
     color: #ffffff;
 }
 
+.adm-q-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.adm-q-section {
+    padding: 22px;
+    border: 1px solid #323248;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(37, 37, 55, 0.96), rgba(26, 26, 39, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.adm-q-section-deleted {
+    border-color: rgba(241, 65, 108, 0.28);
+    background:
+        linear-gradient(180deg, rgba(58, 29, 39, 0.96), rgba(28, 21, 27, 0.98));
+}
+
+.adm-q-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.adm-q-section-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.adm-q-section-subtitle {
+    margin: 8px 0 0;
+    color: #9292af;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.adm-q-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(114, 57, 234, 0.18);
+    color: #d9c9ff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.adm-q-section-deleted .adm-q-section-count {
+    background: rgba(241, 65, 108, 0.18);
+    color: #ffb7c8;
+}
+
+.adm-q-section-empty {
+    margin: 0;
+}
+
 /* 그리드 레이아웃: 정확히 4개씩 배치 */
 .adm-q-grid {
     display: grid;
@@ -166,6 +230,88 @@
 .adm-q-card.INACTIVE {
     opacity: 0.6;
     filter: grayscale(0.5);
+}
+
+.adm-q-card.DELETED {
+    border-color: rgba(241, 65, 108, 0.28);
+    background:
+        linear-gradient(180deg, rgba(50, 30, 39, 0.96), rgba(35, 27, 33, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.adm-q-card.DELETED:hover {
+    transform: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.24);
+    border-color: rgba(241, 65, 108, 0.38);
+}
+
+.adm-q-card.DELETED::before {
+    content: "DELETED";
+    position: absolute;
+    top: 16px;
+    right: -32px;
+    width: 150px;
+    padding: 6px 0;
+    text-align: center;
+    background: rgba(241, 65, 108, 0.2);
+    color: rgba(255, 199, 212, 0.92);
+    border: 1px solid rgba(241, 65, 108, 0.28);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    transform: rotate(32deg);
+    pointer-events: none;
+}
+
+.adm-q-card.DELETED .adm-q-card-header {
+    background: rgba(241, 65, 108, 0.08);
+}
+
+.adm-q-card.DELETED .adm-q-category {
+    color: #ff9ab2;
+}
+
+.adm-q-card.DELETED .adm-q-status-badge {
+    background: rgba(241, 65, 108, 0.16);
+    color: #ffc7d4;
+    border: 1px solid rgba(241, 65, 108, 0.2);
+}
+
+.adm-q-card.DELETED .adm-q-card-title {
+    color: rgba(255, 255, 255, 0.76);
+    text-decoration: line-through;
+    text-decoration-color: rgba(241, 65, 108, 0.65);
+    text-decoration-thickness: 2px;
+}
+
+.adm-q-card.DELETED .adm-q-card-desc {
+    color: rgba(198, 176, 184, 0.82);
+}
+
+.adm-q-card.DELETED .adm-q-reward {
+    background: rgba(26, 19, 24, 0.9);
+    border-top-color: rgba(241, 65, 108, 0.14);
+}
+
+.adm-q-card.DELETED .reward-item {
+    color: rgba(218, 200, 206, 0.82);
+}
+
+.adm-q-card.DELETED .adm-q-card-footer {
+    background: rgba(39, 27, 33, 0.96);
+}
+
+.adm-q-card.DELETED .adm-q-card-footer button {
+    color: #ffb3c4;
+}
+
+.adm-q-card.DELETED .adm-q-card-footer button:hover {
+    background: rgba(80, 205, 137, 0.12);
+    color: #9df0be;
+}
+
+.adm-q-section .adm-q-grid {
+    padding: 0;
 }
 
 /* 모달 배경 */

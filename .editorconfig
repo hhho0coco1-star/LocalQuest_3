@@ -1,0 +1,6 @@
+root = true
+
+[*.{java,jsp,js,jsx,ts,tsx,css,xml,sql,md,properties,txt}]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true

@@ -1,24 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import QuestCard from '../../../components/quest/QuestCard';
 import { questApi } from '../../../api/QuestApi';
 import './QuestList.css';
 
-const ALL_FILTER = '전체';
-
-const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '제한 없음');
+const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '');
 
 const toQuestCardModel = (quest) => ({
   id: Number(quest.questId),
   title: quest.title,
   description: quest.description,
-  category: quest.category,
   difficultyKey: quest.rewardExp >= 300 ? 'hard' : quest.rewardExp >= 180 ? 'normal' : 'easy',
   difficultyLabel: quest.rewardExp >= 300 ? '어려움' : quest.rewardExp >= 180 ? '보통' : '쉬움',
-  location: '위치 정보 준비 중',
+  location: '',
   duration: formatDuration(quest.timeLimit),
-  reward: `${quest.rewardPoint}P`,
+  rewardPoint: `${quest.rewardPoint}P`,
+  rewardExp: `${quest.rewardExp} EXP`,
   status: quest.status,
 });
 
@@ -27,7 +25,8 @@ function QuestList() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [questList, setQuestList] = useState([]);
   const [acceptedQuestIds, setAcceptedQuestIds] = useState([]);
-  const [selectedFilter, setSelectedFilter] = useState(ALL_FILTER);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [acceptingQuestId, setAcceptingQuestId] = useState(null);
@@ -99,7 +98,7 @@ function QuestList() {
 
   const handleAcceptQuest = async (questId) => {
     if (!isAuthenticated) {
-      alert('로그인 후 퀘스트를 수락할 수 있습니다.');
+      alert('로그인해야 퀘스트를 수락할 수 있습니다.');
       navigate('/login');
       return;
     }
@@ -129,14 +128,33 @@ function QuestList() {
     }
   };
 
-  const filterOptions = [ALL_FILTER, ...new Set(questList.map((quest) => quest.category))];
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    setSearchKeyword(searchInput.trim());
+  };
+
+  const handleSearchReset = () => {
+    setSearchInput('');
+    setSearchKeyword('');
+  };
+
   const visibleQuestList = isAuthenticated
     ? questList.filter((quest) => !acceptedQuestIds.includes(Number(quest.id)))
     : questList;
-  const filteredQuestList =
-    selectedFilter === ALL_FILTER
-      ? visibleQuestList
-      : visibleQuestList.filter((quest) => quest.category === selectedFilter);
+
+  const searchedQuestList = useMemo(() => {
+    if (!searchKeyword) {
+      return visibleQuestList;
+    }
+
+    const normalizedKeyword = searchKeyword.toLowerCase();
+    return visibleQuestList.filter((quest) => {
+      const title = (quest.title || '').toLowerCase();
+      const description = (quest.description || '').toLowerCase();
+
+      return title.includes(normalizedKeyword) || description.includes(normalizedKeyword);
+    });
+  }, [searchKeyword, visibleQuestList]);
 
   return (
     <div className="quest-list-page">
@@ -144,30 +162,38 @@ function QuestList() {
         <section className="quest-list-hero">
           <div className="quest-list-hero-copy">
             <span className="quest-list-eyebrow">QUEST BOARD</span>
-            <h1>지금 참여할 수 있는 로컬 퀘스트를 확인해보세요.</h1>
+            <h1>지금 참여할 수 있는 퀘스트를 확인해보세요.</h1>
           </div>
 
           <div className="quest-list-summary-card">
-            <strong>{filteredQuestList.length}</strong>
+            <strong>{searchedQuestList.length}</strong>
             <span>진행 가능한 퀘스트</span>
           </div>
         </section>
 
         <section className="quest-list-toolbar">
-          <div>
-            <h2>{selectedFilter === ALL_FILTER ? '전체 퀘스트' : `${selectedFilter} 퀘스트`}</h2>
+          <div className="quest-list-toolbar-copy">
+            <h2>전체 퀘스트</h2>
+            <p>
+              {searchKeyword
+                ? `"${searchKeyword}" 검색 결과입니다.`
+                : '제목과 설명으로 원하는 퀘스트를 빠르게 찾아보세요.'}
+            </p>
           </div>
-          <div className="quest-list-filters">
-            {filterOptions.map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                className={selectedFilter === filter ? 'active' : ''}
-                onClick={() => setSelectedFilter(filter)}
-              >
-                {filter}
+          <div className="quest-list-toolbar-actions">
+            <form className="quest-list-search" onSubmit={handleSearchSubmit}>
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="퀘스트 검색"
+                aria-label="퀘스트 검색"
+              />
+              <button type="submit">검색</button>
+              <button type="button" className="ghost" onClick={handleSearchReset}>
+                초기화
               </button>
-            ))}
+            </form>
           </div>
         </section>
 
@@ -180,8 +206,8 @@ function QuestList() {
             <div className="quest-list-empty">
               <h3>{error}</h3>
             </div>
-          ) : filteredQuestList.length > 0 ? (
-            filteredQuestList.map((quest) => (
+          ) : searchedQuestList.length > 0 ? (
+            searchedQuestList.map((quest) => (
               <QuestCard
                 key={quest.id}
                 quest={quest}
@@ -194,7 +220,7 @@ function QuestList() {
           ) : (
             <div className="quest-list-empty">
               <h3>표시할 퀘스트가 없습니다.</h3>
-              <p>이미 수락했거나 완료한 퀘스트는 목록에서 숨겨집니다.</p>
+              <p>검색어를 바꿔서 다시 확인해보세요.</p>
             </div>
           )}
         </section>

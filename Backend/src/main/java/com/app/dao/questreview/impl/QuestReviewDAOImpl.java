@@ -34,6 +34,15 @@ public class QuestReviewDAOImpl implements QuestReviewDAO {
     }
 
     @Override
+    public List<QuestReviewListItemDTO> selectQuestReviewsByUserId(int userId) {
+        try {
+            return sqlSessionTemplate.selectList("questreview_mapper.selectQuestReviewsByUserId", userId);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
     public int updateQuestReview(QuestReviewDTO questReview) {
         return sqlSessionTemplate.update("questreview_mapper.updateQuestReview", questReview);
     }

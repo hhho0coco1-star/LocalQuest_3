@@ -12,6 +12,34 @@
         SELECT * FROM LQ_INQUIRY WHERE USER_ID = #{userId} ORDER BY CREATED_AT DESC
     </select>
 
+    <select id="getAdminInquiryList" parameterType="map" resultType="com.app.dto.inquiry.InquiryDTO">
+        SELECT
+            INQUIRY_ID AS inquiryId,
+            USER_ID AS userId,
+            TITLE AS title,
+            CONTENT AS content,
+            STATUS AS status,
+            ANSWER_CONTENT AS answerContent,
+            ANSWERED_AT AS answeredAt,
+            CREATED_AT AS createdAt
+        FROM LQ_INQUIRY
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    TITLE LIKE '%' || #{keyword} || '%'
+                    OR CONTENT LIKE '%' || #{keyword} || '%'
+                )
+            </if>
+            <if test="status != null and status != ''">
+                AND STATUS = #{status}
+            </if>
+            <if test="userId != null">
+                AND USER_ID = #{userId}
+            </if>
+        </where>
+        ORDER BY INQUIRY_ID DESC
+    </select>
+
     <select id="getInquiryById" resultType="com.app.dto.inquiry.InquiryDTO">
         SELECT * FROM LQ_INQUIRY WHERE INQUIRY_ID = #{inquiryId}
     </select>
@@ -19,6 +47,15 @@
     <update id="updateInquiry">
         UPDATE LQ_INQUIRY SET TITLE = #{title}, CONTENT = #{content}
         WHERE INQUIRY_ID = #{inquiryId} AND STATUS = 'PENDING'
+    </update>
+
+    <update id="saveInquiryAnswer">
+        UPDATE LQ_INQUIRY
+        SET ANSWER_CONTENT = #{answerContent},
+            ANSWERED_AT = SYSDATE,
+            STATUS = 'ANSWERED'
+        WHERE INQUIRY_ID = #{inquiryId}
+          AND STATUS IN ('PENDING', 'ANSWERED')
     </update>
 
     <delete id="deleteInquiry">

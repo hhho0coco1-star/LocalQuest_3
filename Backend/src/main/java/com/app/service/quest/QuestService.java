@@ -14,8 +14,6 @@ public interface QuestService {
 
     List<QuestDTO> getAllQuests();
 
-    List<String> getQuestCategories();
-
     List<QuestMapDTO> getQuestMapList();
 
     List<QuestTopRatedDTO> getTopRatedQuests(int limit);

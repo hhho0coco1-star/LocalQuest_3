@@ -61,11 +61,26 @@
 		WHERE USER_ID = #{userId}
 	</select>
 
+	<select id="getBusinessAuthSummary" parameterType="int" resultType="hashmap">
+		SELECT
+			#{businessId} AS "businessId",
+			COUNT(*) AS "totalAuthCount",
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS "qrAuthCount",
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS "receiptAuthCount",
+			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS "totalPaymentAmount",
+			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS "totalSettlementAmount",
+			TO_CHAR(MAX(CREATED_AT), 'YYYY-MM-DD HH24:MI') AS "lastAuthAt",
+			COUNT(DISTINCT USER_ID) AS "uniqueUserCount",
+			COUNT(DISTINCT LOCATION_ID) AS "uniqueLocationCount"
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
+	</select>
+
 	<select id="getBusinessDashboardByBusinessId" parameterType="int" resultType="BusinessDashboardDTO">
 		SELECT
 			COUNT(*) AS totalAuthCount,
-			SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END) AS qrAuthCount,
-			SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END) AS receiptAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS qrAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS receiptAuthCount,
 			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS totalPaymentAmount,
 			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS totalSettlementAmount,
 			MAX(CREATED_AT) AS lastAuthAt,
@@ -84,7 +99,6 @@
 		GROUP BY TO_CHAR(CREATED_AT, 'HH24')
 		ORDER BY TO_CHAR(CREATED_AT, 'HH24')
 	</select>
-
 	<insert id="saveBusiness" parameterType="BusinessDTO">
 		INSERT INTO LQ_BUSINESS (
 		business_id,

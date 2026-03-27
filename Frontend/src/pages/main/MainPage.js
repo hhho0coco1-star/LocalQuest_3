@@ -4,7 +4,10 @@ import { questApi } from '../../api/QuestApi';
 import './MainPage.css';
 
 const LOCATION_CONSENT_KEY = 'localquest_location_consent';
-const CHEONAN_CENTER = {
+const QUEST_SEARCH_RADIUS_METERS = 3000;
+const DEFAULT_MAP_LEVEL = 5;
+const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥로 215';
+const HUMAN_CENTER_FALLBACK = {
   lat: 36.81511,
   lng: 127.11389,
 };
@@ -55,16 +58,69 @@ function formatQuestRegion(source) {
   return source?.locationName || '천안 추천';
 }
 
+function calculateDistanceMeters(startLat, startLng, endLat, endLng) {
+  const toRadians = (value) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const latitudeDelta = toRadians(endLat - startLat);
+  const longitudeDelta = toRadians(endLng - startLng);
+  const startLatitudeInRadians = toRadians(startLat);
+  const endLatitudeInRadians = toRadians(endLat);
+
+  const haversineValue =
+    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
+    Math.cos(startLatitudeInRadians) *
+      Math.cos(endLatitudeInRadians) *
+      Math.sin(longitudeDelta / 2) *
+      Math.sin(longitudeDelta / 2);
+
+  const angularDistance = 2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
+  return earthRadius * angularDistance;
+}
+
+function filterQuestsWithinRadius(questList, center, radiusMeters = QUEST_SEARCH_RADIUS_METERS) {
+  if (!center) {
+    return [];
+  }
+
+  return questList.filter((quest) => {
+    if (!Number.isFinite(quest.latitude) || !Number.isFinite(quest.longitude)) {
+      return false;
+    }
+
+    return (
+      calculateDistanceMeters(center.lat, center.lng, quest.latitude, quest.longitude) <= radiusMeters
+    );
+  });
+}
+
+function buildRadiusMessage(center, questCount) {
+  if (!center) {
+    return '';
+  }
+
+  if (questCount > 0) {
+    return `${center.mode === 'current' ? '내 현재 위치 기준' : '지도 중심 기준'} 3km 내 퀘스트 ${questCount}개`;
+  }
+
+  if (center.mode === 'current') {
+    return '내 현재 위치 3km 내에 퀘스트가 없습니다. 지도를 이동해 다른 위치의 퀘스트를 탐색해보세요.';
+  }
+
+  return '현재 지도 중심 3km 내에 퀘스트가 없습니다. 지도를 더 이동해보세요.';
+}
+
 function MainPage() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRefs = useRef([]);
   const overlayRefs = useRef([]);
+  const currentLocationMarkerRef = useRef(null);
+  const searchCircleRef = useRef(null);
+  const skipNextIdleRef = useRef(false);
   const consentRef = useRef(false);
   const topQuestTrackRef = useRef(null);
   const topQuestDragRef = useRef({
     isPointerDown: false,
-    pointerId: null,
     startX: 0,
     startScrollLeft: 0,
     hasDragged: false,
@@ -81,6 +137,10 @@ function MainPage() {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingQuest, setPendingQuest] = useState(null);
   const [mapQuestList, setMapQuestList] = useState([]);
+  const [visibleQuestList, setVisibleQuestList] = useState([]);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [searchCenter, setSearchCenter] = useState(null);
+  const [radiusStatusMessage, setRadiusStatusMessage] = useState('');
   const [activeQuestId, setActiveQuestId] = useState(null);
   const [questLoadError, setQuestLoadError] = useState('');
   const [mapStatus, setMapStatus] = useState('idle');
@@ -198,9 +258,13 @@ function MainPage() {
         setQuestLoadError('');
         const response = await questApi.getQuestMapList();
         const nextQuestList = Array.isArray(response.data)
-          ? response.data.filter(
-              (quest) => Number.isFinite(quest.latitude) && Number.isFinite(quest.longitude)
-            )
+          ? response.data
+              .map((quest) => ({
+                ...quest,
+                latitude: Number(quest.latitude),
+                longitude: Number(quest.longitude),
+              }))
+              .filter((quest) => Number.isFinite(quest.latitude) && Number.isFinite(quest.longitude))
           : [];
 
         if (isCancelled) {
@@ -208,9 +272,6 @@ function MainPage() {
         }
 
         setMapQuestList(nextQuestList);
-        if (nextQuestList.length > 0) {
-          setActiveQuestId((prev) => prev || nextQuestList[0].questId);
-        }
       } catch (error) {
         if (!isCancelled) {
           setQuestLoadError('천안 퀘스트 위치를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
@@ -244,10 +305,13 @@ function MainPage() {
 
       mapRef.current.innerHTML = '';
 
-      const defaultPosition = new window.kakao.maps.LatLng(CHEONAN_CENTER.lat, CHEONAN_CENTER.lng);
+      const defaultPosition = new window.kakao.maps.LatLng(
+        HUMAN_CENTER_FALLBACK.lat,
+        HUMAN_CENTER_FALLBACK.lng
+      );
       const map = new window.kakao.maps.Map(mapRef.current, {
         center: defaultPosition,
-        level: 6,
+        level: DEFAULT_MAP_LEVEL,
       });
 
       mapInstanceRef.current = map;
@@ -328,7 +392,7 @@ function MainPage() {
       handleSdkReady();
     };
 
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false&libraries=services`;
     script.async = true;
     script.setAttribute('data-kakao-map-sdk', 'true');
     script.addEventListener('load', handleScriptLoad);
@@ -341,6 +405,137 @@ function MainPage() {
       script.removeEventListener('error', handleScriptError);
     };
   }, [kakaoMapKey]);
+
+  useEffect(() => {
+    if (mapStatus !== 'ready' || !mapInstanceRef.current || currentLocation || searchCenter) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    const map = mapInstanceRef.current;
+
+    const applyInitialCenter = (lat, lng, label = '현재 위치') => {
+      if (isCancelled || !window.kakao?.maps?.LatLng) {
+        return;
+      }
+
+      const nextCurrentLocation = {
+        lat,
+        lng,
+        label,
+      };
+
+      skipNextIdleRef.current = true;
+      map.setCenter(new window.kakao.maps.LatLng(lat, lng));
+      map.setLevel(DEFAULT_MAP_LEVEL);
+      setCurrentLocation(nextCurrentLocation);
+      setSearchCenter({
+        ...nextCurrentLocation,
+        mode: 'current',
+      });
+    };
+
+    const applyFallbackCenter = () => {
+      applyInitialCenter(HUMAN_CENTER_FALLBACK.lat, HUMAN_CENTER_FALLBACK.lng, HUMAN_CENTER_ADDRESS);
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (isCancelled) {
+            return;
+          }
+
+          applyInitialCenter(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          if (!isCancelled) {
+            applyFallbackCenter();
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000,
+        }
+      );
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    applyFallbackCenter();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentLocation, mapStatus, searchCenter]);
+
+  useEffect(() => {
+    if (!searchCenter) {
+      setVisibleQuestList([]);
+      setRadiusStatusMessage('');
+      return;
+    }
+
+    const nextVisibleQuestList = filterQuestsWithinRadius(mapQuestList, searchCenter);
+    setVisibleQuestList(nextVisibleQuestList);
+    setRadiusStatusMessage(buildRadiusMessage(searchCenter, nextVisibleQuestList.length));
+    setActiveQuestId((prev) => {
+      if (nextVisibleQuestList.some((quest) => quest.questId === prev)) {
+        return prev;
+      }
+
+      return nextVisibleQuestList[0]?.questId ?? null;
+    });
+  }, [mapQuestList, searchCenter]);
+
+  useEffect(() => {
+    if (mapStatus !== 'ready' || !mapInstanceRef.current || !window.kakao?.maps?.event) {
+      return undefined;
+    }
+
+    const map = mapInstanceRef.current;
+    const handleIdle = () => {
+      if (skipNextIdleRef.current) {
+        skipNextIdleRef.current = false;
+        return;
+      }
+
+      const center = map.getCenter();
+      if (!center) {
+        return;
+      }
+
+      const nextLat = center.getLat();
+      const nextLng = center.getLng();
+
+      setSearchCenter((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.lat - nextLat) < 0.00001 &&
+          Math.abs(prev.lng - nextLng) < 0.00001
+        ) {
+          return prev;
+        }
+
+        return {
+          lat: nextLat,
+          lng: nextLng,
+          mode: 'map',
+          label: 'map-center',
+        };
+      });
+    };
+
+    window.kakao.maps.event.addListener(map, 'idle', handleIdle);
+
+    return () => {
+      window.kakao.maps.event.removeListener(map, 'idle', handleIdle);
+    };
+  }, [mapStatus]);
+
   const openQuestPanel = useCallback((quest) => {
     setSelectedQuest(quest);
     setActivePanelTab('overview');
@@ -407,20 +602,18 @@ function MainPage() {
       return;
     }
 
-    if (event.pointerType === 'mouse' && event.button !== 0) {
+    if (event.button !== 0) {
       return;
     }
 
     topQuestDragRef.current = {
       isPointerDown: true,
-      pointerId: event.pointerId,
       startX: event.clientX,
       startScrollLeft: track.scrollLeft,
       hasDragged: false,
     };
 
     setIsTopQuestDragging(false);
-    track.setPointerCapture?.(event.pointerId);
   }, []);
 
   const handleTopQuestPointerMove = useCallback(
@@ -444,34 +637,23 @@ function MainPage() {
 
       track.scrollLeft = dragState.startScrollLeft - deltaX;
       updateTopQuestScrollState();
-      event.preventDefault();
     },
     [updateTopQuestScrollState]
   );
 
   const finishTopQuestDrag = useCallback(() => {
-    const track = topQuestTrackRef.current;
     const dragState = topQuestDragRef.current;
 
     if (!dragState.isPointerDown) {
       return;
     }
 
-    const didDrag = dragState.hasDragged;
-
-    if (track && dragState.pointerId !== null) {
-      try {
-        if (track.hasPointerCapture?.(dragState.pointerId)) {
-          track.releasePointerCapture(dragState.pointerId);
-        }
-      } catch (error) {
-        // Ignore capture release failures.
-      }
+    if (dragState.hasDragged) {
+      topQuestSuppressClickUntilRef.current = Date.now() + 220;
     }
 
     topQuestDragRef.current = {
       isPointerDown: false,
-      pointerId: null,
       startX: 0,
       startScrollLeft: 0,
       hasDragged: false,
@@ -479,22 +661,36 @@ function MainPage() {
 
     setIsTopQuestDragging(false);
     updateTopQuestScrollState();
-
-    if (didDrag) {
-      topQuestSuppressClickUntilRef.current = Date.now() + 180;
-    }
   }, [updateTopQuestScrollState]);
 
   const handleTopQuestCardClick = useCallback(
     (quest) => {
-      if (isTopQuestDragging || topQuestSuppressClickUntilRef.current > Date.now()) {
+      if (Date.now() < topQuestSuppressClickUntilRef.current) {
         return;
       }
 
-      handleQuestSelect(quest);
+      window.location.href = `/explore/${quest.questId}`;
     },
-    [handleQuestSelect, isTopQuestDragging]
+    []
   );
+
+  useEffect(() => {
+    const handleWindowMouseMove = (event) => {
+      handleTopQuestPointerMove(event);
+    };
+
+    const handleWindowMouseUp = () => {
+      finishTopQuestDrag();
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [finishTopQuestDrag, handleTopQuestPointerMove]);
 
   // 마커와 오버레이는 퀘스트 목록/선택 상태가 바뀔 때마다 다시 그린다.
   useEffect(() => {
@@ -508,19 +704,39 @@ function MainPage() {
     overlayRefs.current.forEach((overlay) => overlay.setMap(null));
     markerRefs.current = [];
     overlayRefs.current = [];
+    currentLocationMarkerRef.current?.setMap(null);
+    searchCircleRef.current?.setMap(null);
+    currentLocationMarkerRef.current = null;
+    searchCircleRef.current = null;
 
-    if (!mapQuestList.length) {
-      const center = new window.kakao.maps.LatLng(CHEONAN_CENTER.lat, CHEONAN_CENTER.lng);
-      map.setCenter(center);
-      map.setLevel(6);
-      return undefined;
+    if (currentLocation) {
+      const currentPosition = new window.kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+
+      currentLocationMarkerRef.current = new window.kakao.maps.Marker({
+        map,
+        position: currentPosition,
+        zIndex: 10,
+      });
     }
 
-    const bounds = new window.kakao.maps.LatLngBounds();
+    if (searchCenter) {
+      const centerPosition = new window.kakao.maps.LatLng(searchCenter.lat, searchCenter.lng);
 
-    mapQuestList.forEach((quest) => {
+      searchCircleRef.current = new window.kakao.maps.Circle({
+        center: centerPosition,
+        radius: QUEST_SEARCH_RADIUS_METERS,
+        strokeWeight: 2,
+        strokeColor: '#4f6ef7',
+        strokeOpacity: 0.8,
+        strokeStyle: 'dash',
+        fillColor: '#4f6ef7',
+        fillOpacity: 0.08,
+      });
+      searchCircleRef.current.setMap(map);
+    }
+
+    visibleQuestList.forEach((quest, index) => {
       const position = new window.kakao.maps.LatLng(quest.latitude, quest.longitude);
-      bounds.extend(position);
 
       const marker = new window.kakao.maps.Marker({
         map,
@@ -532,6 +748,8 @@ function MainPage() {
       const content = document.createElement('button');
       content.type = 'button';
       content.className = `map-quest-overlay-chip${activeQuestId === quest.questId ? ' is-active' : ''}`;
+      content.style.setProperty('--map-chip-bounce-delay', `${(index % 6) * 0.12}s`);
+      content.style.setProperty('--map-chip-bounce-duration', `${1.4 + (index % 4) * 0.12}s`);
 
       const title = document.createElement('strong');
       title.textContent = quest.title;
@@ -555,20 +773,17 @@ function MainPage() {
       window.kakao.maps.event.addListener(marker, 'click', () => handleQuestSelect(quest));
     });
 
-    if (mapQuestList.length === 1) {
-      map.setCenter(bounds.getCenter());
-      map.setLevel(4);
-    } else {
-      map.setBounds(bounds);
-    }
-
     return () => {
       markerRefs.current.forEach((marker) => marker.setMap(null));
       overlayRefs.current.forEach((overlay) => overlay.setMap(null));
       markerRefs.current = [];
       overlayRefs.current = [];
+      currentLocationMarkerRef.current?.setMap(null);
+      searchCircleRef.current?.setMap(null);
+      currentLocationMarkerRef.current = null;
+      searchCircleRef.current = null;
     };
-  }, [activeQuestId, handleQuestSelect, mapQuestList, mapStatus]);
+  }, [activeQuestId, currentLocation, handleQuestSelect, mapStatus, searchCenter, visibleQuestList]);
 
   // 상세 패널이 열리면 퀘스트 상세/리뷰를 함께 불러와서 탭 전환 시 즉시 보여준다.
   useEffect(() => {
@@ -662,12 +877,14 @@ function MainPage() {
           <div className="hero-copy">
             <span className="hero-chip">MISSION BASED O2O PLATFORM</span>
             <h1 className="hero-title">
-              <span className="hero-title-line">지루한 일상이</span>
-              <span className="hero-title-line accent">게임이 되는 순간</span>
+              <span className="hero-title-line">캐치프라이즈 매일 걷는</span>
+              <span className="hero-title-line accent">그 길이
+혜택이 되는 순간</span>
             </h1>
             <p className="hero-description">
-              단순한 방문이 아닙니다. GPS와 QR 인증을 통해 지역 곳곳에 숨겨진 퀘스트를 수행하고,
-              레벨을 높이며 당신만의 탐험 지도를 완성하세요.
+              오늘 뭐 먹지? 어디 갈까? 고민은 이제 그만.
+              내 동선 위 퀘스트를 수행하고, 즉시 쿠폰을 받으며
+              나만의 로컬 지도를 완성하세요.
             </p>
           </div>
 
@@ -692,6 +909,9 @@ function MainPage() {
           </div>
 
           {questLoadError ? <div className="map-quest-empty map-quest-status">{questLoadError}</div> : null}
+          {!questLoadError && radiusStatusMessage ? (
+            <div className="map-quest-empty map-quest-status">{radiusStatusMessage}</div>
+          ) : null}
         </section>
 
         <section className="hot-quest-section">
@@ -749,10 +969,7 @@ function MainPage() {
                   ref={topQuestTrackRef}
                   className={`hot-quest-track${isTopQuestDragging ? ' is-dragging' : ''}`}
                   onScroll={updateTopQuestScrollState}
-                  onPointerDown={handleTopQuestPointerDown}
-                  onPointerMove={handleTopQuestPointerMove}
-                  onPointerUp={finishTopQuestDrag}
-                  onPointerCancel={finishTopQuestDrag}
+                  onMouseDown={handleTopQuestPointerDown}
                 >
                   {topRatedQuests.map((quest, index) => (
                     <button
@@ -822,7 +1039,7 @@ function MainPage() {
               Local Quest 파트너가 되어 매장에 활기를 더하세요. 실방문객 중심의 마케팅 효과를 직접
               경험해보세요.
             </p>
-            <Link to="/business" className="partner-cta-btn">
+            <Link to="/inquiry" className="partner-cta-btn">
               비즈니스 상담 신청하기
             </Link>
           </div>
@@ -916,7 +1133,7 @@ function MainPage() {
                   </div>
 
                   <div className="quest-panel-action-row">
-                    <Link className="quest-panel-primary-link" to={`/quest/${selectedQuest.questId}`}>
+                    <Link className="quest-panel-primary-link" to={`/explore/${selectedQuest.questId}`}>
                       퀘스트 상세보기
                     </Link>
                   </div>

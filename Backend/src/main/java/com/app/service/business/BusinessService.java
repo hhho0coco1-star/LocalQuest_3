@@ -14,6 +14,8 @@ public interface BusinessService {
 
     public BusinessDTO getBusinessByUserId(int userId);
 
+    public Map<String, Object> getBusinessAuthSummary(int businessId);
+
     public BusinessDashboardDTO getBusinessDashboardByBusinessId(int businessId);
 
     public List<BusinessHourlyAuthDTO> getBusinessHourlyAuthCounts(int businessId);
