@@ -682,6 +682,116 @@
   transform: translateX(-50%) translateY(0);
 }
 
+.business-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(14, 26, 43, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.business-modal-box {
+  width: min(100%, 640px);
+  background: var(--b-white);
+  border: 1px solid var(--b-gray-200);
+  border-radius: 16px;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+  padding: 18px;
+}
+
+.business-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.business-modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--b-navy);
+}
+
+.business-modal-close {
+  border: 0;
+  border-radius: 8px;
+  background: var(--b-gray-100);
+  color: var(--b-gray-600);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.business-modal-form {
+  display: grid;
+  gap: 12px;
+}
+
+.business-modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.business-modal-field {
+  display: grid;
+  gap: 6px;
+}
+
+.business-modal-field span {
+  font-size: 12px;
+  color: var(--b-gray-600);
+  font-weight: 700;
+}
+
+.business-modal-field input,
+.business-modal-field textarea {
+  width: 100%;
+  border: 1px solid var(--b-gray-200);
+  border-radius: 10px;
+  font-size: 13px;
+  padding: 10px 11px;
+  color: var(--b-navy);
+  outline: none;
+  background: var(--b-white);
+}
+
+.business-modal-field input:focus,
+.business-modal-field textarea:focus {
+  border-color: var(--b-red);
+  box-shadow: 0 0 0 3px rgba(255, 56, 93, 0.12);
+}
+
+.business-modal-field textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.business-modal-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.business-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.business-modal-actions .business-btn-primary,
+.business-modal-actions .business-btn-outline {
+  margin-top: 0;
+}
+
 @media (max-width: 1024px) {
   .business-shell {
     max-width: calc(100% - 28px);
@@ -770,5 +880,14 @@
     width: calc(100% - 24px);
     white-space: normal;
     text-align: center;
+  }
+
+  .business-modal-box {
+    padding: 14px;
+  }
+
+  .business-modal-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
