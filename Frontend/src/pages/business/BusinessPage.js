@@ -1,5 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { businessApi } from '../../api/BusinessApi';
+import { resolveApiErrorMessage } from '../../utils/errorMessage';
 import BusinessTabNav from './components/BusinessTabNav';
+import BusinessUpdateModal from './components/BusinessUpdateModal';
 import CouponTab from './components/CouponTab';
 import HomeTab from './components/HomeTab';
 import QrTab from './components/QrTab';
@@ -12,6 +15,17 @@ import './BusinessPage.css';
 
 function BusinessPage() {
   const [activeTab, setActiveTab] = useState('home');
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isUpdateSaving, setIsUpdateSaving] = useState(false);
+  const [updateErrorMessage, setUpdateErrorMessage] = useState('');
+  const [updateForm, setUpdateForm] = useState({
+    businessName: '',
+    phone: '',
+    zipCode: '',
+    address: '',
+    addressDetail: '',
+    description: ''
+  });
   const { toastMessage, showToast } = useBusinessToast();
   const {
     loading,
@@ -23,14 +37,16 @@ function BusinessPage() {
     hasAuthHistory,
     chartBars,
     todayScanCount,
-    qrLink
+    todayQuestCompleteCount,
+    todayCouponUseCount,
+    qrLink,
+    reloadBusinessOverview
   } = useBusinessOverview();
   const {
     proposedCoupons,
     activeCoupons,
     proposedCouponCount,
     runningCouponCount,
-    weeklyCouponUseCount,
     acceptCoupon,
     holdCoupon,
     pauseCoupon,
@@ -78,6 +94,89 @@ function BusinessPage() {
 
   const headerDate = useMemo(() => formatHeaderDate(new Date()), []);
 
+  const openUpdateModal = useCallback(() => {
+    if (!business) {
+      showToast('등록된 매장 정보가 없습니다.');
+      return;
+    }
+
+    setUpdateForm({
+      businessName: business.businessName || '',
+      phone: business.phone || '',
+      zipCode: business.zipCode || '',
+      address: business.address || '',
+      addressDetail: business.addressDetail || '',
+      description: business.description || ''
+    });
+    setUpdateErrorMessage('');
+    setIsUpdateModalOpen(true);
+  }, [business, showToast]);
+
+  const closeUpdateModal = useCallback(() => {
+    if (isUpdateSaving) {
+      return;
+    }
+    setIsUpdateModalOpen(false);
+    setUpdateErrorMessage('');
+  }, [isUpdateSaving]);
+
+  const handleUpdateFieldChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setUpdateForm((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  }, []);
+
+  const handleSubmitUpdate = useCallback(async (event) => {
+    event.preventDefault();
+    if (isUpdateSaving) {
+      return;
+    }
+
+    const payload = {
+      businessName: updateForm.businessName.trim(),
+      phone: updateForm.phone.trim(),
+      zipCode: updateForm.zipCode.trim(),
+      address: updateForm.address.trim(),
+      addressDetail: updateForm.addressDetail.trim(),
+      description: updateForm.description.trim()
+    };
+
+    if (!payload.businessName) {
+      setUpdateErrorMessage('매장명을 입력해주세요.');
+      return;
+    }
+    if (!payload.zipCode) {
+      setUpdateErrorMessage('우편번호를 입력해주세요.');
+      return;
+    }
+    if (!payload.address) {
+      setUpdateErrorMessage('기본주소를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setIsUpdateSaving(true);
+      setUpdateErrorMessage('');
+      await businessApi.updateMyBusiness(payload);
+      await reloadBusinessOverview();
+      setIsUpdateModalOpen(false);
+      showToast('매장 정보가 수정되었습니다.');
+    } catch (error) {
+      const resolvedMessage = resolveApiErrorMessage(
+        error,
+        '매장 정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      );
+      const normalizedMessage = /<\s*html/i.test(resolvedMessage)
+        ? '서버가 현재 저장 요청 메서드를 처리하지 못했습니다. 백엔드 재시작 후 다시 시도해주세요.'
+        : resolvedMessage;
+      setUpdateErrorMessage(normalizedMessage);
+    } finally {
+      setIsUpdateSaving(false);
+    }
+  }, [isUpdateSaving, reloadBusinessOverview, showToast, updateForm]);
+
   return (
     <main className="business-page">
       <section className="business-shell">
@@ -105,16 +204,17 @@ function BusinessPage() {
             dashboardCards={dashboardCards}
             chartBars={chartBars}
             storeInfoRows={storeInfoRows}
-            onClickUpdateInfo={() => showToast('정보 업데이트 기능은 준비 중입니다.')}
+            onClickUpdateInfo={openUpdateModal}
           />
         )}
 
         {activeTab === 'qr' && (
           <QrTab
             business={business}
-            dashboard={dashboard}
+            totalAuthCount={dashboard?.totalAuthCount}
             todayScanCount={todayScanCount}
-            weeklyCouponUseCount={weeklyCouponUseCount}
+            todayQuestCompleteCount={todayQuestCompleteCount}
+            todayCouponUseCount={todayCouponUseCount}
             qrLink={qrLink}
             onDownloadQr={handleDownloadQr}
             onPrint={handlePrint}
@@ -138,6 +238,16 @@ function BusinessPage() {
       <div className={`business-toast ${toastMessage ? 'is-show' : ''}`} aria-live="polite">
         {toastMessage}
       </div>
+
+      <BusinessUpdateModal
+        isOpen={isUpdateModalOpen}
+        formState={updateForm}
+        isSaving={isUpdateSaving}
+        errorMessage={updateErrorMessage}
+        onFieldChange={handleUpdateFieldChange}
+        onClose={closeUpdateModal}
+        onSubmit={handleSubmitUpdate}
+      />
     </main>
   );
 }

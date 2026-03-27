@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { businessApi } from '../../../api/BusinessApi';
 import { EMPTY_DASHBOARD } from '../utils/businessConstants';
 import {
@@ -15,51 +15,35 @@ export function useBusinessOverview() {
   const [business, setBusiness] = useState(null);
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadBusinessOverview = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErrorMessage('');
 
-    const loadBusinessOverview = async () => {
-      try {
-        setLoading(true);
-        setErrorMessage('');
+      const response = await businessApi.getMyBusinessOverview();
+      const payload = response?.data || {};
 
-        const response = await businessApi.getMyBusinessOverview();
-        const payload = response?.data || {};
-
-        if (!isMounted) {
-          return;
-        }
-
-        setBusiness(payload.business || null);
-        setDashboard(payload.dashboard || EMPTY_DASHBOARD);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        const status = error?.response?.status;
-        if (status === 404) {
-          setErrorMessage('등록된 비즈니스 정보가 없습니다.');
-        } else {
-          const fallbackMessage = '비즈니스 정보를 불러오지 못했습니다.';
-          setErrorMessage(error?.response?.data?.message || fallbackMessage);
-        }
-
-        setBusiness(null);
-        setDashboard(EMPTY_DASHBOARD);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      setBusiness(payload.business || null);
+      setDashboard(payload.dashboard || EMPTY_DASHBOARD);
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 404) {
+        setErrorMessage('등록된 비즈니스 정보가 없습니다.');
+      } else {
+        const fallbackMessage = '비즈니스 정보를 불러오지 못했습니다.';
+        setErrorMessage(error?.response?.data?.message || fallbackMessage);
       }
-    };
 
-    loadBusinessOverview();
-
-    return () => {
-      isMounted = false;
-    };
+      setBusiness(null);
+      setDashboard(EMPTY_DASHBOARD);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadBusinessOverview();
+  }, [loadBusinessOverview]);
 
   const dashboardCards = useMemo(
     () => [
@@ -116,9 +100,27 @@ export function useBusinessOverview() {
   }, [dashboard.hourlyAuthCounts]);
 
   const todayScanCount = useMemo(
-    () => buildHourlySeries(dashboard.hourlyAuthCounts).reduce((sum, item) => sum + Number(item.authCount || 0), 0),
-    [dashboard.hourlyAuthCounts]
+    () => {
+      const fromDashboard = Number(dashboard.todayAuthCount || 0);
+      if (fromDashboard > 0) {
+        return fromDashboard;
+      }
+      return buildHourlySeries(dashboard.hourlyAuthCounts).reduce((sum, item) => sum + Number(item.authCount || 0), 0);
+    },
+    [dashboard.hourlyAuthCounts, dashboard.todayAuthCount]
   );
+
+  const todayQuestCompleteCount = useMemo(() => {
+    const fromDashboard = Number(dashboard.todayQrAuthCount || 0);
+    if (fromDashboard > 0) {
+      return fromDashboard;
+    }
+    return Number(dashboard.qrAuthCount || 0);
+  }, [dashboard.todayQrAuthCount, dashboard.qrAuthCount]);
+
+  const todayCouponUseCount = useMemo(() => {
+    return Number(dashboard.todayCouponUseCount || 0);
+  }, [dashboard.todayCouponUseCount]);
 
   const qrLink = useMemo(() => {
     const slug = (business?.businessName || 'localquest-store')
@@ -138,6 +140,9 @@ export function useBusinessOverview() {
     hasAuthHistory,
     chartBars,
     todayScanCount,
-    qrLink
+    todayQuestCompleteCount,
+    todayCouponUseCount,
+    qrLink,
+    reloadBusinessOverview: loadBusinessOverview
   };
 }

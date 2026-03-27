@@ -10,6 +10,9 @@ public class BusinessDashboardDTO {
     private long totalAuthCount;
     private long qrAuthCount;
     private long receiptAuthCount;
+    private long todayAuthCount;
+    private long todayQrAuthCount;
+    private long todayCouponUseCount;
     private long totalPaymentAmount;
     private long totalSettlementAmount;
     private LocalDateTime lastAuthAt;

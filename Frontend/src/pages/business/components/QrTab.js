@@ -3,9 +3,10 @@ import { formatDateOnly, formatNumber } from '../utils/businessUtils';
 
 function QrTab({
   business,
-  dashboard,
+  totalAuthCount,
   todayScanCount,
-  weeklyCouponUseCount,
+  todayQuestCompleteCount,
+  todayCouponUseCount,
   qrLink,
   onDownloadQr,
   onPrint
@@ -92,11 +93,11 @@ function QrTab({
                 <p>오늘 스캔</p>
               </div>
               <div className="business-mini-stat">
-                <strong>{formatNumber(dashboard.qrAuthCount)}</strong>
+                <strong>{formatNumber(todayQuestCompleteCount)}</strong>
                 <p>퀘스트 완료</p>
               </div>
               <div className="business-mini-stat">
-                <strong className="is-green">{formatNumber(weeklyCouponUseCount)}</strong>
+                <strong className="is-green">{formatNumber(todayCouponUseCount)}</strong>
                 <p>쿠폰 사용</p>
               </div>
             </div>
@@ -118,7 +119,7 @@ function QrTab({
             </div>
             <div className="business-info-row">
               <span className="business-info-label">누적 스캔</span>
-              <span className="business-info-value business-accent-red">{formatNumber(dashboard.totalAuthCount)}회</span>
+              <span className="business-info-value business-accent-red">{formatNumber(totalAuthCount)}회</span>
             </div>
             <div className="business-info-row">
               <span className="business-info-label">연결 URL</span>
