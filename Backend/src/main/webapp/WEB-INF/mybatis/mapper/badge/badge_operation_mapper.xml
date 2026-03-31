@@ -93,6 +93,11 @@
 			DESCRIPTION,
 			CONDITION_TEXT,
 			ICON_URL,
+			BADGE_CATEGORY,
+			BADGE_DIFFICULTY,
+			TRIGGER_TYPE,
+			DISPLAY_ORDER,
+			IS_ACTIVE,
 			CREATED_AT
 		) VALUES (
 			SEQ_LQ_BADGE_PK.NEXTVAL,
@@ -100,6 +105,11 @@
 			#{description},
 			#{conditionText},
 			#{iconUrl},
+			NVL(#{badgeCategory}, 'HABIT'),
+			NVL(#{badgeDifficulty}, 'EASY'),
+			NVL(#{triggerType}, 'QUEST_COMPLETE'),
+			NVL(#{displayOrder}, 0),
+			NVL(#{isActive}, 'Y'),
 			SYSDATE
 		)
 	</insert>

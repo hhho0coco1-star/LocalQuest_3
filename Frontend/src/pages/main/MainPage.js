@@ -69,9 +69,9 @@ function calculateDistanceMeters(startLat, startLng, endLat, endLng) {
   const haversineValue =
     Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
     Math.cos(startLatitudeInRadians) *
-      Math.cos(endLatitudeInRadians) *
-      Math.sin(longitudeDelta / 2) *
-      Math.sin(longitudeDelta / 2);
+    Math.cos(endLatitudeInRadians) *
+    Math.sin(longitudeDelta / 2) *
+    Math.sin(longitudeDelta / 2);
 
   const angularDistance = 2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
   return earthRadius * angularDistance;
@@ -259,12 +259,12 @@ function MainPage() {
         const response = await questApi.getQuestMapList();
         const nextQuestList = Array.isArray(response.data)
           ? response.data
-              .map((quest) => ({
-                ...quest,
-                latitude: Number(quest.latitude),
-                longitude: Number(quest.longitude),
-              }))
-              .filter((quest) => Number.isFinite(quest.latitude) && Number.isFinite(quest.longitude))
+            .map((quest) => ({
+              ...quest,
+              latitude: Number(quest.latitude),
+              longitude: Number(quest.longitude),
+            }))
+            .filter((quest) => Number.isFinite(quest.latitude) && Number.isFinite(quest.longitude))
           : [];
 
         if (isCancelled) {
@@ -852,8 +852,8 @@ function MainPage() {
   const reviewCount = questReviews.length;
   const reviewAverage = reviewCount
     ? (
-        questReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviewCount
-      ).toFixed(1)
+      questReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviewCount
+    ).toFixed(1)
     : '0.0';
   const panelQuest = questDetail ?? selectedQuest;
   const panelLocations = questDetail?.locations ?? [];
@@ -861,13 +861,13 @@ function MainPage() {
     panelLocations[0] ||
     (selectedQuest
       ? {
-          name: selectedQuest.locationName,
-          address: selectedQuest.address,
-          addressDetail: selectedQuest.addressDetail,
-          latitude: selectedQuest.latitude,
-          longitude: selectedQuest.longitude,
-          locationType: selectedQuest.locationType,
-        }
+        name: selectedQuest.locationName,
+        address: selectedQuest.address,
+        addressDetail: selectedQuest.addressDetail,
+        latitude: selectedQuest.latitude,
+        longitude: selectedQuest.longitude,
+        locationType: selectedQuest.locationType,
+      }
       : null);
 
   return (
@@ -877,9 +877,8 @@ function MainPage() {
           <div className="hero-copy">
             <span className="hero-chip">MISSION BASED O2O PLATFORM</span>
             <h1 className="hero-title">
-              <span className="hero-title-line">캐치프라이즈 매일 걷는</span>
-              <span className="hero-title-line accent">그 길이
-혜택이 되는 순간</span>
+              <span className="hero-title-line">매일 걷는 그 길이</span>
+              <span className="hero-title-line accent">혜택이 되는 순간</span>
             </h1>
             <p className="hero-description">
               오늘 뭐 먹지? 어디 갈까? 고민은 이제 그만.
@@ -965,41 +964,41 @@ function MainPage() {
                   >
                     &lt;
                   </button>
-                <div
-                  ref={topQuestTrackRef}
-                  className={`hot-quest-track${isTopQuestDragging ? ' is-dragging' : ''}`}
-                  onScroll={updateTopQuestScrollState}
-                  onMouseDown={handleTopQuestPointerDown}
-                >
-                  {topRatedQuests.map((quest, index) => (
-                    <button
-                      key={quest.questId}
-                      type="button"
-                      className="hot-quest-card"
-                      onClick={() => handleTopQuestCardClick(quest)}
-                    >
-                      <div className="hot-quest-card-top">
-                        <span className="hot-quest-rank">TOP {index + 1}</span>
-                        <span className="hot-quest-score">★ {Number(quest.reviewAverage || 0).toFixed(1)}</span>
-                      </div>
+                  <div
+                    ref={topQuestTrackRef}
+                    className={`hot-quest-track${isTopQuestDragging ? ' is-dragging' : ''}`}
+                    onScroll={updateTopQuestScrollState}
+                    onMouseDown={handleTopQuestPointerDown}
+                  >
+                    {topRatedQuests.map((quest, index) => (
+                      <button
+                        key={quest.questId}
+                        type="button"
+                        className="hot-quest-card"
+                        onClick={() => handleTopQuestCardClick(quest)}
+                      >
+                        <div className="hot-quest-card-top">
+                          <span className="hot-quest-rank">TOP {index + 1}</span>
+                          <span className="hot-quest-score">★ {Number(quest.reviewAverage || 0).toFixed(1)}</span>
+                        </div>
 
-                      <div className="hot-quest-card-main">
-                        <span className="hot-quest-region">{formatQuestRegion(quest)}</span>
-                        <strong>{quest.title}</strong>
-                        <p>{quest.description}</p>
-                      </div>
+                        <div className="hot-quest-card-main">
+                          <span className="hot-quest-region">{formatQuestRegion(quest)}</span>
+                          <strong>{quest.title}</strong>
+                          <p>{quest.description}</p>
+                        </div>
 
-                      <div className="hot-quest-card-meta">
-                        <span>{quest.category || 'QUEST'}</span>
-                        <span>리뷰 {quest.reviewCount}개</span>
-                      </div>
+                        <div className="hot-quest-card-meta">
+                          <span>{quest.category || 'QUEST'}</span>
+                          <span>리뷰 {quest.reviewCount}개</span>
+                        </div>
 
-                      <div className="hot-quest-card-location">
-                        {quest.locationName || formatQuestAddress(quest)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                        <div className="hot-quest-card-location">
+                          {quest.locationName || formatQuestAddress(quest)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     className="hot-quest-nav-btn hot-quest-nav-btn-side is-next"

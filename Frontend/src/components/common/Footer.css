@@ -400,6 +400,14 @@
   scrollbar-color: #e8eaed transparent;
 }
 
+.badge-dex-status {
+  margin: 24px 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .badge-dex-section-header {
   position: sticky;
   top: 0;

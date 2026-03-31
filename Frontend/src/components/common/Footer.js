@@ -3,97 +3,181 @@ import { Link } from 'react-router-dom';
 import LocalQuestLogo from './LocalQuestLogo';
 import { TERMS } from '../../data/termsData';
 import { rewardApi } from '../../api/RewardApi';
+import { badgeApi } from '../../api/BadgeApi';
 import './Footer.css';
 
 const BADGE_DEX_SECTIONS = [
   { id: 'habit', label: '습관형', summary: '퀘스트 완료' },
-  { id: 'explore', label: '탐험형', summary: '퀘스트 다양성' },
-  { id: 'complete', label: '완주형', summary: '리뷰 작성' },
+  { id: 'explore', label: '탐험형', summary: '장소 탐색' },
+  { id: 'complete', label: '완수형', summary: '리뷰 작성' },
   { id: 'benefit', label: '혜택형', summary: '리워드 교환' }
 ];
 
 const BADGE_DEX_FILTERS = [
-  { id: 'all', label: '전체 8종' },
-  { id: 'habit', label: '🔥 습관형' },
-  { id: 'explore', label: '🗺️ 탐험형' },
-  { id: 'benefit', label: '💸 혜택형' },
-  { id: 'complete', label: '✍️ 완주형' }
+  { id: 'all', label: '전체' },
+  { id: 'habit', label: '습관형' },
+  { id: 'explore', label: '탐험형' },
+  { id: 'benefit', label: '혜택형' },
+  { id: 'complete', label: '완수형' }
 ];
 
-const BADGE_DEX_ITEMS = [
-  {
-    code: 'B001',
-    section: 'habit',
-    icon: '🌱',
-    name: '첫 걸음',
-    condition: '퀘스트를 1회 완료하면 획득할 수 있어요.',
-    trigger: '퀘스트 완료 시 평가',
-    difficulty: 'easy'
-  },
-  {
-    code: 'B002',
-    section: 'habit',
-    icon: '🔥',
-    name: '꾸준한 탐험가',
-    condition: '퀘스트를 누적 5회 완료하면 획득할 수 있어요.',
-    trigger: '퀘스트 완료 시 평가',
-    difficulty: 'mid'
-  },
-  {
-    code: 'B003',
-    section: 'habit',
-    icon: '🏅',
-    name: '로컬 단골',
-    condition: '퀘스트를 누적 20회 완료하면 획득할 수 있어요.',
-    trigger: '퀘스트 완료 시 평가',
-    difficulty: 'hard'
-  },
-  {
-    code: 'B004',
-    section: 'explore',
-    icon: '🗺️',
-    name: '동네 탐험가',
-    condition: '서로 다른 종류의 퀘스트를 5종 완료하면 획득할 수 있어요.',
-    trigger: '퀘스트 완료 시 평가',
-    difficulty: 'mid'
-  },
-  {
-    code: 'B005',
-    section: 'complete',
-    icon: '✍️',
-    name: '첫 리뷰어',
-    condition: '리뷰를 1회 작성하면 획득할 수 있어요.',
-    trigger: '리뷰 등록 시 평가',
-    difficulty: 'easy'
-  },
-  {
-    code: 'B006',
-    section: 'complete',
-    icon: '⭐',
-    name: '신뢰 리뷰어',
-    condition: '리뷰를 누적 5회 작성하면 획득할 수 있어요.',
-    trigger: '리뷰 등록 시 평가',
-    difficulty: 'mid'
-  },
-  {
-    code: 'B007',
-    section: 'benefit',
-    icon: '🎁',
-    name: '첫 교환 달성',
-    condition: '리워드를 1회 교환하면 획득할 수 있어요.',
-    trigger: '리워드 교환 시 평가',
-    difficulty: 'easy'
-  },
-  {
-    code: 'B008',
-    section: 'benefit',
-    icon: '💎',
-    name: '포인트 마스터',
-    condition: '누적 사용 포인트가 3,000P를 달성하면 획득할 수 있어요.',
-    trigger: '리워드 교환 시 평가',
-    difficulty: 'hard'
-  }
+const BADGE_ICON_MAP = {
+  badge_first_step: '🎯',
+  badge_quest_runner: '🏃',
+  badge_local_regular: '🏆',
+  badge_local_explorer: '🧭',
+  badge_first_reviewer: '📝',
+  badge_trusted_reviewer: '✅',
+  badge_first_exchange: '🎁',
+  badge_exchange_runner: '🛍️',
+  badge_point_master: '💎'
+};
+
+const BADGE_META_BY_ICON_KEY = {
+  badge_first_step: { section: 'habit', trigger: '퀘스트 완료 시', difficulty: 'easy' },
+  badge_quest_runner: { section: 'habit', trigger: '퀘스트 완료 시', difficulty: 'mid' },
+  badge_local_regular: { section: 'habit', trigger: '퀘스트 완료 시', difficulty: 'hard' },
+  badge_local_explorer: { section: 'explore', trigger: '퀘스트 완료 시', difficulty: 'mid' },
+  badge_first_reviewer: { section: 'complete', trigger: '리뷰 등록 시', difficulty: 'easy' },
+  badge_trusted_reviewer: { section: 'complete', trigger: '리뷰 등록 시', difficulty: 'mid' },
+  badge_first_exchange: { section: 'benefit', trigger: '리워드 교환 시', difficulty: 'easy' },
+  badge_exchange_runner: { section: 'benefit', trigger: '리워드 교환 시', difficulty: 'mid' },
+  badge_point_master: { section: 'benefit', trigger: '리워드 교환 시', difficulty: 'hard' }
+};
+
+const BADGE_SECTION_TRIGGER_MAP = {
+  habit: '퀘스트 완료 시',
+  explore: '퀘스트 완료 시',
+  complete: '리뷰 등록 시',
+  benefit: '리워드 교환 시'
+};
+
+const BADGE_SECTION_FALLBACK_RULES = [
+  { section: 'benefit', keywords: ['교환', '포인트', '리워드', 'reward', 'coupon'] },
+  { section: 'complete', keywords: ['리뷰', 'review'] },
+  { section: 'explore', keywords: ['탐험', '장소', '방문', 'location', 'local'] },
+  { section: 'habit', keywords: ['퀘스트', 'quest'] }
 ];
+
+const toSafeText = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+};
+
+const pickBadgeValue = (badge, keys = []) => {
+  for (const key of keys) {
+    if (badge && badge[key] !== undefined && badge[key] !== null) {
+      return badge[key];
+    }
+  }
+  return '';
+};
+
+const toBadgeCode = (badgeId, index) => {
+  const numericBadgeId = Number(badgeId);
+  if (Number.isFinite(numericBadgeId) && numericBadgeId > 0) {
+    return `B${String(Math.trunc(numericBadgeId)).padStart(3, '0')}`;
+  }
+  return `B${String(index + 1).padStart(3, '0')}`;
+};
+
+const inferBadgeSection = (badge, iconKey) => {
+  const mappedSection = BADGE_META_BY_ICON_KEY[iconKey]?.section;
+  if (mappedSection) {
+    return mappedSection;
+  }
+
+  const searchableText = `${toSafeText(badge?.name)} ${toSafeText(badge?.description)} ${toSafeText(badge?.conditionText)}`.toLowerCase();
+  for (const rule of BADGE_SECTION_FALLBACK_RULES) {
+    if (rule.keywords.some((keyword) => searchableText.includes(keyword))) {
+      return rule.section;
+    }
+  }
+
+  return 'habit';
+};
+
+const toBadgeDifficultyByCondition = (conditionText) => {
+  const normalized = toSafeText(conditionText).replace(/,/g, '');
+  const thresholdMatch = normalized.match(/(\d+)/);
+  if (!thresholdMatch) {
+    return 'easy';
+  }
+
+  const threshold = Number(thresholdMatch[1]);
+  if (!Number.isFinite(threshold)) {
+    return 'easy';
+  }
+  if (threshold >= 20 || threshold >= 1000) {
+    return 'hard';
+  }
+  if (threshold >= 5) {
+    return 'mid';
+  }
+  return 'easy';
+};
+
+const normalizeBadgeCategory = (rawValue) => {
+  const normalized = toSafeText(rawValue).toLowerCase();
+  if (normalized === 'habit') return 'habit';
+  if (normalized === 'explore') return 'explore';
+  if (normalized === 'complete') return 'complete';
+  if (normalized === 'benefit') return 'benefit';
+  return '';
+};
+
+const normalizeBadgeDifficulty = (rawValue) => {
+  const normalized = toSafeText(rawValue).toLowerCase();
+  if (normalized === 'easy' || normalized === 'mid' || normalized === 'hard') {
+    return normalized;
+  }
+  return '';
+};
+
+const normalizeTriggerType = (rawValue) => {
+  const normalized = toSafeText(rawValue).toUpperCase();
+  if (normalized === 'QUEST_COMPLETE') return '퀘스트 완료 시';
+  if (normalized === 'REVIEW_CREATE') return '리뷰 등록 시';
+  if (normalized === 'REWARD_EXCHANGE') return '리워드 교환 시';
+  return '';
+};
+
+const normalizeBadgeDexItems = (rows) => {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+
+  return rows.map((badge, index) => {
+    const badgeCategory = pickBadgeValue(badge, ['badgeCategory', 'BADGE_CATEGORY', 'badge_category']);
+    const badgeDifficulty = pickBadgeValue(badge, ['badgeDifficulty', 'BADGE_DIFFICULTY', 'badge_difficulty']);
+    const triggerType = pickBadgeValue(badge, ['triggerType', 'TRIGGER_TYPE', 'trigger_type']);
+    const iconUrl = pickBadgeValue(badge, ['iconUrl', 'ICON_URL', 'icon_url']);
+    const badgeId = pickBadgeValue(badge, ['badgeId', 'BADGE_ID', 'badge_id']);
+    const badgeName = pickBadgeValue(badge, ['name', 'NAME']);
+    const conditionText = pickBadgeValue(badge, ['conditionText', 'CONDITION_TEXT', 'condition_text']);
+    const description = pickBadgeValue(badge, ['description', 'DESCRIPTION']);
+
+    const iconKey = toSafeText(iconUrl).toLowerCase();
+    const section = normalizeBadgeCategory(badgeCategory) || inferBadgeSection(badge, iconKey);
+    const meta = BADGE_META_BY_ICON_KEY[iconKey] ?? {};
+    const difficultyFromApi = normalizeBadgeDifficulty(badgeDifficulty);
+    const difficulty = difficultyFromApi
+      || (['easy', 'mid', 'hard'].includes(meta.difficulty) ? meta.difficulty : toBadgeDifficultyByCondition(conditionText));
+    const triggerFromApi = normalizeTriggerType(triggerType);
+
+    return {
+      code: toBadgeCode(badgeId, index),
+      section,
+      icon: BADGE_ICON_MAP[iconKey] ?? '🏅',
+      name: toSafeText(badgeName) || `배지 ${index + 1}`,
+      condition: toSafeText(conditionText) || toSafeText(description) || '조건 정보 없음',
+      trigger: triggerFromApi || meta.trigger || BADGE_SECTION_TRIGGER_MAP[section] || '조건 달성 시',
+      difficulty
+    };
+  });
+};
 
 const getDifficultyCount = (difficulty) => {
   if (difficulty === 'hard') return 3;
@@ -152,6 +236,9 @@ const Footer = () => {
   const [rankingErrorMessage, setRankingErrorMessage] = useState('');
   const [isBadgeDexOpen, setIsBadgeDexOpen] = useState(false);
   const [activeBadgeFilter, setActiveBadgeFilter] = useState('all');
+  const [badgeDexItems, setBadgeDexItems] = useState([]);
+  const [isBadgeDexLoading, setIsBadgeDexLoading] = useState(false);
+  const [badgeDexErrorMessage, setBadgeDexErrorMessage] = useState('');
 
   // --- [1. 페이지 경로 설정] ---
   const paths = {
@@ -265,13 +352,52 @@ const Footer = () => {
     };
   }, [isRankingModalOpen]);
 
-  const visibleBadgeItems = useMemo(() => {
-    if (activeBadgeFilter === 'all') {
-      return BADGE_DEX_ITEMS;
+  useEffect(() => {
+    if (!isBadgeDexOpen) {
+      return undefined;
     }
 
-    return BADGE_DEX_ITEMS.filter((item) => item.section === activeBadgeFilter);
-  }, [activeBadgeFilter]);
+    let isMounted = true;
+
+    const loadBadgeDex = async () => {
+      if (isMounted) {
+        setIsBadgeDexLoading(true);
+        setBadgeDexErrorMessage('');
+      }
+
+      try {
+        const response = await badgeApi.getBadgeCatalog();
+        if (!isMounted) {
+          return;
+        }
+
+        setBadgeDexItems(normalizeBadgeDexItems(response?.data));
+      } catch (error) {
+        console.error('배지 도감 조회 실패:', error);
+        if (isMounted) {
+          setBadgeDexErrorMessage('배지 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsBadgeDexLoading(false);
+        }
+      }
+    };
+
+    loadBadgeDex();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isBadgeDexOpen]);
+
+  const visibleBadgeItems = useMemo(() => {
+    if (activeBadgeFilter === 'all') {
+      return badgeDexItems;
+    }
+
+    return badgeDexItems.filter((item) => item.section === activeBadgeFilter);
+  }, [activeBadgeFilter, badgeDexItems]);
 
   return (
     <div>
@@ -437,55 +563,63 @@ const Footer = () => {
             </div>
 
             <div className="badge-dex-body">
-              {BADGE_DEX_SECTIONS.map((section) => {
-                const sectionItems = visibleBadgeItems.filter((item) => item.section === section.id);
-                if (sectionItems.length === 0) {
-                  return null;
-                }
+              {isBadgeDexLoading ? (
+                <p className="badge-dex-status">배지 정보를 불러오는 중입니다.</p>
+              ) : badgeDexErrorMessage ? (
+                <p className="badge-dex-status">{badgeDexErrorMessage}</p>
+              ) : visibleBadgeItems.length === 0 ? (
+                <p className="badge-dex-status">등록된 배지가 없습니다.</p>
+              ) : (
+                BADGE_DEX_SECTIONS.map((section) => {
+                  const sectionItems = visibleBadgeItems.filter((item) => item.section === section.id);
+                  if (sectionItems.length === 0) {
+                    return null;
+                  }
 
-                return (
-                  <section key={section.id} className="badge-dex-section">
-                    <header className={`badge-dex-section-header is-${section.id}`}>
-                      <div className="badge-dex-section-dot" />
-                      <strong>{section.label}</strong>
-                      <span>{`${section.summary} · ${sectionItems.length}종`}</span>
-                    </header>
+                  return (
+                    <section key={section.id} className="badge-dex-section">
+                      <header className={`badge-dex-section-header is-${section.id}`}>
+                        <div className="badge-dex-section-dot" />
+                        <strong>{section.label}</strong>
+                        <span>{`${section.summary} · ${sectionItems.length}종`}</span>
+                      </header>
 
-                    <div className="badge-dex-list">
-                      {sectionItems.map((item) => {
-                        const filledPips = getDifficultyCount(item.difficulty);
-                        return (
-                          <article key={item.code} className={`badge-dex-card is-${item.section}`}>
-                            <div className="badge-dex-icon" aria-hidden="true">{item.icon}</div>
-                            <div className="badge-dex-info">
-                              <div className="badge-dex-name-row">
-                                <strong className="badge-dex-name">{item.name}</strong>
-                                <span className="badge-dex-tag">{section.label}</span>
-                                <span className="badge-dex-code">{item.code}</span>
-                              </div>
-                              <p className="badge-dex-condition">{item.condition}</p>
-                              <div className="badge-dex-bottom">
-                                <span className="badge-dex-trigger">{item.trigger}</span>
-                                <div className="badge-dex-difficulty">
-                                  <span>난이도</span>
-                                  <div className="badge-dex-pips">
-                                    {Array.from({ length: 3 }, (_, index) => (
-                                      <span
-                                        key={`${item.code}-${index}`}
-                                        className={`badge-dex-pip ${index < filledPips ? `is-filled ${item.difficulty}` : ''}`.trim()}
-                                      />
-                                    ))}
+                      <div className="badge-dex-list">
+                        {sectionItems.map((item) => {
+                          const filledPips = getDifficultyCount(item.difficulty);
+                          return (
+                            <article key={item.code} className={`badge-dex-card is-${item.section}`}>
+                              <div className="badge-dex-icon" aria-hidden="true">{item.icon}</div>
+                              <div className="badge-dex-info">
+                                <div className="badge-dex-name-row">
+                                  <strong className="badge-dex-name">{item.name}</strong>
+                                  <span className="badge-dex-tag">{section.label}</span>
+                                  <span className="badge-dex-code">{item.code}</span>
+                                </div>
+                                <p className="badge-dex-condition">{item.condition}</p>
+                                <div className="badge-dex-bottom">
+                                  <span className="badge-dex-trigger">{item.trigger}</span>
+                                  <div className="badge-dex-difficulty">
+                                    <span>난이도</span>
+                                    <div className="badge-dex-pips">
+                                      {Array.from({ length: 3 }, (_, index) => (
+                                        <span
+                                          key={`${item.code}-${index}`}
+                                          className={`badge-dex-pip ${index < filledPips ? `is-filled ${item.difficulty}` : ''}`.trim()}
+                                        />
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })}
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })
+              )}
             </div>
           </section>
         </div>
