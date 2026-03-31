@@ -188,7 +188,7 @@ function MyQuest() {
         applyOverview(response);
       } catch (error) {
         if (!isCancelled) {
-          setErrorMessage('내 퀘스트 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+          setErrorMessage('내 퀘스트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
         }
       } finally {
         if (!isCancelled) {
@@ -398,9 +398,9 @@ function MyQuest() {
     const totalQuestCount = overview.ongoingCount + overview.completedCount;
 
     return [
-      `현재 내 퀘스트는 총 ${totalQuestCount}개입니다.`,
-      `진행 중인 퀘스트 ${overview.ongoingCount}개, 완료한 퀘스트 ${overview.completedCount}개를 확인할 수 있습니다.`,
-      `완료 보상 누적 포인트는 ${overview.totalRewardPoint.toLocaleString()}P입니다.`,
+      `내 퀘스트는 총 ${totalQuestCount}개입니다.`,
+      `진행 중 ${overview.ongoingCount}개, 완료 ${overview.completedCount}개를 확인할 수 있습니다.`,
+      `누적 보상은 ${overview.totalRewardPoint.toLocaleString()}P입니다.`,
     ];
   }, [overview.completedCount, overview.ongoingCount, overview.totalRewardPoint]);
 
@@ -410,7 +410,7 @@ function MyQuest() {
     return (
       <div className="my-quest-page">
         <div className="my-quest-main">
-          <div className="my-quest-feedback">내 퀘스트 정보를 불러오는 중입니다.</div>
+          <div className="my-quest-feedback">내 퀘스트를 불러오는 중입니다.</div>
         </div>
       </div>
     );
@@ -431,9 +431,7 @@ function MyQuest() {
       <div className="my-quest-main">
         <section className="my-quest-hero">
           <div className="my-quest-hero-copy">
-            <span className="my-quest-eyebrow">MY QUEST</span>
-            <h1>내가 진행 중인 퀘스트와 완료 기록을 한 번에 관리해보세요.</h1>
-            <p>현재 진행 상황과 보상, 완료 이력까지 한 화면에서 확인할 수 있도록 구성했습니다.</p>
+            <h1>내 퀘스트</h1>
           </div>
 
           <div className="my-quest-stat-grid">
@@ -447,7 +445,7 @@ function MyQuest() {
             </article>
             <article>
               <strong>{overview.totalRewardPoint.toLocaleString()}P</strong>
-              <span>완료 보상</span>
+              <span>누적 보상</span>
             </article>
           </div>
         </section>
@@ -456,7 +454,7 @@ function MyQuest() {
           <div className="my-quest-section">
             <div className="my-quest-section-heading">
               <h2>진행 중인 퀘스트</h2>
-              <p>수락한 퀘스트의 현재 진행 상태를 확인해보세요.</p>
+              <p>진행 중인 퀘스트를 한눈에 볼 수 있어요.</p>
             </div>
 
             <div className="my-quest-card-list">
@@ -479,7 +477,7 @@ function MyQuest() {
                       <strong>{quest.progressPercent}%</strong>
                     </div>
                     <div className="my-quest-card-meta">
-                      <span>보상 {quest.rewardPoint}P</span>
+                      <span>보상 {quest.rewardPoint}P · {quest.rewardExp}EXP</span>
                       {getQuestDueText(quest) ? <span>{getQuestDueText(quest)}</span> : null}
                     </div>
                     {quest.questStatus !== 'COMPLETED' ? (
@@ -492,7 +490,7 @@ function MyQuest() {
                         >
                           {cancelingUserQuestId === quest.userQuestId
                             ? '취소 처리 중...'
-                            : '퀘스트 취소하기'}
+                            : '퀘스트 취소'}
                         </button>
                         {Number(quest.totalLocationCount) > 0 &&
                         Number(quest.completedLocationCount) >= Number(quest.totalLocationCount) ? (
@@ -504,7 +502,7 @@ function MyQuest() {
                           >
                             {completingUserQuestId === quest.userQuestId
                               ? '완료 처리 중...'
-                              : '퀘스트 완료하기'}
+                              : '퀘스트 완료'}
                           </button>
                         ) : null}
                       </div>
@@ -512,7 +510,7 @@ function MyQuest() {
                   </article>
                 ))
               ) : (
-                <div className="my-quest-empty">아직 진행 중인 퀘스트가 없습니다.</div>
+                <div className="my-quest-empty">진행 중인 퀘스트가 없습니다.</div>
               )}
             </div>
           </div>
@@ -530,7 +528,7 @@ function MyQuest() {
         <section className="my-quest-history">
           <div className="my-quest-section-heading">
             <h2>완료한 퀘스트</h2>
-            <p>최근 완료한 퀘스트 기록입니다.</p>
+            <p>완료한 퀘스트 기록을 확인할 수 있습니다.</p>
           </div>
 
           <div className="my-quest-history-list">
@@ -549,7 +547,7 @@ function MyQuest() {
                     <span>
                       {quest.completedLocationCount}/{quest.totalLocationCount} 장소 완료
                     </span>
-                    <strong>{quest.rewardPoint}P</strong>
+                    <strong>{quest.rewardPoint}P · {quest.rewardExp}EXP</strong>
                   </div>
                   <div className="my-quest-history-actions">
                     <button
@@ -563,7 +561,7 @@ function MyQuest() {
                 </article>
               ))
             ) : (
-              <div className="my-quest-empty">아직 완료한 퀘스트가 없습니다.</div>
+              <div className="my-quest-empty">완료한 퀘스트가 없습니다.</div>
             )}
           </div>
         </section>
@@ -608,7 +606,7 @@ function MyQuest() {
                 name="content"
                 value={reviewForm.content}
                 onChange={handleReviewChange}
-                placeholder="완료한 퀘스트 경험을 남겨주세요."
+                placeholder="후기를 남겨주세요."
               />
 
               {reviewError ? <p className="my-quest-review-message is-error">{reviewError}</p> : null}
@@ -638,7 +636,7 @@ function MyQuest() {
                   disabled={isSubmittingReview}
                 >
                   {isSubmittingReview
-                    ? '처리 중...'
+                    ? '등록 중...'
                     : hasMyReview(reviewingQuest.questId)
                       ? '리뷰 수정'
                       : '리뷰 등록'}
