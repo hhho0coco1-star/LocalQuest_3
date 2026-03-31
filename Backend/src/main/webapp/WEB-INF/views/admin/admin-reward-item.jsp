@@ -35,7 +35,15 @@
             <div class="adm-q-card ${item.status}">
                 <div class="adm-q-card-header">
                     <span class="adm-q-category">ITEM</span>
-                    <span class="adm-q-status-badge">${item.status}</span>
+                    <span class="adm-q-status-badge ${item.status}">
+                        <c:choose>
+                            <c:when test="${item.status == 'ON_SALE'}">판매중</c:when>
+                            <c:when test="${item.status == 'SOLD_OUT'}">품절</c:when>
+                            <c:when test="${item.status == 'HIDDEN'}">숨김</c:when>
+                            <c:when test="${item.status == 'DELETED'}">삭제됨</c:when>
+                            <c:otherwise>${item.status}</c:otherwise>
+                        </c:choose>
+                    </span>
                 </div>
                 
                 <div class="adm-q-card-body" 

@@ -11,5 +11,10 @@ public class BadgeDTO {
     private String description;
     private String conditionText;
     private String iconUrl;
+    private String badgeCategory;
+    private String badgeDifficulty;
+    private String triggerType;
+    private Integer displayOrder;
+    private String isActive;
     private LocalDateTime createdAt;
 }

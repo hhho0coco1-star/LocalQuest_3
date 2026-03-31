@@ -122,6 +122,23 @@
         padding: 22px;
     }
 
+    #locationModal #locationForm {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        flex: 1 1 auto;
+    }
+
+    #locationModal .adm-l-modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    #locationModal .adm-l-modal-footer {
+        flex-shrink: 0;
+    }
+
     .adm-l-form-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -270,7 +287,14 @@
                         <c:forEach var="location" items="${locationList}">
                             <div class="adm-q-card">
                                 <div class="adm-q-card-header">
-                                    <span class="adm-q-status-badge">${empty location.locationCategory ? 'VISIT' : location.locationCategory}</span>
+                                    <span class="adm-q-status-badge ${empty location.locationCategory ? 'VISIT' : location.locationCategory}">
+                                        <c:choose>
+                                            <c:when test="${empty location.locationCategory or location.locationCategory == 'VISIT'}">방문형</c:when>
+                                            <c:when test="${location.locationCategory == 'EXPERIENCE'}">체험형</c:when>
+                                            <c:when test="${location.locationCategory == 'PURCHASE'}">구매형</c:when>
+                                            <c:otherwise>${location.locationCategory}</c:otherwise>
+                                        </c:choose>
+                                    </span>
                                 </div>
 
                                 <div class="adm-q-card-body"
@@ -309,10 +333,25 @@
                                     <div class="adm-l-card-meta">
                                         <span class="adm-l-chip"><i class="fas fa-hashtag"></i> ${location.locationId}</span>
                                         <c:if test="${not empty location.locationType}">
-                                            <span class="adm-l-chip"><i class="fas fa-layer-group"></i> ${location.locationType}</span>
+                                            <span class="adm-l-chip">
+                                                <i class="fas fa-layer-group"></i>
+                                                <c:choose>
+                                                    <c:when test="${location.locationType == 'QUEST_SPOT'}">퀘스트 장소</c:when>
+                                                    <c:when test="${location.locationType == 'BUSINESS_STORE'}">사업장</c:when>
+                                                    <c:otherwise>${location.locationType}</c:otherwise>
+                                                </c:choose>
+                                            </span>
                                         </c:if>
                                         <c:if test="${not empty location.locationCategory}">
-                                            <span class="adm-l-chip"><i class="fas fa-tag"></i> ${location.locationCategory}</span>
+                                            <span class="adm-l-chip">
+                                                <i class="fas fa-tag"></i>
+                                                <c:choose>
+                                                    <c:when test="${location.locationCategory == 'VISIT'}">방문형</c:when>
+                                                    <c:when test="${location.locationCategory == 'EXPERIENCE'}">체험형</c:when>
+                                                    <c:when test="${location.locationCategory == 'PURCHASE'}">구매형</c:when>
+                                                    <c:otherwise>${location.locationCategory}</c:otherwise>
+                                                </c:choose>
+                                            </span>
                                         </c:if>
                                         <c:if test="${location.businessId != null}">
                                             <span class="adm-l-chip"><i class="fas fa-store"></i> 사업장 ${location.businessId}</span>

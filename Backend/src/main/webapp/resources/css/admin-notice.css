@@ -333,7 +333,7 @@
   margin: 0;
   padding: 14px 16px;
   border-bottom: 1px solid #313754;
-  color: #ffffff;
+  color: var(--admin-text, #172033);
   font-size: 15px;
 }
 
@@ -363,7 +363,7 @@
 }
 
 .adm-n-input-group label {
-  color: #dce1f4;
+  color: var(--admin-text, #172033);
   font-size: 13px;
   font-weight: 700;
 }
@@ -382,11 +382,15 @@
 .adm-n-input-group-checkbox {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
+  align-self: end;
+  min-height: 44px;
 }
 
 .adm-n-input-group-checkbox label {
   margin: 0;
+  white-space: nowrap;
 }
 
 .adm-n-input-group-checkbox input {

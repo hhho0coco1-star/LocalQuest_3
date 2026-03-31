@@ -1,0 +1,317 @@
+@charset "UTF-8";
+
+body.admin-page[data-admin-theme="dark"] .admin-nav-container {
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.32);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-nav-item a:hover {
+    background: rgba(255, 111, 145, 0.08);
+    color: var(--admin-text);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-theme-toggle:hover {
+    border-color: rgba(255, 111, 145, 0.28);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-tab.active,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-detail-tab.is-active {
+    background: var(--admin-menu-active-bg);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-modal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-modal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-modal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-modal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-modal {
+    background: var(--admin-overlay);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-table-wrap,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-table-wrap,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-table-wrap,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-table-wrap {
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.26);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-table th,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-table th,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-table th,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-table th,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-table th {
+    background: var(--admin-table-head);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-row:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-row:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-row:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-table tbody tr:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-table tbody tr:hover {
+    background: rgba(255, 111, 145, 0.07);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-section,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-modal-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .adm-q-modal-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-modal-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-modal-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-modal-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-modal-content {
+    background: linear-gradient(180deg, rgba(29, 24, 36, 0.98), rgba(24, 19, 31, 0.98));
+    border-color: rgba(255, 111, 145, 0.14);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.38);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-section-deleted,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED {
+    background: linear-gradient(180deg, rgba(52, 29, 39, 0.98), rgba(32, 23, 30, 0.98));
+    border-color: rgba(255, 123, 123, 0.18);
+    box-shadow: 0 20px 36px rgba(0, 0, 0, 0.28);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED::before {
+    background: rgba(255, 123, 123, 0.16);
+    color: rgba(255, 219, 226, 0.92);
+    border-color: rgba(255, 123, 123, 0.22);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED .adm-q-card-title {
+    color: rgba(247, 244, 248, 0.76);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED .adm-q-card-desc,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED .reward-item span {
+    color: rgba(196, 189, 208, 0.86);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card-header {
+    background: linear-gradient(180deg, rgba(42, 34, 52, 0.94), rgba(32, 26, 39, 0.98));
+    border-bottom-color: rgba(255, 111, 145, 0.12);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-reward,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card-footer,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED .adm-q-card-header,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED .adm-q-reward,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-card.DELETED .adm-q-card-footer {
+    background: var(--admin-surface-soft);
+    border-top-color: rgba(255, 111, 145, 0.12);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-section-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-guide,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-empty,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-review-empty {
+    background: rgba(36, 29, 45, 0.92);
+    border-color: rgba(255, 111, 145, 0.22);
+    color: var(--admin-text-muted);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-detail-modal .adm-b-detail-item {
+    background: var(--admin-surface-raise);
+    border-color: rgba(255, 111, 145, 0.14);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-detail-modal .adm-b-detail-item strong {
+    background: transparent;
+    border: 0;
+    color: var(--admin-text);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-detail-item strong,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-qr-image-wrap,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-time-limit-group,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-group,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-review-group,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-panel,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-review-card,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-result,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-chip,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-detail-item,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-detail-block,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-detail-item,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-detail-block,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-detail-item,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-detail-block,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-detail-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-detail-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-detail-content,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-answer-editor textarea,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-address {
+    background: var(--admin-surface-raise);
+    border-color: rgba(255, 111, 145, 0.14);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-result:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-chip:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-review-card.is-editing {
+    background: var(--admin-surface-press);
+    border-color: rgba(255, 111, 145, 0.2);
+    box-shadow: 0 0 0 1px rgba(255, 111, 145, 0.08);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-result.is-focused {
+    background: var(--admin-surface-press-strong);
+    border-color: rgba(255, 111, 145, 0.24);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-pick,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-place-chip-actions button,
+body.admin-page[data-admin-theme="dark"] .admin-content-area #questModal .adm-q-review-actions button,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .btn-cancel,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-view,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-view,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-view,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-address-row button,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-btn-cancel {
+    background: var(--admin-surface-press);
+    border-color: rgba(255, 111, 145, 0.14);
+    color: var(--admin-text);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-chip,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-meta-badge,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-meta-badge,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-meta-badge,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-category-badge,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-badge.is-normal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.PENDING,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.UNKNOWN,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.INACTIVE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.VISIT,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-section-count {
+    background: rgba(255, 111, 145, 0.12);
+    border-color: rgba(255, 111, 145, 0.18);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-auth-status,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-qr-status,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.EXPERIENCE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.IN_PROGRESS {
+    background: rgba(79, 110, 247, 0.16);
+    color: #9fb2ff;
+    border-color: rgba(79, 110, 247, 0.22);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.PURCHASE {
+    background: rgba(255, 191, 102, 0.16);
+    color: var(--admin-warning);
+    border-color: rgba(255, 191, 102, 0.22);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.HIDDEN {
+    background: rgba(196, 189, 208, 0.12);
+    color: var(--admin-text-muted);
+    border-color: rgba(196, 189, 208, 0.18);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .adm-q-modal-header,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .modal-footer {
+    background: transparent;
+    border-color: rgba(255, 111, 145, 0.14);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .close-modal,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal #modalTitleText,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal #itemModalTitleText,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .input-group label {
+    color: var(--admin-text);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.ACTIVE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.ON_SALE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-badge.ACTIVE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.ACTIVE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.ANSWERED,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-status.ANSWERED,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-btn-print,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-btn-activate,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-btn-contract,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .btn-q-start {
+    background: rgba(79, 214, 157, 0.14);
+    color: var(--admin-success);
+    border-color: rgba(79, 214, 157, 0.2);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.DELETED,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-status-badge.SOLD_OUT,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-badge.WITHDRAWN,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.INACTIVE,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-status.CLOSED,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-auth-status.is-error,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-qr-status.is-error,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-btn-stop,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-btn-delete,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .btn-q-delete,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-delete,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-delete,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-delete {
+    background: rgba(255, 123, 123, 0.14);
+    color: var(--admin-danger);
+    border-color: rgba(255, 123, 123, 0.2);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-answer,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-answer-ghost,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-edit,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-edit,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-btn-add,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-btn-submit,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-search,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-answer-submit,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-add,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-submit,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-add,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-submit {
+    background: rgba(255, 111, 145, 0.12);
+    border-color: rgba(255, 111, 145, 0.18);
+    box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-btn-add:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-l-btn-submit:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-search:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-btn-answer-submit:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-add:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-btn-submit:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-add:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-btn-submit:hover {
+    background: var(--admin-primary);
+    color: #1a121d;
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-search-box,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-search-box,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-search-box,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-search-box,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-search-box,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-search-box {
+    border-color: rgba(255, 111, 145, 0.16);
+    background: linear-gradient(180deg, rgba(28, 23, 35, 0.96), rgba(23, 18, 30, 0.98));
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-search-box input,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-search-box input,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-search-box input,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-search-box input,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-search-box input,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-search-box input {
+    background: rgba(42, 34, 52, 0.96);
+    border-color: rgba(255, 111, 145, 0.14);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-search-box button:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-search-box button:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-search-box button:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-search-box button:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-search-box button:hover,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-search-box button:hover {
+    background: rgba(255, 111, 145, 0.12);
+}

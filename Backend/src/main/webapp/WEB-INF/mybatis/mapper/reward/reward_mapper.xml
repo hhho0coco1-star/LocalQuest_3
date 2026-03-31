@@ -359,6 +359,11 @@
 			DESCRIPTION,
 			CONDITION_TEXT,
 			ICON_URL,
+			BADGE_CATEGORY,
+			BADGE_DIFFICULTY,
+			TRIGGER_TYPE,
+			DISPLAY_ORDER,
+			IS_ACTIVE,
 			CREATED_AT
 		) VALUES (
 			SEQ_LQ_BADGE_PK.NEXTVAL,
@@ -366,6 +371,11 @@
 			#{description},
 			#{conditionText},
 			#{iconUrl},
+			NVL(#{badgeCategory}, 'HABIT'),
+			NVL(#{badgeDifficulty}, 'EASY'),
+			NVL(#{triggerType}, 'QUEST_COMPLETE'),
+			NVL(#{displayOrder}, 0),
+			NVL(#{isActive}, 'Y'),
 			SYSDATE
 		)
 	</insert>
@@ -397,7 +407,12 @@
 			NAME,
 			DESCRIPTION,
 			CONDITION_TEXT,
-			ICON_URL
+			ICON_URL,
+			BADGE_CATEGORY,
+			BADGE_DIFFICULTY,
+			TRIGGER_TYPE,
+			DISPLAY_ORDER,
+			IS_ACTIVE
 		FROM LQ_BADGE
 		WHERE BADGE_ID = #{value}
 	</select>
@@ -409,6 +424,11 @@
 			B.DESCRIPTION,
 			B.CONDITION_TEXT,
 			B.ICON_URL,
+			B.BADGE_CATEGORY,
+			B.BADGE_DIFFICULTY,
+			B.TRIGGER_TYPE,
+			B.DISPLAY_ORDER,
+			B.IS_ACTIVE,
 			UB.EARNED_AT
 		FROM LQ_USER_BADGE UB
 		INNER JOIN LQ_USER U
@@ -416,6 +436,7 @@
 		INNER JOIN LQ_BADGE B
 			ON B.BADGE_ID = UB.BADGE_ID
 		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
+		  AND B.IS_ACTIVE = 'Y'
 		  AND U.NICKNAME = #{_parameter}
 		ORDER BY UB.EARNED_AT DESC, UB.USER_BADGE_ID DESC
 	</select>

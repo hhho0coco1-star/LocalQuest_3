@@ -8,6 +8,8 @@ function QrTab({
   todayQuestCompleteCount,
   todayCouponUseCount,
   qrLink,
+  qrImageSrc,
+  qrActive,
   onDownloadQr,
   onPrint
 }) {
@@ -22,52 +24,14 @@ function QrTab({
             퀘스트 인증용 QR입니다.
           </p>
 
-          <div className="business-qr-frame">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" id="business-qr-svg" aria-label="매장 인증 QR 코드">
-              <rect width="100" height="100" fill="#ffffff" />
-              <rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="#0e1a2b" strokeWidth="3" />
-              <rect x="11" y="11" width="18" height="18" rx="2" fill="#0e1a2b" />
-              <rect x="65" y="5" width="30" height="30" rx="3" fill="none" stroke="#0e1a2b" strokeWidth="3" />
-              <rect x="71" y="11" width="18" height="18" rx="2" fill="#0e1a2b" />
-              <rect x="5" y="65" width="30" height="30" rx="3" fill="none" stroke="#0e1a2b" strokeWidth="3" />
-              <rect x="11" y="71" width="18" height="18" rx="2" fill="#0e1a2b" />
-              <rect x="45" y="5" width="6" height="6" fill="#0e1a2b" />
-              <rect x="53" y="5" width="6" height="6" fill="#0e1a2b" />
-              <rect x="45" y="13" width="6" height="6" fill="#0e1a2b" />
-              <rect x="53" y="21" width="6" height="6" fill="#0e1a2b" />
-              <rect x="45" y="29" width="6" height="6" fill="#0e1a2b" />
-              <rect x="45" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="53" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="61" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="45" y="53" width="6" height="6" fill="#0e1a2b" />
-              <rect x="61" y="53" width="6" height="6" fill="#0e1a2b" />
-              <rect x="61" y="61" width="6" height="6" fill="#0e1a2b" />
-              <rect x="69" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="77" y="53" width="6" height="6" fill="#0e1a2b" />
-              <rect x="85" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="77" y="61" width="6" height="6" fill="#0e1a2b" />
-              <rect x="85" y="61" width="6" height="6" fill="#0e1a2b" />
-              <rect x="69" y="69" width="6" height="6" fill="#0e1a2b" />
-              <rect x="85" y="77" width="6" height="6" fill="#0e1a2b" />
-              <rect x="69" y="85" width="6" height="6" fill="#0e1a2b" />
-              <rect x="85" y="85" width="6" height="6" fill="#0e1a2b" />
-              <rect x="45" y="69" width="6" height="6" fill="#0e1a2b" />
-              <rect x="53" y="77" width="6" height="6" fill="#0e1a2b" />
-              <rect x="61" y="77" width="6" height="6" fill="#0e1a2b" />
-              <rect x="45" y="85" width="6" height="6" fill="#0e1a2b" />
-              <rect x="53" y="85" width="6" height="6" fill="#0e1a2b" />
-              <rect x="5" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="13" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="21" y="53" width="6" height="6" fill="#0e1a2b" />
-              <rect x="5" y="53" width="6" height="6" fill="#0e1a2b" />
-              <rect x="29" y="53" width="6" height="6" fill="#0e1a2b" />
-              <rect x="13" y="61" width="6" height="6" fill="#0e1a2b" />
-              <rect x="29" y="61" width="6" height="6" fill="#0e1a2b" />
-              <rect x="5" y="61" width="6" height="6" fill="#0e1a2b" />
-              <rect x="21" y="45" width="6" height="6" fill="#0e1a2b" />
-              <rect x="43" y="43" width="14" height="14" rx="2" fill="#ff385d" />
-              <rect x="46" y="46" width="8" height="8" rx="1" fill="#ffffff" />
-            </svg>
+          <div className="business-qr-frame business-print-target">
+            {qrImageSrc ? (
+              <img className="business-qr-image" src={qrImageSrc} alt="매장 인증 QR 코드" />
+            ) : (
+              <div className="business-qr-empty">
+                {qrActive ? 'QR 이미지를 불러오는 중입니다.' : '운영중지 상태에서는 QR 사용이 제한됩니다.'}
+              </div>
+            )}
 
             <div className="business-qr-label">
               <strong>{business?.businessName || '매장 정보 준비 중'}</strong>
