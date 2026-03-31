@@ -5,9 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,12 +28,15 @@ import com.app.dto.business.BusinessDTO;
 import com.app.dto.business.BusinessDashboardDTO;
 import com.app.dto.business.BusinessOverviewDTO;
 import com.app.service.business.BusinessService;
+import com.app.dto.locationqr.BusinessQrInfoDTO;
+import com.app.service.locationqr.LocationQrService;
 import com.app.service.user.auth.JwtTokenProvider;
 
 @RestController
 @RequestMapping("/api/businesses")
 public class BusinessAPIController {
     private static final Logger log = LoggerFactory.getLogger(BusinessAPIController.class);
+    private static final String FRONTEND_BASE_URL_PARAM = "lq.frontend.base-url";
 
     @Autowired
     private BusinessService businessService;
@@ -36,38 +44,27 @@ public class BusinessAPIController {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private LocationQrService locationQrService;
+
     @GetMapping("/me")
     public ResponseEntity<?> getMyBusinessOverview(
         @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-        @RequestParam(value = "businessId", required = false) Integer businessId
+        @RequestParam(value = "businessId", required = false) Integer businessId,
+        HttpServletRequest request
     ) {
-        Integer userId = jwtTokenProvider.resolveUserIdFromAuthorizationHeader(authorizationHeader);
-        if (userId == null || userId.intValue() <= 0) {
-            log.warn("Business dashboard unauthorized request. userId={}", userId);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Collections.singletonMap("message", "Unauthorized"));
+        BusinessAccessContext accessContext = resolveBusinessAccessContext(
+            authorizationHeader,
+            businessId,
+            "Business dashboard"
+        );
+        if (accessContext.hasError()) {
+            return accessContext.getErrorResponse();
         }
 
-        String role = jwtTokenProvider.resolveRoleFromAuthorizationHeader(authorizationHeader);
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizeRole(role));
-
-        if (businessId != null && businessId.intValue() > 0 && !isAdmin) {
-            log.warn("Business dashboard forbidden businessId override. userId={}, role={}, businessId={}", userId, role, businessId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Collections.singletonMap("message", "Access denied"));
-        }
-
-        BusinessDTO business = resolveDashboardBusiness(userId.intValue(), businessId, isAdmin);
-        if (business == null) {
-            log.warn(
-                "Business dashboard business not found. userId={}, role={}, requestedBusinessId={}",
-                userId,
-                role,
-                businessId
-            );
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Collections.singletonMap("message", "Business not found"));
-        }
+        Integer userId = accessContext.getUserId();
+        boolean isAdmin = accessContext.isAdmin();
+        BusinessDTO business = accessContext.getBusiness();
 
         log.info(
             "Business dashboard request accepted. userId={}, businessId={}",
@@ -123,7 +120,157 @@ public class BusinessAPIController {
         BusinessOverviewDTO response = new BusinessOverviewDTO();
         response.setBusiness(business);
         response.setDashboard(dashboard);
+        try {
+            response.setQr(buildBusinessQrInfo(business.getBusinessId(), isAdmin, request));
+        } catch (Exception qrError) {
+            log.warn(
+                "Business dashboard QR info unavailable. userId={}, businessId={}, reason={}",
+                userId,
+                business.getBusinessId(),
+                qrError.getMessage()
+            );
+            response.setQr(null);
+        }
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me/qr")
+    public ResponseEntity<?> getMyBusinessQr(
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+        @RequestParam(value = "businessId", required = false) Integer businessId,
+        HttpServletRequest request
+    ) {
+        BusinessAccessContext accessContext = resolveBusinessAccessContext(
+            authorizationHeader,
+            businessId,
+            "Business QR"
+        );
+        if (accessContext.hasError()) {
+            return accessContext.getErrorResponse();
+        }
+
+        try {
+            BusinessQrInfoDTO qrInfo = buildBusinessQrInfo(
+                accessContext.getBusiness().getBusinessId(),
+                accessContext.isAdmin(),
+                request
+            );
+            return ResponseEntity.ok(qrInfo);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (Exception e) {
+            log.error(
+                "Business QR load failed. userId={}, businessId={}",
+                accessContext.getUserId(),
+                accessContext.getBusiness().getBusinessId(),
+                e
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("message", "QR 정보를 불러오지 못했습니다."));
+        }
+    }
+
+    @GetMapping(value = "/me/qr/image", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<?> getMyBusinessQrImage(
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+        @RequestParam(value = "businessId", required = false) Integer businessId,
+        @RequestParam(value = "size", defaultValue = "320") int size,
+        HttpServletRequest request
+    ) {
+        BusinessAccessContext accessContext = resolveBusinessAccessContext(
+            authorizationHeader,
+            businessId,
+            "Business QR image"
+        );
+        if (accessContext.hasError()) {
+            return accessContext.getErrorResponse();
+        }
+
+        try {
+            BusinessQrInfoDTO qrInfo = buildBusinessQrInfo(
+                accessContext.getBusiness().getBusinessId(),
+                accessContext.isAdmin(),
+                request
+            );
+            if (!qrInfo.isActive()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Collections.singletonMap("message", "운영중지된 매장은 QR을 조회할 수 없습니다."));
+            }
+
+            byte[] qrImage = locationQrService.renderQrImage(qrInfo.getVerifyUrl(), size);
+            return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .cacheControl(CacheControl.noCache())
+                .body(qrImage);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (Exception e) {
+            log.error(
+                "Business QR image load failed. userId={}, businessId={}",
+                accessContext.getUserId(),
+                accessContext.getBusiness().getBusinessId(),
+                e
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("message", "QR 이미지를 생성하지 못했습니다."));
+        }
+    }
+
+    private BusinessAccessContext resolveBusinessAccessContext(
+        String authorizationHeader,
+        Integer businessId,
+        String logPrefix
+    ) {
+        Integer userId = jwtTokenProvider.resolveUserIdFromAuthorizationHeader(authorizationHeader);
+        if (userId == null || userId.intValue() <= 0) {
+            log.warn("{} unauthorized request. userId={}", logPrefix, userId);
+            return BusinessAccessContext.failure(
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("message", "Unauthorized"))
+            );
+        }
+
+        String role = jwtTokenProvider.resolveRoleFromAuthorizationHeader(authorizationHeader);
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizeRole(role));
+
+        if (businessId != null && businessId.intValue() > 0 && !isAdmin) {
+            log.warn(
+                "{} forbidden businessId override. userId={}, role={}, businessId={}",
+                logPrefix,
+                userId,
+                role,
+                businessId
+            );
+            return BusinessAccessContext.failure(
+                ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Collections.singletonMap("message", "Access denied"))
+            );
+        }
+
+        BusinessDTO business = resolveDashboardBusiness(userId.intValue(), businessId, isAdmin);
+        if (business == null) {
+            log.warn(
+                "{} business not found. userId={}, role={}, requestedBusinessId={}",
+                logPrefix,
+                userId,
+                role,
+                businessId
+            );
+            return BusinessAccessContext.failure(
+                ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Collections.singletonMap("message", "Business not found"))
+            );
+        }
+
+        return BusinessAccessContext.success(userId, isAdmin, business);
     }
 
     private BusinessDTO resolveDashboardBusiness(int userId, Integer requestedBusinessId, boolean isAdmin) {
@@ -145,6 +292,44 @@ public class BusinessAPIController {
             return null;
         }
         return businesses.get(0);
+    }
+
+    private BusinessQrInfoDTO buildBusinessQrInfo(int businessId, boolean includeBusinessIdParam, HttpServletRequest request) {
+        BusinessQrInfoDTO qrInfo = locationQrService.getOrCreateBusinessQrInfo(businessId);
+        String verifyUrl = locationQrService.buildQrVerifyUrl(resolveFrontendBaseUrl(request), qrInfo.getQrAuthKey());
+        qrInfo.setVerifyUrl(verifyUrl);
+        StringBuilder imageUrl = new StringBuilder();
+        imageUrl.append(request.getContextPath()).append("/api/businesses/me/qr/image");
+        if (includeBusinessIdParam) {
+            imageUrl.append("?businessId=").append(businessId).append("&v=").append(qrInfo.getQrId());
+        } else {
+            imageUrl.append("?v=").append(qrInfo.getQrId());
+        }
+        qrInfo.setImageUrl(imageUrl.toString());
+        return qrInfo;
+    }
+
+    private String resolveFrontendBaseUrl(HttpServletRequest request) {
+        String configuredBaseUrl = request.getServletContext().getInitParameter(FRONTEND_BASE_URL_PARAM);
+        if (configuredBaseUrl != null && !configuredBaseUrl.trim().isEmpty()) {
+            return configuredBaseUrl.trim().replaceAll("/+$", "");
+        }
+
+        int frontendPort = request.getServerPort();
+        if (frontendPort == 8080) {
+            frontendPort = 3000;
+        }
+
+        StringBuilder baseUrl = new StringBuilder();
+        baseUrl.append(request.getScheme())
+            .append("://")
+            .append(request.getServerName());
+
+        if (frontendPort != 80 && frontendPort != 443) {
+            baseUrl.append(':').append(frontendPort);
+        }
+
+        return baseUrl.toString();
     }
 
     private String normalizeRole(String role) {
@@ -253,6 +438,53 @@ public class BusinessAPIController {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private static final class BusinessAccessContext {
+        private final Integer userId;
+        private final boolean admin;
+        private final BusinessDTO business;
+        private final ResponseEntity<?> errorResponse;
+
+        private BusinessAccessContext(
+            Integer userId,
+            boolean admin,
+            BusinessDTO business,
+            ResponseEntity<?> errorResponse
+        ) {
+            this.userId = userId;
+            this.admin = admin;
+            this.business = business;
+            this.errorResponse = errorResponse;
+        }
+
+        private static BusinessAccessContext success(Integer userId, boolean admin, BusinessDTO business) {
+            return new BusinessAccessContext(userId, admin, business, null);
+        }
+
+        private static BusinessAccessContext failure(ResponseEntity<?> errorResponse) {
+            return new BusinessAccessContext(null, false, null, errorResponse);
+        }
+
+        private boolean hasError() {
+            return errorResponse != null;
+        }
+
+        private Integer getUserId() {
+            return userId;
+        }
+
+        private boolean isAdmin() {
+            return admin;
+        }
+
+        private BusinessDTO getBusiness() {
+            return business;
+        }
+
+        private ResponseEntity<?> getErrorResponse() {
+            return errorResponse;
+        }
     }
 
     public static class UpdateMyBusinessRequest {
