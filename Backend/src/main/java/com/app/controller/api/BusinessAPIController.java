@@ -1,7 +1,10 @@
 package com.app.controller.api;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,7 +38,8 @@ public class BusinessAPIController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyBusinessOverview(
-        @RequestHeader(value = "Authorization", required = false) String authorizationHeader
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+        @RequestParam(value = "businessId", required = false) Integer businessId
     ) {
         Integer userId = jwtTokenProvider.resolveUserIdFromAuthorizationHeader(authorizationHeader);
         if (userId == null || userId.intValue() <= 0) {
@@ -43,9 +48,23 @@ public class BusinessAPIController {
                 .body(Collections.singletonMap("message", "Unauthorized"));
         }
 
-        BusinessDTO business = businessService.getBusinessByUserId(userId.intValue());
+        String role = jwtTokenProvider.resolveRoleFromAuthorizationHeader(authorizationHeader);
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizeRole(role));
+
+        if (businessId != null && businessId.intValue() > 0 && !isAdmin) {
+            log.warn("Business dashboard forbidden businessId override. userId={}, role={}, businessId={}", userId, role, businessId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Collections.singletonMap("message", "Access denied"));
+        }
+
+        BusinessDTO business = resolveDashboardBusiness(userId.intValue(), businessId, isAdmin);
         if (business == null) {
-            log.warn("Business dashboard business not found. userId={}", userId);
+            log.warn(
+                "Business dashboard business not found. userId={}, role={}, requestedBusinessId={}",
+                userId,
+                role,
+                businessId
+            );
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Collections.singletonMap("message", "Business not found"));
         }
@@ -105,6 +124,38 @@ public class BusinessAPIController {
         response.setBusiness(business);
         response.setDashboard(dashboard);
         return ResponseEntity.ok(response);
+    }
+
+    private BusinessDTO resolveDashboardBusiness(int userId, Integer requestedBusinessId, boolean isAdmin) {
+        if (requestedBusinessId != null && requestedBusinessId.intValue() > 0) {
+            return businessService.getBusinessById(requestedBusinessId.intValue());
+        }
+
+        BusinessDTO mine = businessService.getBusinessByUserId(userId);
+        if (mine != null || !isAdmin) {
+            return mine;
+        }
+
+        // Admin preview fallback: if admin has no linked business, show the latest one.
+        Map<String, Object> params = new HashMap<>();
+        params.put("keyword", null);
+        params.put("userId", null);
+        List<BusinessDTO> businesses = businessService.getBusinessList(params);
+        if (businesses == null || businesses.isEmpty()) {
+            return null;
+        }
+        return businesses.get(0);
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
     }
 
     @RequestMapping(value = "/me", method = { RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH })

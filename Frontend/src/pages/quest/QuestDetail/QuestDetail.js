@@ -24,9 +24,10 @@ const toQuestDetailModel = (quest) => {
     locationSummary:
       locations.length > 0
         ? locations.map((location) => location.name).join(', ')
-        : '지정된 장소 정보가 없습니다.',
+        : '등록된 장소 정보가 없어요.',
     duration: formatDuration(quest.timeLimit),
-    reward: `${quest.rewardPoint}P`,
+    rewardPoint: `${quest.rewardPoint}P`,
+    rewardExp: `${quest.rewardExp}EXP`,
     description: quest.description,
     locations,
   };
@@ -63,7 +64,7 @@ function QuestDetail() {
         }
       } catch (fetchError) {
         if (!isCancelled) {
-          setError('퀘스트를 찾을 수 없습니다.');
+          setError('퀘스트를 찾을 수 없어요.');
         }
       } finally {
         if (!isCancelled) {
@@ -174,7 +175,7 @@ function QuestDetail() {
 
   const handleAcceptQuest = async () => {
     if (!isAuthenticated) {
-      alert('로그인 후 퀘스트를 수락할 수 있습니다.');
+      alert('로그인 후 퀘스트를 담을 수 있어요.');
       navigate('/login');
       return;
     }
@@ -190,7 +191,7 @@ function QuestDetail() {
       const alreadyAccepted = Boolean(response.data?.alreadyAccepted);
 
       setIsAccepted(true);
-      alert(alreadyAccepted ? '이미 수락한 퀘스트입니다.' : '퀘스트를 수락했습니다.');
+      alert(alreadyAccepted ? '이미 담은 퀘스트예요.' : '퀘스트를 담았어요.');
 
       if (userQuestId) {
         navigate(`/mypage/${userQuestId}`);
@@ -198,7 +199,7 @@ function QuestDetail() {
     } catch (acceptError) {
       const message =
         acceptError.response?.data?.message ||
-        '퀘스트 수락에 실패했습니다. 잠시 후 다시 시도해주세요.';
+        '퀘스트를 담지 못했어요. 잠시 후 다시 시도해주세요.';
       alert(message);
     } finally {
       setIsAccepting(false);
@@ -240,7 +241,7 @@ function QuestDetail() {
 
         {loading ? (
           <section className="quest-detail-empty">
-            <h1>퀘스트를 불러오는 중입니다.</h1>
+            <h1>퀘스트를 불러오는 중이에요.</h1>
           </section>
         ) : quest ? (
           <section className="quest-detail-card">
@@ -250,8 +251,8 @@ function QuestDetail() {
                 <p>{quest.description}</p>
               </div>
               <div className="quest-detail-summary">
-                <strong>{quest.reward}</strong>
                 <span>보상</span>
+                <strong>{quest.rewardPoint} · {quest.rewardExp}</strong>
                 <button
                   type="button"
                   className="quest-detail-accept-button"
@@ -279,7 +280,7 @@ function QuestDetail() {
             </div>
 
             <div className="quest-detail-steps">
-              <h2>방문 순서</h2>
+              <h2>방문 장소</h2>
               {quest.locations.length > 0 ? (
                 <div className="quest-detail-location-list">
                   {quest.locations.map((location) => {
@@ -309,7 +310,7 @@ function QuestDetail() {
                           {location.address ? <p>{location.address}</p> : null}
                           {location.addressDetail ? <p>{location.addressDetail}</p> : null}
                           {clickable ? (
-                            <span className="quest-detail-location-map-hint">클릭해서 지도 보기</span>
+                            <span className="quest-detail-location-map-hint">눌러서 지도 보기</span>
                           ) : null}
                           {location.description ? (
                             <span className="quest-detail-location-note">{location.description}</span>
@@ -320,14 +321,14 @@ function QuestDetail() {
                   })}
                 </div>
               ) : (
-                <p className="quest-detail-empty-copy">아직 연결된 로케이션이 없습니다.</p>
+                <p className="quest-detail-empty-copy">등록된 방문 장소가 없어요.</p>
               )}
             </div>
           </section>
         ) : (
           <section className="quest-detail-empty">
-            <h1>{error || '퀘스트를 찾을 수 없습니다.'}</h1>
-            <p>목록으로 돌아가 다른 퀘스트를 선택해주세요.</p>
+            <h1>{error || '퀘스트를 찾을 수 없어요.'}</h1>
+            <p>목록으로 돌아가 다른 퀘스트를 확인해주세요.</p>
           </section>
         )}
       </div>
@@ -357,13 +358,13 @@ function QuestDetail() {
             <div className="quest-location-map-canvas-wrap">
               <div ref={mapContainerRef} className="quest-location-map-canvas" />
               {mapLoadState === 'loading' ? (
-                <div className="quest-location-map-state">지도를 불러오는 중입니다.</div>
+                <div className="quest-location-map-state">지도를 불러오는 중이에요.</div>
               ) : null}
               {mapLoadState === 'missing-key' ? (
-                <div className="quest-location-map-state">카카오 지도 키가 설정되지 않았습니다.</div>
+                <div className="quest-location-map-state">카카오 지도 키가 설정되지 않았어요.</div>
               ) : null}
               {mapLoadState === 'error' ? (
-                <div className="quest-location-map-state">지도를 표시하지 못했습니다.</div>
+                <div className="quest-location-map-state">지도를 표시하지 못했어요.</div>
               ) : null}
             </div>
 

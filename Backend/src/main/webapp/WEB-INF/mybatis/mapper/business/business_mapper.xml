@@ -78,48 +78,19 @@
 
 	<select id="getBusinessDashboardByBusinessId" parameterType="int" resultType="BusinessDashboardDTO">
 		SELECT
-			auth.totalAuthCount AS totalAuthCount,
-			auth.qrAuthCount AS qrAuthCount,
-			auth.receiptAuthCount AS receiptAuthCount,
-			auth.todayAuthCount AS todayAuthCount,
-			auth.todayQrAuthCount AS todayQrAuthCount,
-			coupon.todayCouponUseCount AS todayCouponUseCount,
-			auth.totalPaymentAmount AS totalPaymentAmount,
-			auth.totalSettlementAmount AS totalSettlementAmount,
-			auth.lastAuthAt AS lastAuthAt,
-			auth.authUserCount AS authUserCount,
-			auth.authLocationCount AS authLocationCount
-		FROM (
-			SELECT
-				COUNT(*) AS totalAuthCount,
-				NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS qrAuthCount,
-				NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS receiptAuthCount,
-				NVL(SUM(CASE WHEN TRUNC(CREATED_AT) = TRUNC(SYSDATE) THEN 1 ELSE 0 END), 0) AS todayAuthCount,
-				NVL(SUM(CASE WHEN TRUNC(CREATED_AT) = TRUNC(SYSDATE) AND AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS todayQrAuthCount,
-				NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS totalPaymentAmount,
-				NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS totalSettlementAmount,
-				MAX(CREATED_AT) AS lastAuthAt,
-				COUNT(DISTINCT USER_ID) AS authUserCount,
-				COUNT(DISTINCT LOCATION_ID) AS authLocationCount
-			FROM LQ_BUSINESS_AUTH_LOG
-			WHERE BUSINESS_ID = #{businessId}
-		) auth
-		CROSS JOIN (
-			SELECT
-				NVL(COUNT(*), 0) AS todayCouponUseCount
-			FROM LQ_REWARD_EXCHANGE RE
-			WHERE UPPER(NVL(RE.STATUS, '')) = 'USED'
-			  AND RE.USED_AT IS NOT NULL
-			  AND TRUNC(RE.USED_AT) = TRUNC(SYSDATE)
-			  AND EXISTS (
-				  SELECT 1
-				  FROM LQ_BUSINESS_AUTH_LOG BL
-				  WHERE BL.BUSINESS_ID = #{businessId}
-					AND BL.USER_ID = RE.USER_ID
-					AND BL.AUTH_TYPE = 'RECEIPT'
-					AND TRUNC(BL.CREATED_AT) = TRUNC(RE.USED_AT)
-			  )
-		) coupon
+			COUNT(*) AS totalAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS qrAuthCount,
+			NVL(SUM(CASE WHEN AUTH_TYPE = 'RECEIPT' THEN 1 ELSE 0 END), 0) AS receiptAuthCount,
+			NVL(SUM(CASE WHEN TRUNC(CREATED_AT) = TRUNC(SYSDATE) THEN 1 ELSE 0 END), 0) AS todayAuthCount,
+			NVL(SUM(CASE WHEN TRUNC(CREATED_AT) = TRUNC(SYSDATE) AND AUTH_TYPE = 'QR' THEN 1 ELSE 0 END), 0) AS todayQrAuthCount,
+			0 AS todayCouponUseCount,
+			NVL(SUM(NVL(PAYMENT_AMOUNT, 0)), 0) AS totalPaymentAmount,
+			NVL(SUM(NVL(SETTLEMENT_AMT, 0)), 0) AS totalSettlementAmount,
+			MAX(CREATED_AT) AS lastAuthAt,
+			COUNT(DISTINCT USER_ID) AS authUserCount,
+			COUNT(DISTINCT LOCATION_ID) AS authLocationCount
+		FROM LQ_BUSINESS_AUTH_LOG
+		WHERE BUSINESS_ID = #{businessId}
 	</select>
 
 	<select id="getBusinessHourlyAuthCounts" parameterType="int" resultType="BusinessHourlyAuthDTO">
