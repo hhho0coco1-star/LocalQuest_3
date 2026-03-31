@@ -77,7 +77,7 @@ const Header = () => {
                 </li>
               )}
 
-                            {normalizedRole === 'BUSINESS' && (
+              {canAccessBusinessPage && (
                 <li className="header-nav-item">
                   <Link to="/business" className="header-nav-link">비즈니스</Link>
                 </li>
