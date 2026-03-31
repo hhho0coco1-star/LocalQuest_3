@@ -1312,6 +1312,30 @@ public class UserServiceImpl implements UserService{
 	    return userDAO.searchUsers(searchParams);
 	}
 
+	@Override
+	public int countUsers(String type, String keyword) {
+	    Map<String, Object> searchParams = new HashMap<>();
+	    searchParams.put("type", type);
+	    searchParams.put("keyword", keyword);
+	    return userDAO.countUsers(searchParams);
+	}
+
+	@Override
+	public List<User> searchUsersPaged(String type, String keyword, String sort, int page, int size) {
+	    int normalizedPage = Math.max(page, 1);
+	    int normalizedSize = Math.max(size, 1);
+	    int startRow = ((normalizedPage - 1) * normalizedSize) + 1;
+	    int endRow = startRow + normalizedSize - 1;
+
+	    Map<String, Object> searchParams = new HashMap<>();
+	    searchParams.put("type", type);
+	    searchParams.put("keyword", keyword);
+	    searchParams.put("sort", sort);
+	    searchParams.put("startRow", startRow);
+	    searchParams.put("endRow", endRow);
+	    return userDAO.searchUsersPaged(searchParams);
+	}
+
     @Override
     public boolean changeUserRole(int userId, String newRole) {
         String normalizedRole = trimToEmpty(newRole).toUpperCase();

@@ -22,6 +22,11 @@ public class LocationDAOImpl implements LocationDAO {
     }
 
     @Override
+    public LocationDTO findLocationById(int locationId) {
+        return sqlSessionTemplate.selectOne("location_mapper.findLocationById", locationId);
+    }
+
+    @Override
     public LocationDTO findRepresentativeLocationByBusinessId(int businessId) {
         return sqlSessionTemplate.selectOne("location_mapper.findRepresentativeLocationByBusinessId", businessId);
     }

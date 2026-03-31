@@ -143,3 +143,73 @@
     background-color: #52c41a; /* 호버 시 초록색 채우기 */
     color: white;
 }
+
+.adm-u-summary {
+    margin-bottom: 18px;
+    font-size: 0.95rem;
+    color: #a1a5b7;
+}
+
+.adm-u-summary strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.adm-u-role-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.adm-u-role-note-master {
+    color: #7239ea;
+}
+
+.adm-u-role-note-withdrawn {
+    color: #ff4d4f;
+}
+
+.adm-u-empty td {
+    text-align: center;
+    color: #a1a5b7;
+    padding: 36px 15px;
+}
+
+.adm-u-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.adm-u-page-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid #323248;
+    background: #151521;
+    color: #dbdfe9;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.adm-u-page-btn:hover:not(:disabled) {
+    border-color: #7239ea;
+    color: #ffffff;
+}
+
+.adm-u-page-btn.is-active {
+    background: #7239ea;
+    border-color: #7239ea;
+    color: #ffffff;
+}
+
+.adm-u-page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

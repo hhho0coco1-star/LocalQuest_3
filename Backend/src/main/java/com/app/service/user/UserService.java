@@ -28,6 +28,8 @@ public interface UserService {
 	// 1. 전체 회원 목록 가져오기
     // 2. 조건별 회원 검색하기 (아이디/닉네임 등)
     List<User> searchUsers(String type, String keyword, String sort);
+    int countUsers(String type, String keyword);
+    List<User> searchUsersPaged(String type, String keyword, String sort, int page, int size);
     
     // 3. 회원 권한 변경하기 (USER/BUSINESS/ADMIN)
     public boolean changeUserRole(int userId, String newRole);
