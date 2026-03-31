@@ -66,3 +66,8 @@
 .admin-nav-item a i {
     font-size: 1rem;
 }
+
+.admin-nav-main { 
+	text-decoration: none;
+	color: inherit;
+}

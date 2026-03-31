@@ -38,16 +38,6 @@
                 onkeypress="if(event.keyCode==13) searchAdminInquiry()">
         </div>
 
-        <div class="adm-i-search-box adm-i-user-box">
-            <input
-                type="number"
-                id="adminInquiryUserId"
-                min="1"
-                placeholder="&#54924;&#50896;&#48264;&#54840;"
-                value="${currentUserId}"
-                onkeypress="if(event.keyCode==13) searchAdminInquiry()">
-        </div>
-
         <button type="button" class="adm-i-btn-search" onclick="searchAdminInquiry()">
             &#44160;&#49353;
         </button>
@@ -198,15 +188,6 @@
                     id="adminInquiryAnswerContent"
                     rows="6"
                     placeholder="&#44288;&#47532;&#51088; &#45813;&#48320;&#51012; &#51077;&#47141;&#54616;&#49464;&#50836;."></textarea>
-                <div class="adm-i-answer-actions">
-                    <button
-                        type="button"
-                        class="adm-i-btn-answer-submit"
-                        id="adminInquiryAnswerSubmitButton"
-                        onclick="submitAdminInquiryAnswer()">
-                        &#45813;&#48320; &#46321;&#47197;
-                    </button>
-                </div>
             </div>
         </div>
         <div class="adm-i-modal-footer">
@@ -225,6 +206,14 @@
                     onclick="openAdminInquiryAnswerModal(Number($('#adminInquiryDetailId').val()) || 0)">
                     &#45813;&#48320; &#46321;&#47197;
                 </button>
+                <button
+                    type="button"
+                    class="adm-i-btn-answer adm-i-btn-answer-ghost"
+                    id="adminInquiryAnswerSubmitButton"
+                    onclick="submitAdminInquiryAnswer()"
+                    style="display:none;">
+                    &#45813;&#48320; &#46321;&#47197;
+                </button>
             </div>
         </div>
     </div>
@@ -234,7 +223,6 @@
     function searchAdminInquiry() {
         const keyword = ($('#adminInquiryKeyword').val() || '').trim();
         const status = ($('#adminInquiryStatus').val() || '').trim();
-        const userId = ($('#adminInquiryUserId').val() || '').trim();
         let url = ctx + "/admin/qna";
         const params = [];
 
@@ -243,9 +231,6 @@
         }
         if (status) {
             params.push("status=" + encodeURIComponent(status));
-        }
-        if (userId) {
-            params.push("userId=" + encodeURIComponent(userId));
         }
         if (params.length > 0) {
             url += "?" + params.join("&");
@@ -292,6 +277,7 @@
         $('#adminInquiryModalTitle').text('\uBB38\uC758 \uC0C1\uC138');
         $('#adminInquiryAnswerLabel').text('\uB2F5\uBCC0 \uC791\uC131');
         $('#adminInquiryAnswerSubmitButton').text('\uB2F5\uBCC0 \uB4F1\uB85D');
+        $('#adminInquiryAnswerSubmitButton').hide();
         $('#adminInquiryOpenAnswerButton').text('\uB2F5\uBCC0 \uB4F1\uB85D').show();
         $('#adminInquiryDeleteButton').show();
     }
@@ -343,6 +329,7 @@
             );
             $('#adminInquiryAnswerEditor').show();
             $('#adminInquiryOpenAnswerButton').hide();
+            $('#adminInquiryAnswerSubmitButton').show();
             setTimeout(function() {
                 $('#adminInquiryAnswerContent').trigger('focus');
             }, 0);
