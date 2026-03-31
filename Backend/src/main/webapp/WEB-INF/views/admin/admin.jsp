@@ -1801,57 +1801,8 @@ function deleteBusiness(businessId) {
             $('#businessQrAuthKey').text('-');
             $('#businessQrImage')
                 .removeClass('is-ready')
+                .off('load.businessQr error.businessQr')
                 .attr('src', '');
-        }
-
-        function openBusinessQrModal() {
-            const businessId = Number($('#businessDetailQrBtn').attr('data-business-id')) || 0;
-            if (!(businessId > 0)) {
-                alert('\uB9E4\uC7A5 \uC0C1\uC138 \uC815\uBCF4\uB97C \uBA3C\uC800 \uD655\uC778\uD574 \uC8FC\uC138\uC694.');
-                return;
-            }
-
-            resetBusinessQrModal();
-            $('#businessQrModal').fadeIn(200);
-
-            $.ajax({
-                url: ctx + "/admin/store-info/qr",
-                type: "GET",
-                dataType: "json",
-                data: { businessId: businessId },
-                success: function(res) {
-                    if (!res || !res.imageUrl) {
-                        $('#businessQrStatus')
-                            .addClass('is-error')
-                            .text('\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
-                        return;
-                    }
-
-                    const addressText = [res.address || '', res.addressDetail || '']
-                        .filter(function(value) { return !!value; })
-                        .join(' ');
-
-                    $('#businessQrStatus')
-                        .removeClass('is-error')
-                        .text('\uB9E4\uC7A5 \u0051\u0052 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.');
-                    $('#businessQrBusinessName').text(res.businessName || '-');
-                    $('#businessQrLocationName').text(res.locationName || '-');
-                    $('#businessQrAddress').text(addressText || '-');
-                    $('#businessQrAuthKey').text(res.qrAuthKey || '-');
-                    $('#businessQrImage')
-                        .addClass('is-ready')
-                        .attr('src', res.imageUrl + '&_ts=' + Date.now());
-                },
-                error: function(xhr) {
-                    let message = '\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
-                    if (xhr && xhr.status === 404) {
-                        message = '\uD574\uB2F9 \uB9E4\uC7A5 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
-                    }
-                    $('#businessQrStatus')
-                        .addClass('is-error')
-                        .text(message);
-                }
-            });
         }
 
         function openBusinessQrModal() {
@@ -1897,17 +1848,33 @@ function deleteBusiness(businessId) {
                     const addressText = [res.address || '', res.addressDetail || '']
                         .filter(function(value) { return !!value; })
                         .join(' ');
+                    const qrImageSrc = res.imageUrl + '&_ts=' + Date.now();
 
                     $('#businessQrStatus')
                         .removeClass('is-error')
-                        .text('\uB9E4\uC7A5 \u0051\u0052 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.');
+                        .text('\u0051\u0052 \uC774\uBBF8\uC9C0\uB97C \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4.');
                     $('#businessQrBusinessName').text(res.businessName || '-');
                     $('#businessQrLocationName').text(res.locationName || '-');
                     $('#businessQrAddress').text(addressText || '-');
                     $('#businessQrAuthKey').text(res.qrAuthKey || '-');
                     $('#businessQrImage')
-                        .addClass('is-ready')
-                        .attr('src', res.imageUrl + '&_ts=' + Date.now());
+                        .removeClass('is-ready')
+                        .off('load.businessQr error.businessQr')
+                        .on('load.businessQr', function() {
+                            if (this.complete && this.naturalWidth > 0) {
+                                $(this).addClass('is-ready');
+                                $('#businessQrStatus')
+                                    .removeClass('is-error')
+                                    .text('\uB9E4\uC7A5 \u0051\u0052 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.');
+                            }
+                        })
+                        .on('error.businessQr', function() {
+                            $(this).removeClass('is-ready');
+                            $('#businessQrStatus')
+                                .addClass('is-error')
+                                .text('\u0051\u0052 \uC774\uBBF8\uC9C0\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+                        })
+                        .attr('src', qrImageSrc);
                 },
                 error: function(xhr) {
                     let message = '\u0051\u0052 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
@@ -1932,9 +1899,11 @@ function deleteBusiness(businessId) {
         }
 
         function printBusinessQr() {
-            const imageSrc = $('#businessQrImage').attr('src') || '';
+            const $qrImage = $('#businessQrImage');
+            const qrImageElement = $qrImage.get(0);
+            const imageSrc = $qrImage.attr('src') || '';
 
-            if (!imageSrc || !$('#businessQrImage').hasClass('is-ready')) {
+            if (!imageSrc || !$qrImage.hasClass('is-ready') || !qrImageElement || !qrImageElement.complete || qrImageElement.naturalWidth <= 0) {
                 alert('\uCD9C\uB825\uD560 \u0051\u0052 \uC774\uBBF8\uC9C0\uAC00 \uC544\uC9C1 \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.');
                 return;
             }
@@ -1945,21 +1914,14 @@ function deleteBusiness(businessId) {
                 return;
             }
 
-            const absoluteImageSrc = (function() {
-                try {
-                    return new URL(imageSrc, window.location.origin).toString();
-                } catch (error) {
-                    return imageSrc;
-                }
-            })();
-            const escapedBusinessName = '';
-            const escapedLocationName = '';
-            const escapedAddress = '';
-            const escapedAuthKey = '';
-            const escapedImageSrc = escapeAdminHtml(absoluteImageSrc);
+            const writePrintDocument = function(resolvedImageSrc) {
+                const escapedBusinessName = '';
+                const escapedLocationName = '';
+                const escapedAddress = '';
+                const escapedAuthKey = '';
+                const escapedImageSrc = escapeAdminHtml(resolvedImageSrc || '');
 
-            printWindow.document.open();
-            printWindow.document.write(`
+                const printDocumentHtml = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -2032,27 +1994,30 @@ function deleteBusiness(businessId) {
 </head>
 <body>
     <div class="print-qr-only">
+        <div id="printQrError" style="display:none; padding:24px; text-align:center; color:#b42318; font-size:18px; font-weight:700;">
+            QR 이미지를 불러오지 못했습니다.
+        </div>
         <h1 class="print-title">매장 QR 코드</h1>
         <div class="print-card">
             <div class="print-qr">
-                <img id="printBusinessQrImage" src="${escapedImageSrc}" alt="매장 QR 코드" />
+                <img id="printBusinessQrImage" src="__PRINT_QR_IMAGE_SRC__" alt="매장 QR 코드" />
             </div>
             <div class="print-meta">
                 <div class="print-row">
                     <div class="print-label">매장명</div>
-                    <div class="print-value">${escapedBusinessName}</div>
+                    <div class="print-value">__PRINT_BUSINESS_NAME__</div>
                 </div>
                 <div class="print-row">
                     <div class="print-label">대표 장소명</div>
-                    <div class="print-value">${escapedLocationName}</div>
+                    <div class="print-value">__PRINT_LOCATION_NAME__</div>
                 </div>
                 <div class="print-row">
                     <div class="print-label">주소</div>
-                    <div class="print-value">${escapedAddress}</div>
+                    <div class="print-value">__PRINT_ADDRESS__</div>
                 </div>
                 <div class="print-row">
                     <div class="print-label">인증키</div>
-                    <div class="print-value">${escapedAuthKey}</div>
+                    <div class="print-value">__PRINT_AUTH_KEY__</div>
                 </div>
             </div>
         </div>
@@ -2066,24 +2031,109 @@ function deleteBusiness(businessId) {
                     window.print();
                 }, 150);
             };
+            const showError = function() {
+                const errorMessage = document.getElementById('printQrError');
+                if (errorMessage) {
+                    errorMessage.style.display = 'block';
+                }
+                if (image) {
+                    image.style.display = 'none';
+                }
+            };
 
-            if (image && image.complete) {
+            if (!image) {
+                showError();
+                return;
+            }
+
+            if (image.complete && image.naturalWidth > 0) {
                 doPrint();
                 return;
             }
 
-            if (image) {
-                image.onload = doPrint;
-                image.onerror = doPrint;
-                return;
-            }
+            image.onload = function() {
+                if (image.naturalWidth > 0) {
+                    doPrint();
+                    return;
+                }
+                showError();
+            };
+            image.onerror = showError;
 
-            doPrint();
+            window.setTimeout(function() {
+                if (image.complete && image.naturalWidth > 0) {
+                    doPrint();
+                    return;
+                }
+                if (image.complete) {
+                    showError();
+                }
+            }, 500);
         })();
     <\/script>
 </body>
-</html>`);
-            printWindow.document.close();
+<\/html>`;
+
+                printWindow.document.open();
+                printWindow.document.write(
+                    printDocumentHtml
+                        .replace('__PRINT_QR_IMAGE_SRC__', escapedImageSrc)
+                        .replace('__PRINT_BUSINESS_NAME__', escapedBusinessName)
+                        .replace('__PRINT_LOCATION_NAME__', escapedLocationName)
+                        .replace('__PRINT_ADDRESS__', escapedAddress)
+                        .replace('__PRINT_AUTH_KEY__', escapedAuthKey)
+                );
+                printWindow.document.close();
+            };
+
+            const absoluteImageSrc = (function() {
+                try {
+                    return new URL(imageSrc, window.location.origin).toString();
+                } catch (error) {
+                    return imageSrc;
+                }
+            })();
+            const printableImageSrc = (function() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    if (!context) {
+                        return absoluteImageSrc;
+                    }
+
+                    canvas.width = qrImageElement.naturalWidth;
+                    canvas.height = qrImageElement.naturalHeight;
+                    context.drawImage(qrImageElement, 0, 0);
+                    return canvas.toDataURL('image/png');
+                } catch (error) {
+                    return absoluteImageSrc;
+                }
+            })();
+            const fallbackImageSrc = absoluteImageSrc;
+            const preloadPrintableImage = function(primarySrc, fallbackSrc) {
+                const primaryImage = new Image();
+                primaryImage.onload = function() {
+                    writePrintDocument(primarySrc);
+                };
+                primaryImage.onerror = function() {
+                    if (!fallbackSrc || fallbackSrc === primarySrc) {
+                        writePrintDocument('');
+                        return;
+                    }
+
+                    const fallbackImage = new Image();
+                    fallbackImage.onload = function() {
+                        writePrintDocument(fallbackSrc);
+                    };
+                    fallbackImage.onerror = function() {
+                        writePrintDocument('');
+                    };
+                    fallbackImage.src = fallbackSrc;
+                };
+                primaryImage.src = primarySrc;
+            };
+
+            preloadPrintableImage(printableImageSrc, fallbackImageSrc);
         }
 
         function closeBusinessInquiryDetailModal() {

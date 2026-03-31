@@ -25,6 +25,11 @@ import com.app.service.quest.QuestService;
 public class QuestServiceImpl implements QuestService {
 
     private static final String QUEST_LOCATION_STORAGE_UNAVAILABLE = "QUEST_LOCATION_STORAGE_UNAVAILABLE";
+    private static final String LOCATION_CATEGORY_EXPERIENCE = "EXPERIENCE";
+    private static final String EXPERIENCE_LOCATION_EXISTING_REQUIRED_MESSAGE =
+        "QR 인증 장소는 기존 위치를 선택해야 합니다.";
+    private static final String EXPERIENCE_LOCATION_ACTIVE_QR_REQUIRED_MESSAGE =
+        "QR 인증 장소는 활성 QR이 연결된 위치만 사용할 수 있습니다.";
 
     @Autowired
     private QuestDAO questDAO;
@@ -171,6 +176,19 @@ public class QuestServiceImpl implements QuestService {
         int visitOrder = 1;
         for (QuestLocationInfoDTO locationInfo : locations) {
             int locationId = locationInfo.getLocationId();
+            String normalizedLocationCategory = normalizeLocationCategory(locationInfo.getLocationCategory());
+
+            if (LOCATION_CATEGORY_EXPERIENCE.equals(normalizedLocationCategory)) {
+                if (locationId <= 0) {
+                    throw new IllegalArgumentException(EXPERIENCE_LOCATION_EXISTING_REQUIRED_MESSAGE);
+                }
+
+                String activeQrAuthKey = locationDAO.findActiveQrAuthKeyByLocationId(locationId);
+                if (activeQrAuthKey == null || activeQrAuthKey.trim().isEmpty()) {
+                    throw new IllegalArgumentException(EXPERIENCE_LOCATION_ACTIVE_QR_REQUIRED_MESSAGE);
+                }
+            }
+
             if (locationId <= 0) {
                 LocationDTO location = new LocationDTO();
                 location.setBusinessId(null);
@@ -181,7 +199,7 @@ public class QuestServiceImpl implements QuestService {
                 location.setLatitude(locationInfo.getLatitude() == null ? 0D : locationInfo.getLatitude());
                 location.setLongitude(locationInfo.getLongitude() == null ? 0D : locationInfo.getLongitude());
                 location.setLocationType(locationInfo.getLocationType());
-                location.setLocationCategory(locationInfo.getLocationCategory());
+                location.setLocationCategory(normalizedLocationCategory);
                 location.setDescription(locationInfo.getDescription());
 
                 try {
@@ -218,5 +236,12 @@ public class QuestServiceImpl implements QuestService {
 
     private boolean isLocationPayloadEmpty(List<QuestLocationInfoDTO> locations) {
         return locations == null || locations.isEmpty();
+    }
+
+    private String normalizeLocationCategory(String locationCategory) {
+        if (locationCategory == null || locationCategory.trim().isEmpty()) {
+            return "VISIT";
+        }
+        return locationCategory.trim().toUpperCase();
     }
 }

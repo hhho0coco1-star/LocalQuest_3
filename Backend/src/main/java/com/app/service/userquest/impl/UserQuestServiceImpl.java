@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -203,6 +204,7 @@ public class UserQuestServiceImpl implements UserQuestService {
         response.setLocationName(targets.get(0).getLocationName());
 
         List<QrVerificationQuestResultDTO> results = new ArrayList<>();
+        Map<Long, RewardBadgeDTO> newlyAwardedBadgeMap = new LinkedHashMap<>();
         LocalDateTime now = LocalDateTime.now();
         int verifiedQuestCount = 0;
         int completedQuestCount = 0;
@@ -225,6 +227,41 @@ public class UserQuestServiceImpl implements UserQuestService {
             result.setAlreadyCompleted(alreadyCompleted);
             result.setExpired(expired);
 
+            UserQuestDetailDTO detail = getUserQuestDetail(userId, target.getUserQuestId());
+            if (detail == null) {
+                result.setStatus(target.getUserQuestStatus());
+                result.setCompletedCount(completedCount);
+                result.setRemainingCount(Math.max(0, totalCount - completedCount));
+                result.setMessage("진행 중인 퀘스트 정보를 찾을 수 없습니다.");
+                results.add(result);
+                continue;
+            }
+
+            UserQuestDetailLocationDTO targetLocation = findTargetLocation(detail, target.getQuestLocationId());
+            if (targetLocation == null) {
+                result.setStatus(target.getUserQuestStatus());
+                result.setCompletedCount(completedCount);
+                result.setRemainingCount(Math.max(0, totalCount - completedCount));
+                result.setMessage("인증할 장소 정보를 찾을 수 없습니다.");
+                results.add(result);
+                continue;
+            }
+
+            if (targetLocation.getName() != null && !targetLocation.getName().trim().isEmpty()) {
+                result.setLocationName(targetLocation.getName());
+            }
+
+            try {
+                ensureLocationCategory(targetLocation, LOCATION_TYPE_EXPERIENCE);
+            } catch (IllegalArgumentException e) {
+                result.setStatus(target.getUserQuestStatus());
+                result.setCompletedCount(completedCount);
+                result.setRemainingCount(Math.max(0, totalCount - completedCount));
+                result.setMessage("QR 인증 대상 장소가 아닙니다.");
+                results.add(result);
+                continue;
+            }
+
             if (expired) {
                 result.setStatus(target.getUserQuestStatus());
                 result.setCompletedCount(completedCount);
@@ -235,6 +272,17 @@ public class UserQuestServiceImpl implements UserQuestService {
             }
 
             if (!alreadyCompleted) {
+                try {
+                    ensurePreviousLocationsCompleted(detail, targetLocation);
+                } catch (IllegalStateException e) {
+                    result.setStatus(target.getUserQuestStatus());
+                    result.setCompletedCount(completedCount);
+                    result.setRemainingCount(Math.max(0, totalCount - completedCount));
+                    result.setMessage(e.getMessage());
+                    results.add(result);
+                    continue;
+                }
+
                 UserQuestProgressDTO progress = new UserQuestProgressDTO();
                 progress.setUserQuestId(target.getUserQuestId());
                 progress.setQuestLocationId(target.getQuestLocationId());
@@ -261,21 +309,34 @@ public class UserQuestServiceImpl implements UserQuestService {
             boolean questCompleted = remainingCount == 0;
 
             if (questCompleted) {
-                UserQuestDTO completedUserQuest = new UserQuestDTO();
-                completedUserQuest.setUserQuestId(target.getUserQuestId());
-                completedUserQuest.setStatus(USER_QUEST_STATUS_COMPLETED);
-                completedUserQuest.setCompletedAt(now);
-                userQuestDAO.completeUserQuest(completedUserQuest);
-                completedQuestCount += 1;
-                result.setQuestCompleted(true);
-                result.setStatus(USER_QUEST_STATUS_COMPLETED);
-                result.setCompletedCount(totalCount);
-                result.setRemainingCount(0);
-                result.setMessage(
-                    result.isVerified()
-                        ? "\u0051\u0052 \uC778\uC99D\uACFC \uD568\uAED8 \uD018\uC2A4\uD2B8\uAC00 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4\u002E"
-                        : "\uD018\uC2A4\uD2B8 \uC644\uB8CC \uC0C1\uD0DC\uB85C \uBC18\uC601\uB418\uC5C8\uC2B5\uB2C8\uB2E4\u002E"
-                );
+                try {
+                    Map<String, Object> completionResult = completeQuest(userId, target.getUserQuestId());
+                    boolean alreadyQuestCompleted = Boolean.TRUE.equals(completionResult.get("alreadyCompleted"));
+
+                    if (!alreadyQuestCompleted) {
+                        completedQuestCount += 1;
+                    }
+
+                    mergeRewardBadges(
+                        newlyAwardedBadgeMap,
+                        extractRewardBadges(completionResult.get("newlyAwardedBadges"))
+                    );
+
+                    result.setQuestCompleted(true);
+                    result.setStatus(USER_QUEST_STATUS_COMPLETED);
+                    result.setCompletedCount(totalCount);
+                    result.setRemainingCount(0);
+                    result.setMessage(
+                        result.isVerified()
+                            ? "QR 인증과 함께 퀘스트가 완료되었습니다."
+                            : stringValue(completionResult.get("message"))
+                    );
+                } catch (IllegalArgumentException e) {
+                    result.setStatus(target.getUserQuestStatus());
+                    result.setCompletedCount(Math.min(totalCount, completedCount));
+                    result.setRemainingCount(Math.max(0, remainingCount));
+                    result.setMessage(e.getMessage());
+                }
             } else {
                 result.setStatus(target.getUserQuestStatus());
                 result.setCompletedCount(Math.min(totalCount, completedCount));
@@ -289,12 +350,7 @@ public class UserQuestServiceImpl implements UserQuestService {
         response.setMatchedQuestCount(results.size());
         response.setVerifiedQuestCount(verifiedQuestCount);
         response.setCompletedQuestCount(completedQuestCount);
-
-        List<RewardBadgeDTO> newlyAwardedBadges = Collections.emptyList();
-        if (completedQuestCount > 0) {
-            newlyAwardedBadges = badgeOperationService.evaluateAndGrantBadges(userId);
-        }
-        response.setNewlyAwardedBadges(newlyAwardedBadges);
+        response.setNewlyAwardedBadges(new ArrayList<>(newlyAwardedBadgeMap.values()));
 
         response.setMessage(buildQrVerificationMessage(results, verifiedQuestCount, completedQuestCount));
         return response;
@@ -971,6 +1027,44 @@ public class UserQuestServiceImpl implements UserQuestService {
         return value == null ? 0 : value;
     }
 
+    @SuppressWarnings("unchecked")
+    private List<RewardBadgeDTO> extractRewardBadges(Object rewardBadgesValue) {
+        if (!(rewardBadgesValue instanceof List<?>)) {
+            return Collections.emptyList();
+        }
+
+        List<RewardBadgeDTO> rewardBadges = new ArrayList<>();
+        for (Object badge : (List<?>) rewardBadgesValue) {
+            if (badge instanceof RewardBadgeDTO) {
+                rewardBadges.add((RewardBadgeDTO) badge);
+            }
+        }
+        return rewardBadges;
+    }
+
+    private void mergeRewardBadges(
+        Map<Long, RewardBadgeDTO> newlyAwardedBadgeMap,
+        List<RewardBadgeDTO> rewardBadges
+    ) {
+        if (newlyAwardedBadgeMap == null || rewardBadges == null || rewardBadges.isEmpty()) {
+            return;
+        }
+
+        for (RewardBadgeDTO rewardBadge : rewardBadges) {
+            if (rewardBadge == null) {
+                continue;
+            }
+
+            Long badgeId = rewardBadge.getBadgeId();
+            if (badgeId != null) {
+                newlyAwardedBadgeMap.putIfAbsent(badgeId, rewardBadge);
+                continue;
+            }
+
+            newlyAwardedBadgeMap.putIfAbsent(-1L * (newlyAwardedBadgeMap.size() + 1L), rewardBadge);
+        }
+    }
+
     private String buildQrVerificationMessage(
         List<QrVerificationQuestResultDTO> results,
         int verifiedQuestCount,
@@ -990,6 +1084,17 @@ public class UserQuestServiceImpl implements UserQuestService {
         boolean hasExpired = results.stream().anyMatch(QrVerificationQuestResultDTO::isExpired);
         if (hasExpired) {
             return "\uC81C\uD55C\uC2DC\uAC04\uC774 \uC9C0\uB09C \uD018\uC2A4\uD2B8\uB294 \u0051\u0052 \uC778\uC99D\uC744 \uBC18\uC601\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4\u002E";
+        }
+
+        for (QrVerificationQuestResultDTO result : results) {
+            if (result == null) {
+                continue;
+            }
+
+            String message = result.getMessage();
+            if (message != null && !message.trim().isEmpty()) {
+                return message;
+            }
         }
 
         return "\uC774\uBBF8 \uBC18\uC601\uB41C \u0051\u0052 \uC778\uC99D\uC785\uB2C8\uB2E4\u002E";

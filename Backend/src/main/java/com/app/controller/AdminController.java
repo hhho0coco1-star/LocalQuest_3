@@ -775,18 +775,41 @@ public class AdminController {
             if (location == null) {
                 return "fail:locations_invalid";
             }
+
+            String normalizedCategory = normalizeLocationCategory(location.getLocationCategory());
             if (location.getName() == null || location.getName().trim().isEmpty()) {
                 return "fail:location_name_empty";
             }
             if (location.getAddress() == null || location.getAddress().trim().isEmpty()) {
                 return "fail:location_address_empty";
             }
-            if (location.getLatitude() == null || location.getLongitude() == null) {
+
+            if ("EXPERIENCE".equals(normalizedCategory) && location.getLocationId() <= 0) {
+                return "fail:experience_location_existing_required";
+            }
+
+            if ("EXPERIENCE".equals(normalizedCategory)) {
+                String activeQrAuthKey = locationService.findActiveQrAuthKeyByLocationId(location.getLocationId());
+                if (activeQrAuthKey == null || activeQrAuthKey.trim().isEmpty()) {
+                    return "fail:experience_location_active_qr_required";
+                }
+            }
+
+            boolean requiresCoordinates =
+                "VISIT".equals(normalizedCategory) || location.getLocationId() <= 0;
+            if (requiresCoordinates && (location.getLatitude() == null || location.getLongitude() == null)) {
                 return "fail:location_coordinate_empty";
             }
         }
 
         return null;
+    }
+
+    private String normalizeLocationCategory(String locationCategory) {
+        if (locationCategory == null || locationCategory.trim().isEmpty()) {
+            return "VISIT";
+        }
+        return locationCategory.trim().toUpperCase(Locale.ROOT);
     }
 
     private boolean isQuestLocationStorageUnavailable(Throwable throwable) {
