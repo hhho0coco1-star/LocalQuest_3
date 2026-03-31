@@ -49,7 +49,7 @@ public class BusinessAPIController {
         }
 
         String role = jwtTokenProvider.resolveRoleFromAuthorizationHeader(authorizationHeader);
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(role == null ? "" : role.trim());
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizeRole(role));
 
         if (businessId != null && businessId.intValue() > 0 && !isAdmin) {
             log.warn("Business dashboard forbidden businessId override. userId={}, role={}, businessId={}", userId, role, businessId);
@@ -145,6 +145,17 @@ public class BusinessAPIController {
             return null;
         }
         return businesses.get(0);
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
     }
 
     @RequestMapping(value = "/me", method = { RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH })
