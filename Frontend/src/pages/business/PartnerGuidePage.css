@@ -1,0 +1,250 @@
+.partner-guide-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 48px 28px 88px;
+}
+
+.partner-guide-hero,
+.partner-guide-step-card,
+.partner-guide-info-card,
+.partner-guide-side-panel,
+.partner-guide-faq-card,
+.partner-guide-banner {
+  border: 1px solid #f0dde2;
+  border-radius: 30px;
+  background: #ffffff;
+  box-shadow: 0 20px 40px rgba(217, 61, 94, 0.08);
+}
+
+.partner-guide-hero {
+  padding: 34px;
+  margin-bottom: 64px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 227, 233, 0.76), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #fff9f8 100%);
+}
+
+.partner-guide-chip,
+.partner-guide-section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 15px;
+  border-radius: 999px;
+  border: 1px solid #f2dfe2;
+  background: rgba(255, 247, 247, 0.94);
+  color: #dc6278;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.partner-guide-hero h1,
+.partner-guide-heading h2,
+.partner-guide-banner h2 {
+  margin: 18px 0 14px;
+  color: #181d2b;
+  letter-spacing: -0.045em;
+  word-break: keep-all;
+}
+
+.partner-guide-hero h1 {
+  max-width: 820px;
+  font-size: clamp(34px, 4.2vw, 56px);
+  line-height: 1.05;
+}
+
+.partner-guide-hero p,
+.partner-guide-step-card p,
+.partner-guide-side-panel p,
+.partner-guide-faq-card p,
+.partner-guide-banner p {
+  margin: 0;
+  color: #6d798d;
+  line-height: 1.74;
+  word-break: keep-all;
+}
+
+.partner-guide-section {
+  margin-bottom: 64px;
+}
+
+.partner-guide-heading {
+  margin-bottom: 24px;
+}
+
+.partner-guide-heading h2 {
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.14;
+}
+
+.partner-guide-step-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.partner-guide-step-card,
+.partner-guide-info-card,
+.partner-guide-side-panel,
+.partner-guide-faq-card {
+  padding: 24px;
+}
+
+.partner-guide-step-badge {
+  display: inline-flex;
+  margin-bottom: 16px;
+  color: #d93d5e;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.partner-guide-step-card strong,
+.partner-guide-side-panel strong,
+.partner-guide-faq-card strong {
+  display: block;
+  margin-bottom: 12px;
+  color: #17203a;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+}
+
+.partner-guide-split-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 18px;
+}
+
+.partner-guide-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.partner-guide-check-list li {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #fff7f8;
+  color: #394150;
+  font-weight: 700;
+}
+
+.partner-guide-side-panel {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(53, 63, 108, 0.45), transparent 32%),
+    radial-gradient(circle at 82% 82%, rgba(106, 52, 101, 0.28), transparent 30%),
+    linear-gradient(135deg, #171d32 0%, #151827 100%);
+  color: #ffffff;
+}
+
+.partner-guide-side-kicker {
+  display: inline-flex;
+  margin-bottom: 16px;
+  color: #ffdce5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.partner-guide-side-panel strong {
+  color: #ffffff;
+}
+
+.partner-guide-side-panel p {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.partner-guide-faq-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.partner-guide-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 30px 32px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 224, 230, 0.72), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #fff7f8 100%);
+}
+
+.partner-guide-section-badge.is-banner {
+  background: #ffe7ec;
+}
+
+.partner-guide-banner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.partner-guide-primary-btn,
+.partner-guide-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.partner-guide-primary-btn {
+  background: #d93d5e;
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(217, 61, 94, 0.24);
+}
+
+.partner-guide-secondary-btn {
+  border: 1px solid #f0d2d8;
+  background: #ffffff;
+  color: #d93d5e;
+}
+
+@media (max-width: 960px) {
+  .partner-guide-page {
+    padding: 34px 18px 72px;
+  }
+
+  .partner-guide-step-list,
+  .partner-guide-split-section,
+  .partner-guide-faq-list,
+  .partner-guide-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .partner-guide-page {
+    padding: 28px 14px 60px;
+  }
+
+  .partner-guide-hero,
+  .partner-guide-step-card,
+  .partner-guide-info-card,
+  .partner-guide-side-panel,
+  .partner-guide-faq-card,
+  .partner-guide-banner {
+    border-radius: 24px;
+    padding: 22px;
+  }
+
+  .partner-guide-banner-actions {
+    width: 100%;
+  }
+
+  .partner-guide-primary-btn,
+  .partner-guide-secondary-btn {
+    width: 100%;
+  }
+}
