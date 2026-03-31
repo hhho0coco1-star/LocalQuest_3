@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { businessApi } from '../../../api/BusinessApi';
 import { EMPTY_DASHBOARD } from '../utils/businessConstants';
 import {
@@ -9,7 +10,29 @@ import {
   padTwoDigits
 } from '../utils/businessUtils';
 
+const ADMIN_DEFAULT_BIZ_KEY = 'lq_admin_default_business_id';
+
+const resolveBusinessIdFromQuery = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const raw = new URLSearchParams(window.location.search).get('businessId');
+  if (!raw) {
+    return null;
+  }
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parsePositiveInt = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 export function useBusinessOverview() {
+  const userRole = useSelector((state) => state.auth.user?.role ?? '');
+  const normalizedRole = String(userRole || '').replace(/^ROLE_/i, '').toUpperCase();
+  const isAdmin = normalizedRole === 'ADMIN';
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [business, setBusiness] = useState(null);
@@ -20,8 +43,29 @@ export function useBusinessOverview() {
       setLoading(true);
       setErrorMessage('');
 
-      const response = await businessApi.getMyBusinessOverview();
+      const businessIdFromQuery = resolveBusinessIdFromQuery();
+      let businessId = businessIdFromQuery;
+      if (!businessId && isAdmin) {
+        try {
+          businessId = parsePositiveInt(sessionStorage.getItem(ADMIN_DEFAULT_BIZ_KEY));
+        } catch (error) {
+          businessId = null;
+        }
+      }
+
+      const response = await businessApi.getMyBusinessOverview(
+        businessId ? { businessId } : null
+      );
       const payload = response?.data || {};
+
+      const loadedBusinessId = parsePositiveInt(payload?.business?.businessId);
+      if (isAdmin && loadedBusinessId) {
+        try {
+          sessionStorage.setItem(ADMIN_DEFAULT_BIZ_KEY, String(loadedBusinessId));
+        } catch (error) {
+          // ignore storage errors
+        }
+      }
 
       setBusiness(payload.business || null);
       setDashboard(payload.dashboard || EMPTY_DASHBOARD);
@@ -39,7 +83,7 @@ export function useBusinessOverview() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     loadBusinessOverview();
