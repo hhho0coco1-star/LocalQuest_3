@@ -16,4 +16,6 @@ public interface LocationService {
     public int updateRepresentativeLocation(LocationDTO location);
 
     public int deleteUnusedLocationsByIds(List<Integer> locationIds);
+
+    String findActiveQrAuthKeyByLocationId(int locationId);
 }

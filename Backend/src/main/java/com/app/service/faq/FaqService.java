@@ -14,7 +14,10 @@ public interface FaqService {
     // 2-2. 카테고리별 FAQ 목록 조회
     List<FaqDTO> findFaqByCategory(String category);
 
-    // 2-3. FAQ 상세 조회 (조회수 증가 포함)
+    // 2-3. FAQ 상세 조회 (조회수 증가 없이 관리자 화면용 조회)
+    FaqDTO findFaqById(int faqId);
+
+    // 2-4. FAQ 상세 조회 (조회수 증가 포함)
     FaqDTO findFaqDetail(int faqId);
 
     // 3. FAQ 수정 (관리자용)

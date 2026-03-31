@@ -31,4 +31,14 @@ public class BadgeReadServiceImpl implements BadgeReadService {
 		List<RewardBadgeDTO> rows = badgeReadDAO.findUserBadgesByNickname(nickname.trim());
 		return rows == null ? Collections.emptyList() : rows;
 	}
+
+	@Override
+	public List<RewardBadgeDTO> getUserBadgesByUserId(int userId) {
+		if (userId <= 0) {
+			return Collections.emptyList();
+		}
+
+		List<RewardBadgeDTO> rows = badgeReadDAO.findUserBadgesByUserId(userId);
+		return rows == null ? Collections.emptyList() : rows;
+	}
 }

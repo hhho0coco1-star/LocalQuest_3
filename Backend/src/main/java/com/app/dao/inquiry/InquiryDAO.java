@@ -1,6 +1,7 @@
 package com.app.dao.inquiry;
 
 import java.util.List;
+import java.util.Map;
 
 import com.app.dto.inquiry.InquiryDTO;
 
@@ -14,4 +15,6 @@ public interface InquiryDAO {
 	int updateInquiry(InquiryDTO inquiry); // 수정
 
 	int deleteInquiry(int inquiryId); // 삭제
+    List<InquiryDTO> getAdminInquiryList(Map<String, Object> params);
+	int saveInquiryAnswer(InquiryDTO inquiry);
 }

@@ -20,16 +20,23 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.app.dto.business.BusinessDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
+import com.app.dto.faq.FaqDTO;
+import com.app.dto.inquiry.InquiryDTO;
+import com.app.dto.inquiry.InquiryStatus;
 import com.app.dto.location.LocationDTO;
 import com.app.dto.locationqr.BusinessQrInfoDTO;
+import com.app.dto.notice.NoticeDTO;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
 import com.app.service.businessinquiry.BusinessInquiryService;
+import com.app.service.faq.FaqService;
+import com.app.service.inquiry.InquiryService;
 import com.app.service.location.LocationService;
 import com.app.service.locationqr.LocationQrService;
+import com.app.service.notice.NoticeService;
 import com.app.service.quest.QuestService;
 import com.app.service.reward.RewardItemService;
 import com.app.service.user.UserService;
@@ -61,7 +68,16 @@ public class AdminController {
 	private BusinessInquiryService businessInquiryService;
 
 	@Autowired
+	private InquiryService inquiryService;
+
+	@Autowired
 	private LocationQrService locationQrService;
+
+	@Autowired
+	private NoticeService noticeService;
+
+	@Autowired
+	private FaqService faqService;
 
 	// 관리자 메인 페이지
 	@GetMapping("")
@@ -70,6 +86,255 @@ public class AdminController {
 	}
 	
 	// 1. 회원 목록 조회
+	@GetMapping("/notice")
+	public String noticeAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "pinned", required = false) Integer pinned,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    Integer normalizedPinned = (pinned != null && (pinned == 0 || pinned == 1)) ? pinned : null;
+	    List<NoticeDTO> noticeList = Collections.emptyList();
+	    String noticeLoadError = null;
+
+	    try {
+	        List<NoticeDTO> allNoticeList = noticeService.findNoticeList();
+	        if (allNoticeList == null || allNoticeList.isEmpty()) {
+	            noticeList = Collections.emptyList();
+	        } else {
+	            List<NoticeDTO> filteredNoticeList = new ArrayList<>();
+	            String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+	            for (NoticeDTO notice : allNoticeList) {
+	                if (notice == null) {
+	                    continue;
+	                }
+
+	                if (normalizedPinned != null && notice.getIsPinned() != normalizedPinned.intValue()) {
+	                    continue;
+	                }
+
+	                if (keywordLower != null) {
+	                    String title = notice.getTitle() == null ? "" : notice.getTitle();
+	                    String content = notice.getContent() == null ? "" : notice.getContent();
+	                    boolean matched = title.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || content.toLowerCase(Locale.ROOT).contains(keywordLower);
+
+	                    if (!matched) {
+	                        continue;
+	                    }
+	                }
+
+	                filteredNoticeList.add(notice);
+	            }
+
+	            noticeList = filteredNoticeList;
+	        }
+	    } catch (Exception e) {
+	        noticeLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("noticeList", noticeList);
+	    model.addAttribute("noticeLoadError", noticeLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentPinned", normalizedPinned);
+	    return "admin/admin-notice";
+	}
+
+	@GetMapping("/notice/detail")
+	@ResponseBody
+	public Map<String, Object> getNoticeDetailForAdmin(@RequestParam int noticeId) {
+	    NoticeDTO notice = noticeService.findNoticeById(noticeId);
+
+	    if (notice == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("noticeId", notice.getNoticeId());
+	    result.put("title", notice.getTitle());
+	    result.put("content", notice.getContent());
+	    result.put("viewCount", notice.getViewCount());
+	    result.put("isPinned", notice.getIsPinned());
+	    result.put("createdAt", notice.getCreatedAt() != null ? notice.getCreatedAt().toString() : null);
+	    return result;
+	}
+
+	@GetMapping("/faq")
+	public String faqAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "category", required = false) String category,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    String normalizedCategory = (category != null && !category.trim().isEmpty()) ? category.trim() : null;
+	    List<FaqDTO> faqList = Collections.emptyList();
+	    List<String> faqCategoryOptions = new ArrayList<>();
+	    String faqLoadError = null;
+
+	    try {
+	        List<FaqDTO> allFaqList = faqService.findAllFaq();
+	        if (allFaqList == null || allFaqList.isEmpty()) {
+	            faqList = Collections.emptyList();
+	        } else {
+	            List<FaqDTO> filteredFaqList = new ArrayList<>();
+	            String keywordLower = normalizedKeyword == null ? null : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+	            for (FaqDTO faq : allFaqList) {
+	                if (faq == null) {
+	                    continue;
+	                }
+
+	                String faqCategory = faq.getCategory() == null ? "" : faq.getCategory().trim();
+	                if (!faqCategory.isEmpty() && !faqCategoryOptions.contains(faqCategory)) {
+	                    faqCategoryOptions.add(faqCategory);
+	                }
+
+	                if (normalizedCategory != null && !faqCategory.equalsIgnoreCase(normalizedCategory)) {
+	                    continue;
+	                }
+
+	                if (keywordLower != null) {
+	                    String question = faq.getQuestion() == null ? "" : faq.getQuestion();
+	                    String answer = faq.getAnswer() == null ? "" : faq.getAnswer();
+	                    boolean matched = question.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || answer.toLowerCase(Locale.ROOT).contains(keywordLower)
+	                        || faqCategory.toLowerCase(Locale.ROOT).contains(keywordLower);
+
+	                    if (!matched) {
+	                        continue;
+	                    }
+	                }
+
+	                filteredFaqList.add(faq);
+	            }
+
+	            faqList = filteredFaqList;
+	        }
+	    } catch (Exception e) {
+	        faqLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("faqList", faqList);
+	    model.addAttribute("faqCategoryOptions", faqCategoryOptions);
+	    model.addAttribute("faqLoadError", faqLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentCategory", normalizedCategory);
+	    return "admin/admin-faq";
+	}
+
+	@GetMapping("/faq/detail")
+	@ResponseBody
+	public Map<String, Object> getFaqDetailForAdmin(@RequestParam int faqId) {
+	    FaqDTO faq = faqService.findFaqById(faqId);
+
+	    if (faq == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("faqId", faq.getFaqId());
+	    result.put("category", faq.getCategory());
+	    result.put("question", faq.getQuestion());
+	    result.put("answer", faq.getAnswer());
+	    result.put("viewCount", faq.getViewCount());
+	    result.put("createdAt", faq.getCreatedAt() != null ? faq.getCreatedAt().toString() : null);
+	    return result;
+	}
+
+	// Admin QnA page
+	@GetMapping("/qna")
+	public String inquiryAdmin(
+	        @RequestParam(value = "keyword", required = false) String keyword,
+	        @RequestParam(value = "status", required = false) String status,
+	        @RequestParam(value = "userId", required = false) Integer userId,
+	        Model model) {
+	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+	    String normalizedStatusCandidate = (status != null) ? status.trim() : null;
+	    String normalizedStatus = (normalizedStatusCandidate != null
+	            && InquiryStatus.ADMIN_SEARCH_STATUSES.contains(normalizedStatusCandidate))
+	            ? normalizedStatusCandidate
+	            : null;
+	    Integer normalizedUserId = (userId != null && userId > 0) ? userId : null;
+	    List<InquiryDTO> inquiryList = Collections.emptyList();
+	    String inquiryLoadError = null;
+	    Map<String, Object> inquiryParams = new HashMap<>();
+
+	    inquiryParams.put("keyword", normalizedKeyword);
+	    inquiryParams.put("status", normalizedStatus);
+	    inquiryParams.put("userId", normalizedUserId);
+
+	    try {
+	        inquiryList = inquiryService.findAdminInquiryList(inquiryParams);
+	    } catch (Exception e) {
+	        inquiryLoadError = e.getClass().getSimpleName() + ": " + e.getMessage();
+	        e.printStackTrace();
+	    }
+
+	    model.addAttribute("statusOptions", InquiryStatus.ADMIN_SEARCH_STATUSES);
+	    model.addAttribute("inquiryList", inquiryList);
+	    model.addAttribute("inquiryLoadError", inquiryLoadError);
+	    model.addAttribute("currentKeyword", normalizedKeyword);
+	    model.addAttribute("currentStatus", normalizedStatus);
+	    model.addAttribute("currentUserId", normalizedUserId);
+	    return "admin/admin-qna-manage-v3";
+	}
+
+	@GetMapping("/qna/detail")
+	@ResponseBody
+	public Map<String, Object> getInquiryDetail(@RequestParam int inquiryId) {
+	    InquiryDTO inquiry = inquiryService.findInquiryById(inquiryId);
+
+	    if (inquiry == null) {
+	        return null;
+	    }
+
+	    Map<String, Object> result = new LinkedHashMap<>();
+	    result.put("inquiryId", inquiry.getInquiryId());
+	    result.put("userId", inquiry.getUserId());
+	    result.put("title", inquiry.getTitle());
+	    result.put("content", inquiry.getContent());
+	    result.put("status", inquiry.getStatus());
+	    result.put("answerContent", inquiry.getAnswerContent());
+	    result.put("createdAt", inquiry.getCreatedAt() != null ? inquiry.getCreatedAt().toString() : null);
+	    result.put("answeredAt", inquiry.getAnsweredAt() != null ? inquiry.getAnsweredAt().toString() : null);
+	    return result;
+	}
+
+	@PostMapping("/qna/answer")
+	@ResponseBody
+	public String answerInquiry(@RequestParam int inquiryId, @RequestParam String answerContent) {
+	    String normalizedAnswerContent = answerContent == null ? "" : answerContent.trim();
+	    if (normalizedAnswerContent.isEmpty()) {
+	        return "fail:empty_answer";
+	    }
+
+	    InquiryDTO inquiry = new InquiryDTO();
+	    inquiry.setInquiryId(inquiryId);
+	    inquiry.setAnswerContent(normalizedAnswerContent);
+	    inquiry.setStatus(InquiryStatus.ANSWERED);
+
+	    try {
+	        int result = inquiryService.saveInquiryAnswer(inquiry);
+	        return result > 0 ? "success" : "fail";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "error";
+	    }
+	}
+
+	@PostMapping("/qna/delete")
+	@ResponseBody
+	public String deleteInquiry(@RequestParam int inquiryId) {
+	    try {
+	        int result = inquiryService.removeInquiry(inquiryId);
+	        return result > 0 ? "success" : "fail";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "error";
+	    }
+	}
+
 	@GetMapping("/users")
 	public String getUserList(
 	        @RequestParam(value="sort", defaultValue="DESC") String sort,
@@ -510,18 +775,41 @@ public class AdminController {
             if (location == null) {
                 return "fail:locations_invalid";
             }
+
+            String normalizedCategory = normalizeLocationCategory(location.getLocationCategory());
             if (location.getName() == null || location.getName().trim().isEmpty()) {
                 return "fail:location_name_empty";
             }
             if (location.getAddress() == null || location.getAddress().trim().isEmpty()) {
                 return "fail:location_address_empty";
             }
-            if (location.getLatitude() == null || location.getLongitude() == null) {
+
+            if ("EXPERIENCE".equals(normalizedCategory) && location.getLocationId() <= 0) {
+                return "fail:experience_location_existing_required";
+            }
+
+            if ("EXPERIENCE".equals(normalizedCategory)) {
+                String activeQrAuthKey = locationService.findActiveQrAuthKeyByLocationId(location.getLocationId());
+                if (activeQrAuthKey == null || activeQrAuthKey.trim().isEmpty()) {
+                    return "fail:experience_location_active_qr_required";
+                }
+            }
+
+            boolean requiresCoordinates =
+                "VISIT".equals(normalizedCategory) || location.getLocationId() <= 0;
+            if (requiresCoordinates && (location.getLatitude() == null || location.getLongitude() == null)) {
                 return "fail:location_coordinate_empty";
             }
         }
 
         return null;
+    }
+
+    private String normalizeLocationCategory(String locationCategory) {
+        if (locationCategory == null || locationCategory.trim().isEmpty()) {
+            return "VISIT";
+        }
+        return locationCategory.trim().toUpperCase(Locale.ROOT);
     }
 
     private boolean isQuestLocationStorageUnavailable(Throwable throwable) {

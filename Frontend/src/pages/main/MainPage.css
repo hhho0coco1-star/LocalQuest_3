@@ -173,11 +173,33 @@
   box-shadow: 0 14px 28px rgba(44, 59, 125, 0.18);
   cursor: pointer;
   text-align: left;
+  --map-chip-lift: 0px;
+  transform-origin: 50% 100%;
+  animation: map-quest-chip-bounce var(--map-chip-bounce-duration, 1.7s)
+    cubic-bezier(0.32, 0.02, 0.24, 1)
+    var(--map-chip-bounce-delay, 0s) infinite;
+  will-change: transform;
 }
 
 .map-quest-overlay-chip.is-active {
   border-color: #d93d5e;
-  transform: translateY(-1px);
+  --map-chip-lift: -2px;
+}
+
+@keyframes map-quest-chip-bounce {
+  0%,
+  100% {
+    transform: translateY(calc(var(--map-chip-lift) + 0px));
+  }
+  28% {
+    transform: translateY(calc(var(--map-chip-lift) - 2px));
+  }
+  52% {
+    transform: translateY(calc(var(--map-chip-lift) - 8px));
+  }
+  72% {
+    transform: translateY(calc(var(--map-chip-lift) - 3px));
+  }
 }
 
 .map-quest-overlay-chip strong {

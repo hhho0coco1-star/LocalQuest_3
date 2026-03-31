@@ -1,12 +1,12 @@
 package com.app.controller.api;
 
 import java.util.Collections;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,19 +31,20 @@ import com.app.dto.user.SignUpRequest;
 import com.app.dto.user.UpdateMyProfileRequest;
 import com.app.dto.user.User;
 import com.app.service.user.UserService;
+import com.app.service.user.auth.JwtTokenProvider;
 import com.app.validator.UserValidator;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserAPIController {
-	private static final Pattern PASSWORD_PATTERN =
-		Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z\\d\\s])(?=\\S+$).{8,20}$");
-
 	@Autowired
 	private UserService userService;
 
 	@Autowired
 	private UserValidator userValidator;
+
+	@Autowired
+	private JwtTokenProvider jwtTokenProvider;
 
 	@GetMapping("/check-id/{userId}")
 	public ResponseEntity<?> checkId(@PathVariable String userId) {
@@ -90,6 +91,8 @@ public class UserAPIController {
 			return ResponseEntity.ok("회원가입 성공");
 		} catch (IllegalArgumentException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		} catch (DataIntegrityViolationException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 사용 중인 계정 정보입니다.");
 		}
 	}
 
@@ -99,7 +102,6 @@ public class UserAPIController {
 		if (validationMessage != null) {
 			return ResponseEntity.badRequest().body(validationMessage);
 		}
-		userValidator.normalizeLoginRequest(request);
 
 		LoginResponse response = userService.login(request);
 		if (response == null) {
@@ -162,13 +164,9 @@ public class UserAPIController {
 		}
 
 		String newPassword = trimToEmpty(request.getPassword());
-		if (!newPassword.isEmpty()) {
-			if (!isValidPassword(newPassword)) {
-				return ResponseEntity.badRequest().body(Collections.singletonMap(
-					"message",
-					"비밀번호는 8~20자 영문/숫자/특수문자를 모두 포함해야 합니다."
-				));
-			}
+		String passwordValidationMessage = userValidator.validatePasswordPolicy(newPassword);
+		if (!newPassword.isEmpty() && passwordValidationMessage != null) {
+			return ResponseEntity.badRequest().body(Collections.singletonMap("message", passwordValidationMessage));
 		}
 
 		try {
@@ -325,6 +323,17 @@ public class UserAPIController {
 	}
 
 	private Integer resolveLoginUserId(HttpServletRequest request) {
+		if (request == null) {
+			return null;
+		}
+
+		Integer userIdFromToken = jwtTokenProvider.resolveUserIdFromAuthorizationHeader(
+			request.getHeader(HttpHeaders.AUTHORIZATION)
+		);
+		if (userIdFromToken != null && userIdFromToken > 0) {
+			return userIdFromToken;
+		}
+
 		HttpSession session = request.getSession(false);
 		if (session == null) {
 			return null;
@@ -368,10 +377,6 @@ public class UserAPIController {
 
 	private String trimToEmpty(String value) {
 		return value == null ? "" : value.trim();
-	}
-
-	private boolean isValidPassword(String password) {
-		return PASSWORD_PATTERN.matcher(password).matches();
 	}
 
 	private void storeLoginSession(HttpServletRequest request, LoginResponse response) {

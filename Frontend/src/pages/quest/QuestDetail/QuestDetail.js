@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { questApi } from '../../../api/QuestApi';
+import { hasValidCoordinates, loadKakaoMapSdk } from '../../../utils/kakaoMap';
 import './QuestDetail.css';
-
-const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"]';
 
 const getDifficultyText = (rewardExp) => {
   if (rewardExp >= 300) return '어려움';
@@ -13,72 +12,6 @@ const getDifficultyText = (rewardExp) => {
 };
 
 const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '제한 없음');
-
-const hasValidCoordinates = (location) =>
-  Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
-
-const loadKakaoMapSdk = (appKey) =>
-  new Promise((resolve, reject) => {
-    if (!appKey) {
-      reject(new Error('missing-key'));
-      return;
-    }
-
-    if (window.kakao?.maps?.LatLng) {
-      resolve(window.kakao);
-      return;
-    }
-
-    const handleReady = () => {
-      if (window.kakao?.maps?.LatLng) {
-        resolve(window.kakao);
-        return;
-      }
-
-      if (window.kakao?.maps?.load) {
-        window.kakao.maps.load(() => {
-          if (window.kakao?.maps?.LatLng) {
-            resolve(window.kakao);
-            return;
-          }
-
-          reject(new Error('sdk-load-failed'));
-        });
-        return;
-      }
-
-      reject(new Error('sdk-load-failed'));
-    };
-
-    const existingScript = document.querySelector(KAKAO_MAP_SCRIPT_SELECTOR);
-    if (existingScript) {
-      if (existingScript.getAttribute('data-loaded') === 'true') {
-        handleReady();
-        return;
-      }
-
-      existingScript.addEventListener('load', handleReady, { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('sdk-load-failed')), {
-        once: true,
-      });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
-    script.async = true;
-    script.setAttribute('data-kakao-map-sdk', 'true');
-    script.addEventListener(
-      'load',
-      () => {
-        script.setAttribute('data-loaded', 'true');
-        handleReady();
-      },
-      { once: true }
-    );
-    script.addEventListener('error', () => reject(new Error('sdk-load-failed')), { once: true });
-    document.head.appendChild(script);
-  });
 
 const toQuestDetailModel = (quest) => {
   const locations = Array.isArray(quest.locations)

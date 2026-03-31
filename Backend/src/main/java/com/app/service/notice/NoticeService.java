@@ -14,6 +14,9 @@ public interface NoticeService {
     // 2-2. 공지사항 상세 조회 (조회수 증가 포함)
     NoticeDTO findNoticeDetail(int noticeId);
 
+    // 2-3. 관리자 상세 조회 (조회수 증가 없음)
+    NoticeDTO findNoticeById(int noticeId);
+
     // 3. 공지사항 수정
     int modifyNotice(NoticeDTO notice);
 

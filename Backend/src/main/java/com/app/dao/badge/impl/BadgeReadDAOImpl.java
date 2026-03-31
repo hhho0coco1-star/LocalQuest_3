@@ -24,4 +24,9 @@ public class BadgeReadDAOImpl implements BadgeReadDAO {
 	public List<RewardBadgeDTO> findUserBadgesByNickname(String nickname) {
 		return sqlSessionTemplate.selectList("badge_read_mapper.findUserBadgesByNickname", nickname);
 	}
+
+	@Override
+	public List<RewardBadgeDTO> findUserBadgesByUserId(int userId) {
+		return sqlSessionTemplate.selectList("badge_read_mapper.findUserBadgesByUserId", userId);
+	}
 }

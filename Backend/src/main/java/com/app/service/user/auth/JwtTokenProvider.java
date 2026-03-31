@@ -48,6 +48,76 @@ public class JwtTokenProvider {
 	}
 
 	public Integer resolveUserIdFromAuthorizationHeader(String authorizationHeader) {
+		String token = resolveBearerToken(authorizationHeader);
+		if (token == null) {
+			return null;
+		}
+		return parseUserId(token);
+	}
+
+	public String resolveRoleFromAuthorizationHeader(String authorizationHeader) {
+		String token = resolveBearerToken(authorizationHeader);
+		if (token == null) {
+			return null;
+		}
+		return parseRole(token);
+	}
+
+	public Integer parseUserId(String token) {
+		try {
+			Claims claims = parseClaims(token);
+			if (claims == null) {
+				return null;
+			}
+
+			Object uid = claims.get("uid");
+			if (uid instanceof Number) {
+				return Integer.valueOf(((Number) uid).intValue());
+			}
+
+			if (uid instanceof String) {
+				String uidText = ((String) uid).trim();
+				if (!uidText.isEmpty()) {
+					return Integer.valueOf(Integer.parseInt(uidText));
+				}
+			}
+
+			return null;
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	public String parseRole(String token) {
+		Claims claims = parseClaims(token);
+		if (claims == null) {
+			return null;
+		}
+
+		Object role = claims.get("role");
+		if (role == null) {
+			return null;
+		}
+		String normalized = String.valueOf(role).trim();
+		return normalized.isEmpty() ? null : normalized;
+	}
+
+	private Claims parseClaims(String token) {
+		if (token == null || token.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return Jwts.parser()
+				.verifyWith(secretKey)
+				.build()
+				.parseSignedClaims(token.trim())
+				.getPayload();
+		} catch (JwtException | IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	private String resolveBearerToken(String authorizationHeader) {
 		if (authorizationHeader == null) {
 			return null;
 		}
@@ -65,37 +135,6 @@ public class JwtTokenProvider {
 		if (token.isEmpty()) {
 			return null;
 		}
-
-		return parseUserId(token);
-	}
-
-	public Integer parseUserId(String token) {
-		if (token == null || token.trim().isEmpty()) {
-			return null;
-		}
-
-		try {
-			Claims claims = Jwts.parser()
-				.verifyWith(secretKey)
-				.build()
-				.parseSignedClaims(token.trim())
-				.getPayload();
-
-			Object uid = claims.get("uid");
-			if (uid instanceof Number) {
-				return Integer.valueOf(((Number) uid).intValue());
-			}
-
-			if (uid instanceof String) {
-				String uidText = ((String) uid).trim();
-				if (!uidText.isEmpty()) {
-					return Integer.valueOf(Integer.parseInt(uidText));
-				}
-			}
-
-			return null;
-		} catch (JwtException | IllegalArgumentException e) {
-			return null;
-		}
+		return token;
 	}
 }

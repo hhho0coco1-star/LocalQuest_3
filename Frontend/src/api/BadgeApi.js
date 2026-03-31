@@ -5,6 +5,10 @@ export const badgeApi = {
     return api.get("/api/badges/catalog");
   },
 
+  getMyBadgeDashboard: () => {
+    return api.get("/api/badges/me");
+  },
+
   getUserBadges: (nickname) => {
     const params = {};
     if (nickname && nickname.trim()) {
