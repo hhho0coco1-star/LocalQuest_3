@@ -71,7 +71,13 @@ const Header = () => {
                 <Link to="/reward" className="header-nav-link">상점 및 보상</Link>
               </li>
 
-              {canAccessBusinessPage && (
+              {isAuthenticated && (
+                <li className="header-nav-item">
+                  <Link to="/mypage" className="header-nav-link">마이페이지</Link>
+                </li>
+              )}
+
+                            {normalizedRole === 'BUSINESS' && (
                 <li className="header-nav-item">
                   <Link to="/business" className="header-nav-link">비즈니스</Link>
                 </li>
@@ -80,12 +86,6 @@ const Header = () => {
               {isAdmin && (
                 <li className="header-nav-item">
                   <a href={adminPageUrl} className="header-nav-link">관리자 페이지</a>
-                </li>
-              )}
-
-              {isAuthenticated && (
-                <li className="header-nav-item">
-                  <Link to="/mypage" className="header-nav-link">마이페이지</Link>
                 </li>
               )}
             </ul>

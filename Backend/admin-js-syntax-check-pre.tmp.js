@@ -1,18 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>LOCALQUEST ADMIN</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-theme.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-components.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-pages.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-secondary-pages.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-darkmode.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
+﻿        // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
         const ctx = "${pageContext.request.contextPath}";
         const ADMIN_THEME_STORAGE_KEY = "localquest-admin-theme";
         const ADMIN_DEFAULT_VIEW = "users";
@@ -66,7 +52,7 @@
             }
 
             if (label) {
-                label.textContent = isDark ? '\uB77C\uC774\uD2B8 \uBAA8\uB4DC' : '\uB2E4\uD06C \uBAA8\uB4DC';
+                label.textContent = isDark ? '?쇱씠??紐⑤뱶' : '?ㅽ겕 紐⑤뱶';
             }
         }
 
@@ -227,12 +213,12 @@
                     }
                 },
                 error: function(xhr) {
-                    console.error("로드 실패:", xhr.status);
+                    console.error("濡쒕뱶 ?ㅽ뙣:", xhr.status);
                     $('.admin-content-area').html(
                         '<div style="padding:24px; color:#fff; background:#252537; border-radius:12px;">'
-                        + '<h3 style="margin:0 0 12px;">관리자 화면 로딩 실패</h3>'
-                        + '<div>요청 URL: ' + url + '</div>'
-                        + '<div>HTTP 상태: ' + xhr.status + '</div>'
+                        + '<h3 style="margin:0 0 12px;">愿由ъ옄 ?붾㈃ 濡쒕뵫 ?ㅽ뙣</h3>'
+                        + '<div>?붿껌 URL: ' + url + '</div>'
+                        + '<div>HTTP ?곹깭: ' + xhr.status + '</div>'
                         + '</div>'
                     );
                 }
@@ -286,16 +272,14 @@
 
             $('.admin-content-area .adm-i-controls').each(function() {
                 const $controls = $(this);
+                const $userBox = $controls.children('.adm-i-user-box').first();
                 const $trigger = $controls.children('.adm-i-btn-search, .adm-i-search-trigger').first();
-                const $targetBox = $controls.children('.adm-i-user-box').first().length
-                    ? $controls.children('.adm-i-user-box').first()
-                    : $controls.children('.adm-i-search-box').first();
 
-                if ($targetBox.length === 0 || $trigger.length === 0) {
+                if ($userBox.length === 0 || $trigger.length === 0) {
                     return;
                 }
 
-                $targetBox.append(
+                $userBox.append(
                     $trigger
                         .attr({
                             type: 'button',
@@ -333,11 +317,11 @@
             $timerItem.removeClass('is-urgent is-expired');
 
             if (!timeLimit) {
-                $timerText.text('제한 없음');
+                $timerText.text('?쒗븳 ?놁쓬');
                 return;
             }
 
-            $timerText.text(timeLimit + '분 제한');
+            $timerText.text(timeLimit + '遺??쒗븳');
         }
 
         function escapeAdminHtml(value) {
@@ -401,12 +385,12 @@
             }
 
             if (adminQuestSearchResults.length === 0) {
-                $list.html('<div class="adm-q-place-empty">검색 결과가 없습니다.</div>');
+                $list.html('<div class="adm-q-place-empty">寃??寃곌낵媛 ?놁뒿?덈떎.</div>');
                 return;
             }
 
             const html = adminQuestSearchResults.map(function(result, index) {
-                const meta = [result.categoryText, result.distanceText].filter(Boolean).join(' · ');
+                const meta = [result.categoryText, result.distanceText].filter(Boolean).join(' 쨌 ');
                 return ''
                     + '<div class="adm-q-place-result' + (index === adminQuestFocusedSearchIndex ? ' is-focused' : '') + '" onclick="focusQuestSearchResult(' + index + ')">'
                     + '  <div class="adm-q-place-result-text">'
@@ -414,7 +398,7 @@
                     + '    <span>' + escapeAdminHtml(result.address) + '</span>'
                     + (meta ? '    <small class="adm-q-place-result-meta">' + escapeAdminHtml(meta) + '</small>' : '')
                     + '  </div>'
-                    + '  <button type="button" class="adm-q-place-pick" onclick="event.stopPropagation(); addQuestLocation(' + index + ')">선택</button>'
+                    + '  <button type="button" class="adm-q-place-pick" onclick="event.stopPropagation(); addQuestLocation(' + index + ')">?좏깮</button>'
                     + '</div>';
             }).join('');
 
@@ -430,7 +414,7 @@
             syncQuestLocationsInput();
 
             if (adminQuestSelectedLocations.length === 0) {
-                $list.html('<div class="adm-q-place-empty">선택된 장소가 없습니다.</div>');
+                $list.html('<div class="adm-q-place-empty">?좏깮???μ냼媛 ?놁뒿?덈떎.</div>');
                 return;
             }
 
@@ -443,9 +427,9 @@
                     + '    <span>' + escapeAdminHtml(location.address) + '</span>'
                     + '  </div>'
                     + '  <div class="adm-q-place-chip-actions">'
-                    + '    <button type="button" onclick="moveQuestLocation(' + index + ', -1)" ' + (index === 0 ? 'disabled' : '') + '>위로</button>'
-                    + '    <button type="button" onclick="moveQuestLocation(' + index + ', 1)" ' + (index === adminQuestSelectedLocations.length - 1 ? 'disabled' : '') + '>아래</button>'
-                    + '    <button type="button" class="is-danger" onclick="removeQuestLocation(' + index + ')">제거</button>'
+                    + '    <button type="button" onclick="moveQuestLocation(' + index + ', -1)" ' + (index === 0 ? 'disabled' : '') + '>??/button>'
+                    + '    <button type="button" onclick="moveQuestLocation(' + index + ', 1)" ' + (index === adminQuestSelectedLocations.length - 1 ? 'disabled' : '') + '>?꾨옒</button>'
+                    + '    <button type="button" class="is-danger" onclick="removeQuestLocation(' + index + ')">??젣</button>'
                     + '  </div>'
                     + '</div>';
             }).join('');
@@ -457,8 +441,8 @@
             const keyword = ($('#questLocationKeyword').val() || '').trim();
             showQuestLocationStatus(
                 keyword
-                    ? '등록 장소 목록을 검색 중입니다.'
-                    : '최근 등록 장소 목록을 불러오는 중입니다.',
+                    ? '?깅줉???μ냼 紐⑸줉??寃??以묒엯?덈떎.'
+                    : '理쒓렐 ?깅줉???μ냼 紐⑸줉??遺덈윭?ㅻ뒗 以묒엯?덈떎.',
                 false
             );
 
@@ -479,7 +463,7 @@
                             longitude: Number(result.longitude),
                             locationType: result.locationType || 'QUEST_SPOT',
                             description: result.description || '',
-                            categoryText: result.locationType || '등록 장소'
+                            categoryText: result.locationType || '?깅줉 ?μ냼'
                         };
                     }).filter(function(result) {
                         return result.locationId > 0
@@ -493,14 +477,14 @@
                     renderQuestSearchResults();
 
                     if (adminQuestSearchResults.length === 0) {
-                        showQuestLocationStatus('조건에 맞는 등록 장소가 없습니다.', true);
+                        showQuestLocationStatus('議곌굔??留욌뒗 ?깅줉 ?μ냼媛 ?놁뒿?덈떎.', true);
                         return;
                     }
 
                     showQuestLocationStatus(
                         keyword
-                            ? '검색된 장소 목록입니다. 퀘스트 경로에 추가할 장소를 선택해 주세요.'
-                            : '최근 등록 장소 목록입니다. 퀘스트 경로에 추가할 장소를 선택해 주세요.',
+                            ? '寃?됰맂 ?μ냼 紐⑸줉?낅땲?? ?섏뒪??寃쎈줈??異붽????μ냼瑜??좏깮??二쇱꽭??'
+                            : '理쒓렐 ?깅줉 ?μ냼 紐⑸줉?낅땲?? ?섏뒪??寃쎈줈??異붽????μ냼瑜??좏깮??二쇱꽭??',
                         false
                     );
                 },
@@ -508,7 +492,7 @@
                     adminQuestSearchResults = [];
                     adminQuestFocusedSearchIndex = -1;
                     renderQuestSearchResults();
-                    showQuestLocationStatus('장소 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
+                    showQuestLocationStatus('?μ냼 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲?? ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??', true);
                 }
             });
         }
@@ -540,7 +524,7 @@
             });
 
             if (isDuplicated) {
-                showQuestLocationStatus('이미 추가된 장소입니다.', true);
+                showQuestLocationStatus('?대? 異붽????μ냼?낅땲??', true);
                 return;
             }
 
@@ -557,7 +541,7 @@
             });
 
             renderQuestSelectedLocations();
-            showQuestLocationStatus('장소가 퀘스트 경로에 추가되었습니다.', false);
+            showQuestLocationStatus('?μ냼媛 ?섏뒪??寃쎈줈??異붽??섏뿀?듬땲??', false);
         }
 
         function removeQuestLocation(index) {
@@ -583,7 +567,7 @@
                 return;
             }
 
-            showQuestLocationStatus('등록된 장소 정보를 불러오는 중입니다.', false);
+            showQuestLocationStatus('??λ맂 ?μ냼 ?뺣낫瑜?遺덈윭?ㅻ뒗 以묒엯?덈떎.', false);
 
             $.ajax({
                 url: ctx + '/api/quests/' + questId,
@@ -612,15 +596,15 @@
                     renderQuestSelectedLocations();
                     showQuestLocationStatus(
                         adminQuestSelectedLocations.length > 0
-                            ? '등록된 장소 정보를 불러왔습니다.'
-                            : '등록된 장소가 없습니다. 새 장소를 선택할 수 있습니다.',
+                            ? '??λ맂 ?μ냼 ?뺣낫瑜?遺덈윭?붿뒿?덈떎.'
+                            : '??λ맂 ?μ냼媛 ?놁뒿?덈떎. ???μ냼瑜??좏깮?????덉뒿?덈떎.',
                         false
                     );
                 },
                 error: function() {
                     adminQuestSelectedLocations = [];
                     renderQuestSelectedLocations();
-                    showQuestLocationStatus('기존 장소 정보를 불러오지 못했습니다. 새로 다시 선택해 주세요.', true);
+                    showQuestLocationStatus('湲곗〈 ?μ냼 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲?? ?덈줈 ?ㅼ떆 ?좏깮??二쇱꽭??', true);
                 }
             });
         }
@@ -631,7 +615,7 @@
             adminQuestEditingReviewId = 0;
             adminQuestReviewDraft = { rating: 5, content: '' };
             renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
-            showQuestReviewStatus('새 퀘스트는 등록 후 리뷰를 관리할 수 있습니다.', false);
+            showQuestReviewStatus('???섏뒪?몃뒗 ?깅줉 ??由щ럭瑜?愿由ы븷 ???덉뒿?덈떎.', false);
         }
 
         function showQuestReviewStatus(message, isError) {
@@ -681,17 +665,17 @@
             }
 
             if (!(questId > 0)) {
-                $list.html('<div class="adm-q-review-empty">새 퀘스트는 등록 후 리뷰를 관리할 수 있습니다.</div>');
+                $list.html('<div class="adm-q-review-empty">???섏뒪?몃뒗 ?깅줉 ??由щ럭瑜?愿由ы븷 ???덉뒿?덈떎.</div>');
                 return;
             }
 
             if (adminQuestReviewLoading) {
-                $list.html('<div class="adm-q-review-empty">리뷰를 불러오는 중입니다.</div>');
+                $list.html('<div class="adm-q-review-empty">由щ럭瑜?遺덈윭?ㅻ뒗 以묒엯?덈떎.</div>');
                 return;
             }
 
             if (adminQuestReviews.length === 0) {
-                $list.html('<div class="adm-q-review-empty">등록된 리뷰가 없습니다.</div>');
+                $list.html('<div class="adm-q-review-empty">?깅줉??由щ럭媛 ?놁뒿?덈떎.</div>');
                 return;
             }
 
@@ -712,7 +696,7 @@
                         + '    </div>'
                         + '  </div>'
                         + '  <div class="adm-q-review-edit-row">'
-                        + '    <label for="adminQuestReviewRating">별점</label>'
+                        + '    <label for="adminQuestReviewRating">蹂꾩젏</label>'
                         + '    <select id="adminQuestReviewRating" onchange="setAdminQuestReviewRating(this.value)">'
                         + options
                         + '    </select>'
@@ -721,7 +705,7 @@
                         + escapeAdminHtml(adminQuestReviewDraft.content || '')
                         + '</textarea>'
                         + '  <div class="adm-q-review-actions">'
-                        + '    <button type="button" onclick="submitAdminQuestReviewEdit()">저장</button>'
+                        + '    <button type="button" onclick="submitAdminQuestReviewEdit()">???/button>'
                         + '    <button type="button" class="is-secondary" onclick="cancelAdminQuestReviewEdit()">痍⑥냼</button>'
                         + '  </div>'
                         + '</div>';
@@ -737,8 +721,8 @@
                     + '    <div class="adm-q-review-side">'
                     + '      <span class="adm-q-review-rating">' + renderQuestReviewRating(review.rating) + '</span>'
                     + '      <div class="adm-q-review-actions">'
-                    + '        <button type="button" onclick="startAdminQuestReviewEdit(' + review.reviewId + ')">수정</button>'
-                    + '        <button type="button" class="is-danger" onclick="deleteAdminQuestReview(' + review.reviewId + ')">삭제</button>'
+                    + '        <button type="button" onclick="startAdminQuestReviewEdit(' + review.reviewId + ')">?섏젙</button>'
+                    + '        <button type="button" class="is-danger" onclick="deleteAdminQuestReview(' + review.reviewId + ')">??젣</button>'
                     + '      </div>'
                     + '    </div>'
                     + '  </div>'
@@ -758,7 +742,7 @@
             adminQuestReviewLoading = true;
             adminQuestEditingReviewId = 0;
             renderQuestReviewList(questId);
-            showQuestReviewStatus('리뷰를 불러오는 중입니다.', false);
+            showQuestReviewStatus('由щ럭瑜?遺덈윭?ㅻ뒗 以묒엯?덈떎.', false);
 
             $.ajax({
                 url: ctx + '/api/quests/' + questId + '/reviews',
@@ -770,8 +754,8 @@
                     renderQuestReviewList(questId);
                     showQuestReviewStatus(
                         adminQuestReviews.length > 0
-                            ? '등록된 리뷰를 불러왔습니다.'
-                            : '등록된 리뷰가 없습니다.',
+                            ? '?깅줉??由щ럭瑜?遺덈윭?붿뒿?덈떎.'
+                            : '?깅줉??由щ럭媛 ?놁뒿?덈떎.',
                         false
                     );
                 },
@@ -779,7 +763,7 @@
                     adminQuestReviews = [];
                     adminQuestReviewLoading = false;
                     renderQuestReviewList(questId);
-                    showQuestReviewStatus('리뷰를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
+                    showQuestReviewStatus('由щ럭瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲?? ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??', true);
                 }
             });
         }
@@ -799,14 +783,14 @@
                 content: review.content || ''
             };
             renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
-            showQuestReviewStatus('리뷰 수정 내용을 편집할 수 있습니다.', false);
+            showQuestReviewStatus('由щ럭 ?섏젙 ?댁슜???몄쭛?????덉뒿?덈떎.', false);
         }
 
         function cancelAdminQuestReviewEdit() {
             adminQuestEditingReviewId = 0;
             adminQuestReviewDraft = { rating: 5, content: '' };
             renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
-            showQuestReviewStatus('리뷰 수정을 취소했습니다.', false);
+            showQuestReviewStatus('由щ럭 ?섏젙??痍⑥냼?섏뿀?듬땲??', false);
         }
 
         function setAdminQuestReviewRating(value) {
@@ -828,12 +812,12 @@
             }
 
             if (rating < 1 || rating > 5) {
-                showQuestReviewStatus('별점은 1점부터 5점까지 입력해 주세요.', true);
+                showQuestReviewStatus('蹂꾩젏? 1?먮???5?먭퉴吏 ?낅젰??二쇱꽭??', true);
                 return;
             }
 
             if (!content) {
-                showQuestReviewStatus('리뷰 내용을 입력해 주세요.', true);
+                showQuestReviewStatus('由щ럭 ?댁슜???낅젰??二쇱꽭??', true);
                 return;
             }
 
@@ -850,14 +834,14 @@
                     adminQuestReviewDraft = { rating: 5, content: '' };
                     loadQuestReviewsForEdit(questId);
                     showQuestReviewStatus(
-                        res && res.message ? res.message : '리뷰가 수정되었습니다.',
+                        res && res.message ? res.message : '由щ럭媛 ?섏젙?섏뿀?듬땲??',
                         false
                     );
                 },
                 error: function(xhr) {
                     const message = xhr.responseJSON && xhr.responseJSON.message
                         ? xhr.responseJSON.message
-                        : '리뷰 수정에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+                        : '由щ럭 ?섏젙???ㅽ뙣?덉뒿?덈떎. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??';
                     showQuestReviewStatus(message, true);
                 }
             });
@@ -869,7 +853,7 @@
                 return;
             }
 
-            if (!confirm('이 리뷰를 삭제하시겠습니까?')) {
+            if (!confirm('??由щ럭瑜???젣?섏떆寃좎뒿?덇퉴?')) {
                 return;
             }
 
@@ -883,14 +867,14 @@
                     }
                     loadQuestReviewsForEdit(questId);
                     showQuestReviewStatus(
-                        res && res.message ? res.message : '리뷰가 삭제되었습니다.',
+                        res && res.message ? res.message : '由щ럭媛 ??젣?섏뿀?듬땲??',
                         false
                     );
                 },
                 error: function(xhr) {
                     const message = xhr.responseJSON && xhr.responseJSON.message
                         ? xhr.responseJSON.message
-                        : '리뷰 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+                        : '由щ럭 ??젣???ㅽ뙣?덉뒿?덈떎. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??';
                     showQuestReviewStatus(message, true);
                 }
             });
@@ -901,11 +885,11 @@
          */
         function updateRole(userId, newRole) {
             if (userId === 1) {
-                alert("마스터 관리자는 변경할 수 없습니다.");
+                alert("留덉뒪??愿由ъ옄??蹂寃쏀븷 ???놁뒿?덈떎.");
                 return;
             }
 
-            if (!confirm("권한을 변경하시겠습니까?")) {
+            if (!confirm("沅뚰븳??蹂寃쏀븯?쒓쿋?듬땲源?")) {
                 loadAdminContent(ctx + '/admin/users');
                 return;
             }
@@ -916,14 +900,14 @@
                 data: { userId: userId, role: newRole },
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("권한이 변경되었습니다.");
+                        alert("沅뚰븳??蹂寃쎈릺?덉뒿?덈떎.");
                     } else {
-                        alert("변경에 실패했습니다.");
+                        alert("蹂寃??ㅽ뙣");
                         loadAdminContent(ctx + '/admin/users');
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (코드: " + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (肄붾뱶: " + xhr.status + ")");
                 }
             });
         }
@@ -949,6 +933,7 @@
         function searchAdminInquiry() {
             const keyword = ($('#adminInquiryKeyword').val() || '').trim();
             const status = ($('#adminInquiryStatus').val() || '').trim();
+            const userId = ($('#adminInquiryUserId').val() || '').trim();
             let url = ctx + "/admin/qna";
             const params = [];
 
@@ -957,6 +942,9 @@
             }
             if (status) {
                 params.push("status=" + encodeURIComponent(status));
+            }
+            if (userId) {
+                params.push("userId=" + encodeURIComponent(userId));
             }
             if (params.length > 0) {
                 url += "?" + params.join("&");
@@ -976,10 +964,10 @@
                         onSuccess(res);
                         return;
                     }
-                    alert("문의 정보를 찾을 수 없습니다.");
+                    alert("臾몄쓽 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -997,7 +985,7 @@
             $('#adminInquiryAnswerContent').val('');
             $('#adminInquiryAnswerReadBlock').hide();
             $('#adminInquiryAnswerEditor').hide();
-            $('#adminInquiryModalTitle').text('문의 상세');
+            $('#adminInquiryModalTitle').text('臾몄쓽 ?곸꽭');
         }
 
         function openAdminInquiryDetailModal(inquiryId, focusAnswer) {
@@ -1019,13 +1007,13 @@
                 $('#adminInquiryDetailAnswerContent').text(data.answerContent || '-');
 
                 if (isPending) {
-                    $('#adminInquiryModalTitle').text('문의 답변');
+                    $('#adminInquiryModalTitle').text('臾몄쓽 ?듬?');
                     $('#adminInquiryAnswerEditor').show();
                     if (focusAnswer) {
                         $('#adminInquiryAnswerContent').trigger('focus');
                     }
                 } else {
-                    $('#adminInquiryModalTitle').text('문의 상세');
+                    $('#adminInquiryModalTitle').text('臾몄쓽 ?곸꽭');
                     $('#adminInquiryAnswerReadBlock').show();
                 }
             });
@@ -1044,11 +1032,11 @@
             const answerContent = ($('#adminInquiryAnswerContent').val() || '').trim();
 
             if (!inquiryId) {
-                alert("문의 정보를 다시 불러와 주세요.");
+                alert("臾몄쓽 ?뺣낫瑜??ㅼ떆 遺덈윭?二쇱꽭??");
                 return;
             }
             if (!answerContent) {
-                alert("답변 내용을 입력해 주세요.");
+                alert("?듬? ?댁슜???낅젰?댁＜?몄슂.");
                 return;
             }
 
@@ -1062,19 +1050,19 @@
                 success: function(res) {
                     const normalized = String(res || '').trim();
                     if (normalized === "success") {
-                        alert("답변이 등록되었습니다.");
+                        alert("?듬????깅줉?섏뿀?듬땲??");
                         closeAdminInquiryDetailModal();
                         searchAdminInquiry();
                         return;
                     }
                     if (normalized === "fail:empty_answer") {
-                        alert("답변 내용을 입력해 주세요.");
+                        alert("?듬? ?댁슜???낅젰?댁＜?몄슂.");
                         return;
                     }
-                    alert("답변 등록에 실패했습니다.");
+                    alert("?듬? ?깅줉???ㅽ뙣?덉뒿?덈떎.");
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1094,13 +1082,13 @@
          */
         function updateStatus(userId, newStatus) {
             if (userId === 1) {
-                alert("마스터 관리자의 상태는 변경할 수 없습니다.");
+                alert("留덉뒪??愿由ъ옄???곹깭瑜?蹂寃쏀븷 ???놁뒿?덈떎.");
                 return;
             }
 
             // ?뺤씤 臾멸뎄 ?ㅼ젙
-            const actionText = (newStatus === 'WITHDRAWN') ? '\uC815\uC9C0' : '\uBCC0\uACBD';
-            if (!confirm("\uD574\uB2F9 \uD68C\uC6D0\uC744 \uC815\uB9D0\uB85C " + actionText + "\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?")) {
+            const actionText = (newStatus === 'WITHDRAWN') ? "??젣" : "蹂寃?;
+            if (!confirm("?대떦 ?뚯썝???뺣쭚濡?" + actionText + "?섏떆寃좎뒿?덇퉴?")) {
                 return;
             }
 
@@ -1113,7 +1101,7 @@
                 },
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("상태가 정상적으로 변경되었습니다.");
+                        alert("?곹깭媛 ?뺤긽?곸쑝濡?蹂寃쎈릺?덉뒿?덈떎.");
                         
                         // ?꾩옱 寃?됱뼱/?뺣젹 議곌굔???좎???梨??ㅼ떆 濡쒕뱶?⑸땲??
                         const type = $('#searchType').val();
@@ -1124,19 +1112,19 @@
                         const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword) + "&sort=" + sort;
                         loadAdminContent(url);
                     } else {
-                        alert("변경에 실패했습니다.");
+                        alert("蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.");
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류가 발생했습니다.");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.");
                 }
             });
         }
         
         function updateQuestStatus(questId, status) {
             const msg = status === 'DELETED'
-                ? "퀘스트를 삭제하시겠습니까?"
-                : `퀘스트 상태를 ${status}(으)로 변경하시겠습니까?`;
+                ? "?섏뒪?몃? ??젣?섏떆寃좎뒿?덇퉴?"
+                : `?섏뒪???곹깭瑜?${status}(??濡?蹂寃쏀븯?쒓쿋?듬땲源?`;
             
             if (!confirm(msg)) return;
 
@@ -1146,14 +1134,14 @@
                 data: { questId: questId, status: status },
                 success: function(res) {
                     if (res === "success") {
-                        alert("상태가 반영되었습니다.");
+                        alert("?곹깭媛 諛섏쁺?섏뿀?듬땲??");
                         loadAdminContent(ctx + "/admin/quests");
                     } else {
-                        alert("상태 변경에 실패했습니다.");
+                        alert("?곹깭 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.");
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1223,7 +1211,7 @@
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("??뺤쒔 ???뻿 ??살첒 (" + xhr.status + ")");
                 }
             });
         }
@@ -1236,12 +1224,12 @@
             
             if (timeLimitEnabled) {
                 if (!timeLimitValue) {
-                    alert("제한시간을 사용하려면 제한 시간을 입력해 주세요.");
+                    alert("?쒗븳湲곌컙???ъ슜?섎젮硫??쒗븳 ?쒓컙???낅젰??二쇱꽭??");
                     $('#m_time_limit').focus();
                     return;
                 }
                 if (Number(timeLimitValue) <= 0) {
-                    alert("제한 시간은 1분 이상이어야 합니다.");
+                    alert("?쒗븳 ?쒓컙? 1遺??댁긽?댁뼱???⑸땲??");
                     $('#m_time_limit').focus();
                     return;
                 }
@@ -1261,37 +1249,37 @@
                 data: formData,
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert(questId === "0" ? "퀘스트가 등록되었습니다." : "퀘스트가 수정되었습니다.");
+                        alert(questId === "0" ? "?섏뒪?멸? ?깅줉?섏뿀?듬땲??" : "?섏뒪?멸? ?섏젙?섏뿀?듬땲??");
                         closeQuestModal();
                         loadAdminContent(ctx + "/admin/quests");
                     } else {
                         if (res.trim() === "fail:title_empty") {
-                            alert("퀘스트 제목을 입력해 주세요.");
+                            alert("?섏뒪???쒕ぉ???낅젰??二쇱꽭??");
                         } else if (res.trim() === "fail:description_empty") {
-                            alert("퀘스트 설명을 입력해 주세요.");
+                            alert("?섏뒪???ㅻ챸???낅젰??二쇱꽭??");
                         } else if (res.trim() === "fail:invalid_id") {
-                            alert("수정할 퀘스트 정보가 올바르지 않습니다.");
+                            alert("?섏젙???섏뒪???뺣낫媛 ?щ컮瑜댁? ?딆뒿?덈떎.");
                         } else if (res.trim() === "fail:locations_invalid") {
-                            alert("선택한 장소 정보가 올바르지 않습니다. 다시 선택해 주세요.");
+                            alert("?좏깮???μ냼 ?뺣낫媛 ?щ컮瑜댁? ?딆뒿?덈떎. ?ㅼ떆 ?좏깮??二쇱꽭??");
                         } else if (res.trim() === "fail:location_name_empty") {
-                            alert("선택한 장소명 정보가 비어 있습니다.");
+                            alert("?좏깮???μ냼紐??뺣낫媛 鍮꾩뼱 ?덉뒿?덈떎.");
                         } else if (res.trim() === "fail:location_address_empty") {
-                            alert("선택한 장소 주소 정보가 비어 있습니다.");
+                            alert("?좏깮???μ냼 二쇱냼 ?뺣낫媛 鍮꾩뼱 ?덉뒿?덈떎.");
                         } else if (res.trim() === "fail:location_coordinate_empty") {
-                            alert("선택한 장소 좌표 정보가 비어 있습니다.");
+                            alert("?좏깮???μ냼 醫뚰몴 ?뺣낫媛 鍮꾩뼱 ?덉뒿?덈떎.");
                         } else if (res.trim() === "fail:location_tables_missing") {
-                            alert("퀘스트 장소 저장에 필요한 테이블 또는 시퀀스를 찾지 못했습니다. LQ_LOCATION, LQ_QUEST_LOCATION, SEQ_LQ_LOCATION_PK, SEQ_LQ_QUEST_LOCATION_PK를 확인해 주세요.");
+                            alert("?섏뒪???μ냼 ??μ뿉 ?꾩슂???뚯씠釉??먮뒗 ?쒗?ㅻ? 李얠? 紐삵뻽?듬땲?? LQ_LOCATION, LQ_QUEST_LOCATION, SEQ_LQ_LOCATION_PK, SEQ_LQ_QUEST_LOCATION_PK瑜??뺤씤??二쇱꽭??");
                         } else if (res.trim() === "fail:location_reference_missing") {
-                            alert("선택한 장소가 현재 DB에 없어 저장할 수 없습니다. 장소를 다시 선택해 주세요.");
+                            alert("?좏깮???μ냼媛 ?꾩옱 DB???놁뼱 ??ν븷 ???놁뒿?덈떎. ?μ냼瑜??ㅼ떆 ?좏깮??二쇱꽭??");
                         } else if (res.trim() === "fail:location_conflict") {
-                            alert("선택한 장소 목록에 중복되거나 순서가 충돌하는 항목이 있습니다. 장소 목록을 다시 확인해 주세요.");
+                            alert("?좏깮???μ냼 紐⑸줉??以묐났?섍굅???쒖꽌媛 異⑸룎?섎뒗 ??ぉ???덉뒿?덈떎. ?μ냼 紐⑸줉???ㅼ떆 ?뺤씤??二쇱꽭??");
                         } else {
-                            alert("저장에 실패했습니다: " + res.trim());
+                            alert("??μ뿉 ?ㅽ뙣?덉뒿?덈떎: " + res.trim());
                         }
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1309,11 +1297,11 @@
             $('#m_time_limit_enabled').prop('checked', false);
             $('#m_time_limit').val('').prop('disabled', true);
             $('#questLocationKeyword').val('');
-            $('#modalTitleText').html('<i class="fas fa-plus-circle"></i> 새 퀘스트 등록');
-            $('#modalSubmitBtn').text('등록하기');
+            $('#modalTitleText').html('<i class="fas fa-plus-circle"></i> ???섏뒪???깅줉');
+            $('#modalSubmitBtn').text('?깅줉?섍린');
             resetQuestLocationState();
             resetQuestReviewState();
-            showQuestLocationStatus('등록 장소 목록을 불러올 준비가 되었습니다.', false);
+            showQuestLocationStatus('?깅줉???μ냼 紐⑸줉??遺덈윭??以鍮꾧? ?섏뿀?듬땲??', false);
             $('#questModal').fadeIn(200, function() {
                 searchQuestLocations();
             });
@@ -1323,8 +1311,8 @@
          * ?섏젙 紐⑤떖 ?닿린 (湲곗〈 媛?梨꾩슦湲?
          */
         function editQuestModal(data) {
-            $('#modalTitleText').html('<i class="fas fa-edit"></i> 퀘스트 수정');
-            $('#modalSubmitBtn').text('수정하기');
+            $('#modalTitleText').html('<i class="fas fa-edit"></i> ?섏뒪???섏젙');
+            $('#modalSubmitBtn').text('?섏젙?섍린');
             $('#modalQuestId').val(data.id); 
             $('#modalQuestStatus').val(data.status || 'ACTIVE');
             $('#m_title').val(data.title);
@@ -1388,8 +1376,8 @@
                 resetQuestReviewState();
                 showQuestLocationStatus('', false);
                 showQuestReviewStatus('', false);
-                $('#modalTitleText').html('<i class="fas fa-plus-circle"></i> 새 퀘스트 등록');
-                $('#modalSubmitBtn').text('등록하기');
+                $('#modalTitleText').html('<i class="fas fa-plus-circle"></i> ???섏뒪???깅줉');
+                $('#modalSubmitBtn').text('?깅줉?섍린');
             }, 200);
         }
         
@@ -1418,14 +1406,14 @@
         function openItemModal() {
             $('#modalItemId').val("0");
             $('#itemForm')[0].reset();
-            $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 리워드 등록');
-            $('#itemSubmitBtn').text('등록하기');
+            $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> ??由ъ썙???깅줉');
+            $('#itemSubmitBtn').text('?깅줉?섍린');
             $('#itemModal').fadeIn(200);
         }
 
         function editItemModal(data) {
-            $('#itemModalTitleText').html('<i class="fas fa-edit"></i> 리워드 정보 수정');
-            $('#itemSubmitBtn').text('수정하기');
+            $('#itemModalTitleText').html('<i class="fas fa-edit"></i> 由ъ썙???뺣낫 ?섏젙');
+            $('#itemSubmitBtn').text('?섏젙?섍린');
             
             $('#modalItemId').val(data.id);
             $('#i_name').val(data.name);
@@ -1445,16 +1433,16 @@
                 data: formData,
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("저장되었습니다.");
+                        alert("??λ릺?덉뒿?덈떎.");
                         closeItemModal();
                         loadAdminContent(ctx + "/admin/shop");
-                    } else { alert("저장에 실패했습니다."); }
+                    } else { alert("?ㅽ뙣?덉뒿?덈떎."); }
                 }
             });
         }
 
         function updateItemStatus(itemId, status) {
-            if(!confirm("아이템 상태를 변경하시겠습니까?")) return;
+            if(!confirm("?꾩씠???곹깭瑜?蹂寃쏀븯?쒓쿋?듬땲源?")) return;
             $.ajax({
                 url: ctx + "/admin/shop/updateStatus",
                 type: "POST",
@@ -1473,8 +1461,8 @@
             setTimeout(function() {
                 $('#itemForm')[0].reset();
                 $('#modalItemId').val("0");
-                $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 리워드 등록');
-                $('#itemSubmitBtn').text('등록하기');
+                $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> ??由ъ썙???깅줉');
+                $('#itemSubmitBtn').text('?깅줉?섍린');
             }, 200);
         }
         
@@ -1495,11 +1483,11 @@
                     if (res) {
                         onSuccess(res);
                     } else {
-                        alert("비즈니스 상세 정보를 찾을 수 없습니다.");
+                        alert("鍮꾩쫰?덉뒪 ?곸꽭 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1591,7 +1579,7 @@
                     alert(res && res.message ? res.message : failMessage);
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("??뺤쒔 ???뻿 ??살첒 (" + xhr.status + ")");
                 }
             });
         }
@@ -1601,8 +1589,8 @@
 
             $('#businessForm')[0].reset();
             $('#businessId').val("0");
-            $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 비즈니스 등록');
-            $('#businessSubmitBtn').text('등록하기');
+            $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> ??鍮꾩쫰?덉뒪 ?깅줉');
+            $('#businessSubmitBtn').text('?깅줉?섍린');
 
             if (!businessId) {
                 $('#businessModal').fadeIn(200);
@@ -1610,8 +1598,8 @@
             }
 
             loadBusinessDetail(businessId, function(data) {
-                $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 비즈니스 정보 수정');
-                $('#businessSubmitBtn').text('수정하기');
+                $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 鍮꾩쫰?덉뒪 ?뺣낫 ?섏젙');
+                $('#businessSubmitBtn').text('?섏젙?섍린');
                 $('#businessId').val(data.businessId || 0);
                 $('#businessUserId').val(data.userId || '');
                 $('#businessName').val(data.businessName || '');
@@ -1631,8 +1619,8 @@
                     $('#businessForm')[0].reset();
                 }
                 $('#businessId').val("0");
-                $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 비즈니스 등록');
-                $('#businessSubmitBtn').text('등록하기');
+                $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> ??鍮꾩쫰?덉뒪 ?깅줉');
+                $('#businessSubmitBtn').text('?깅줉?섍린');
             }, 200);
         }
 
@@ -1647,33 +1635,33 @@
                     const result = res.trim();
 
                     if (result === "success") {
-                        alert("저장되었습니다.");
+                        alert("??λ릺?덉뒿?덈떎.");
                         closeBusinessModal();
                         loadAdminContent(ctx + "/admin/store-info");
                         return;
                     }
 
                     if (result === "fail:business_name_empty") {
-                        alert("비즈니스명을 입력해 주세요.");
+                        alert("鍮꾩쫰?덉뒪紐낆쓣 ?낅젰??二쇱꽭??");
                         return;
                     }
                     if (result === "fail:zip_code_empty") {
-                        alert("우편번호를 입력해 주세요.");
+                        alert("?고렪踰덊샇瑜??낅젰??二쇱꽭??");
                         return;
                     }
                     if (result === "fail:address_empty") {
-                        alert("주소를 입력해 주세요.");
+                        alert("二쇱냼瑜??낅젰??二쇱꽭??");
                         return;
                     }
                     if (result === "fail:user_id_invalid") {
-                        alert("회원 번호를 올바르게 입력해 주세요.");
+                        alert("?뚯썝 踰덊샇瑜??щ컮瑜닿쾶 ?낅젰??二쇱꽭??");
                         return;
                     }
 
-                    alert("저장에 실패했습니다.");
+                    alert("??μ뿉 ?ㅽ뙣?덉뒿?덈떎.");
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1736,7 +1724,7 @@
 
             $('#businessAuthStatus')
                 .removeClass('is-error')
-                .text('비즈니스 정보를 확인하려면 탭을 선택해 주세요.');
+                .text('鍮꾩??덉뒪 ?뺣낫瑜??뺤씤?섎젮硫???쓣 ?좏깮??二쇱꽭??');
             $('#detailAuthTotalCount').text('0');
             $('#detailAuthQrCount').text('0');
             $('#detailAuthReceiptCount').text('0');
@@ -1761,11 +1749,11 @@
             if (Number(normalizedSummary.totalAuthCount || 0) > 0) {
                 $('#businessAuthStatus')
                     .removeClass('is-error')
-                    .text('LQ_BUSINESS_AUTH_LOG 기준 인증 요약 정보입니다.');
+                    .text('LQ_BUSINESS_AUTH_LOG 湲곗? ?몄쬆 ?붿빟 ?뺣낫?낅땲??');
             } else {
                 $('#businessAuthStatus')
                     .removeClass('is-error')
-                    .text('등록된 인증 이력이 없습니다.');
+                    .text('?깅줉???몄쬆 ?대젰???놁뒿?덈떎.');
             }
         }
 
@@ -1777,7 +1765,7 @@
             businessDetailAuthLoading = true;
             $('#businessAuthStatus')
                 .removeClass('is-error')
-                .text('비즈니스 정보를 불러오는 중입니다.');
+                .text('鍮꾩??덉뒪 ?뺣낫瑜?遺덈윭?ㅻ뒗 以묒엯?덈떎.');
 
             $.ajax({
                 url: ctx + "/admin/store-info/auth-detail",
@@ -1789,9 +1777,9 @@
                     applyBusinessAuthSummary(res ? res.summary : null);
                 },
                 error: function(xhr) {
-                    let message = '비즈니스 정보를 불러오지 못했습니다.';
+                    let message = '鍮꾩??덉뒪 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??';
                     if (xhr && xhr.status === 404) {
-                        message = '해당 매장 정보를 찾을 수 없습니다.';
+                        message = '?대떦 留ㅼ옣 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.';
                     }
                     $('#businessAuthStatus')
                         .addClass('is-error')
@@ -1817,7 +1805,7 @@
             if (!(businessId > 0)) {
                 $('#businessAuthStatus')
                     .addClass('is-error')
-                    .text('매장 기본 정보를 먼저 확인해 주세요.');
+                    .text('留ㅼ옣 湲곕낯 ?뺣낫瑜?癒쇱? ?뺤씤??二쇱꽭??');
                 return;
             }
 
@@ -1829,7 +1817,7 @@
         }
 
         function deleteBusiness(businessId) {
-            if (!confirm("정말로 비즈니스를 삭제하시겠습니까?")) return;
+            if (!confirm("?뺣쭚濡?鍮꾩쫰?덉뒪瑜???젣?섏떆寃좎뒿?덇퉴?")) return;
 
             $.ajax({
                 url: ctx + "/admin/store-info/delete",
@@ -1837,14 +1825,14 @@
                 data: { businessId: businessId },
                 success: function(res) {
                     if (res.trim() === "success") {
-                        alert("삭제되었습니다.");
+                        alert("??젣?섏뿀?듬땲??");
                         loadAdminContent(ctx + "/admin/store-info");
                     } else {
-                        alert("삭제에 실패했습니다.");
+                        alert("??젣???ㅽ뙣?덉뒿?덈떎.");
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -1882,10 +1870,10 @@ function loadBusinessInquiryDetail(inquiryId, onSuccess) {
         data: { inquiryId: inquiryId },
         success: function(res) {
             if (res) onSuccess(res);
-            else alert("문의 정보를 찾을 수 없습니다.");
+            else alert("臾몄쓽 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
         },
         error: function(xhr) {
-            alert("서버 통신 오류 (" + xhr.status + ")");
+            alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
         }
     });
 }
@@ -1895,15 +1883,15 @@ function openBusinessModal(businessId) {
     $('#businessForm')[0].reset();
     $('#businessId').val("0");
     $('#businessInquiryId').val("");
-    $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 매장 등록');
-    $("#businessSubmitBtn").text('등록');
+    $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 留ㅼ옣 ?깅줉');
+    $("#businessSubmitBtn").text('?깅줉');
     if (!businessId) {
         $('#businessModal').fadeIn(200);
         return;
     }
     loadBusinessDetail(businessId, function(data) {
-        $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 매장 수정');
-        $('#businessSubmitBtn').text('수정');
+        $('#businessModalTitleText').html('<i class="fas fa-edit"></i> 留ㅼ옣 ?섏젙');
+        $('#businessSubmitBtn').text('?섏젙');
         $('#businessId').val(data.businessId || 0);
         $('#businessUserId').val(data.userId || '');
         $('#businessName').val(data.businessName || '');
@@ -1923,8 +1911,8 @@ function openBusinessContractModal(inquiryId, userId) {
     $('#businessInquiryId').val(inquiryId || '');
     $('#businessUserId').val(userId || '');
     $('#business-inquiry-reject-' + inquiryId).prop('disabled', true);
-    $('#businessModalTitleText').html('<i class="fas fa-file-signature"></i> 계약 완료 등록');
-    $("#businessSubmitBtn").text('계약 등록');
+    $('#businessModalTitleText').html('<i class="fas fa-file-signature"></i> 怨꾩빟 ?꾨즺 ?깅줉');
+    $("#businessSubmitBtn").text('怨꾩빟 ?깅줉');
     loadBusinessInquiryDetail(inquiryId, function(data) {
         console.log('business inquiry detail', data);
         $('#businessName').val(data.title || '');
@@ -1943,8 +1931,8 @@ function closeBusinessModal() {
         if ($('#businessForm').length > 0) $('#businessForm')[0].reset();
         $('#businessId').val("0");
         $('#businessInquiryId').val("");
-    $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 매장 등록');
-    $("#businessSubmitBtn").text('등록');
+        $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 留ㅼ옣 ?깅줉');
+        $("#businessSubmitBtn").text('?깅줉');
     }, 200);
 }
 
@@ -1968,7 +1956,7 @@ function submitBusiness() {
                     if ($actions.length) {
                         $actions.addClass('is-answered');
                         $actions.html(
-                            '<button type="button" class="adm-b-btn-view" onclick="viewBusinessInquiryDetail(' + inquiryId + ')">상세</button>'
+                            '<button type="button" class="adm-b-btn-view" onclick="viewBusinessInquiryDetail(' + inquiryId + ')">?곸꽭</button>'
                         );
                     }
                 }
@@ -1977,36 +1965,36 @@ function submitBusiness() {
                 loadBusinessAdmin('business');
             } else {
                 if (res.trim() === "fail:business_name_empty") {
-                    alert("매장명을 입력해 주세요.");
+                    alert("留ㅼ옣紐낆쓣 ?낅젰??二쇱꽭??");
                 } else if (res.trim() === "fail:zip_code_empty") {
-                    alert("우편번호를 입력해 주세요.");
+                    alert("?고렪踰덊샇瑜??낅젰??二쇱꽭??");
                 } else if (res.trim() === "fail:address_empty") {
-                    alert("주소를 입력해 주세요.");
+                    alert("二쇱냼瑜??낅젰??二쇱꽭??");
                 } else if (res.trim() === "fail:user_id_invalid") {
-                    alert("회원번호를 확인해 주세요.");
+                    alert("?뚯썝踰덊샇瑜??뺤씤??二쇱꽭??");
                 } else {
                     alert(res.trim());
                 }
             }
         },
         error: function(xhr) {
-            alert("서버 통신 오류 (" + xhr.status + ")");
+            alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
         }
     });
 }
 
 function deleteBusiness(businessId) {
-    if (!confirm("매장을 삭제하시겠습니까?")) return;
+    if (!confirm("留ㅼ옣????젣?섏떆寃좎뒿?덇퉴?")) return;
     $.ajax({
         url: ctx + "/admin/store-info/delete",
         type: "POST",
         data: { businessId: businessId },
         success: function(res) {
             if (res.trim() === "success") loadBusinessAdmin('business');
-            else alert("삭제에 실패했습니다.");
+            else alert("??젣???ㅽ뙣?덉뒿?덈떎.");
         },
         error: function(xhr) {
-            alert("서버 통신 오류 (" + xhr.status + ")");
+            alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
         }
     });
 }
@@ -2162,7 +2150,7 @@ function deleteBusiness(businessId) {
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>매장 QR 출력</title>
+    <title>留ㅼ옣 QR 異쒕젰</title>
     <style>
         @page {
             size: auto;
@@ -2231,28 +2219,28 @@ function deleteBusiness(businessId) {
 <body>
     <div class="print-qr-only">
         <div id="printQrError" style="display:none; padding:24px; text-align:center; color:#b42318; font-size:18px; font-weight:700;">
-            QR 이미지를 불러오지 못했습니다.
+            QR ?대?吏瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??
         </div>
-        <h1 class="print-title">매장 QR 코드</h1>
+        <h1 class="print-title">留ㅼ옣 QR 肄붾뱶</h1>
         <div class="print-card">
             <div class="print-qr">
-                <img id="printBusinessQrImage" src="__PRINT_QR_IMAGE_SRC__" alt="매장 QR 코드" />
+                <img id="printBusinessQrImage" src="__PRINT_QR_IMAGE_SRC__" alt="留ㅼ옣 QR 肄붾뱶" />
             </div>
             <div class="print-meta">
                 <div class="print-row">
-                    <div class="print-label">매장명</div>
+                    <div class="print-label">留ㅼ옣紐?/div>
                     <div class="print-value">__PRINT_BUSINESS_NAME__</div>
                 </div>
                 <div class="print-row">
-                    <div class="print-label">대표 장소명</div>
+                    <div class="print-label">????μ냼紐?/div>
                     <div class="print-value">__PRINT_LOCATION_NAME__</div>
                 </div>
                 <div class="print-row">
-                    <div class="print-label">주소</div>
+                    <div class="print-label">二쇱냼</div>
                     <div class="print-value">__PRINT_ADDRESS__</div>
                 </div>
                 <div class="print-row">
-                    <div class="print-label">인증키</div>
+                    <div class="print-label">?몄쬆??/div>
                     <div class="print-value">__PRINT_AUTH_KEY__</div>
                 </div>
             </div>
@@ -2390,7 +2378,7 @@ function deleteBusiness(businessId) {
             const inquiryId = $('#rejectInquiryId').val();
             const reason = ($('#rejectInquiryReason').val() || '').trim();
             if (!reason) {
-                alert('거절 사유를 입력해 주세요.');
+                alert('嫄곗젅 ?ъ쑀瑜??낅젰??二쇱꽭??');
                 return;
             }
             $.ajax({
@@ -2404,11 +2392,11 @@ function deleteBusiness(businessId) {
                             $(this).remove();
                         });
                     } else {
-                        alert("문의 삭제에 실패했습니다.");
+                        alert("臾몄쓽 ??젣???ㅽ뙣?덉뒿?덈떎.");
                     }
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
@@ -2433,16 +2421,16 @@ function deleteBusiness(businessId) {
                                 $(this).remove();
                             });
                         }
-                    } else alert("상태 변경에 실패했습니다.");
+                    } else alert("?곹깭 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.");
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
 
         function deleteBusinessInquiry(inquiryId) {
-            if (!confirm("문의글을 삭제하시겠습니까?")) return;
+            if (!confirm("臾몄쓽湲????젣?섏떆寃좎뒿?덇퉴?")) return;
             $.ajax({
                 url: ctx + "/admin/store-info/inquiry/delete",
                 type: "POST",
@@ -2452,31 +2440,10 @@ function deleteBusiness(businessId) {
                         $('#business-inquiry-row-' + inquiryId).fadeOut(200, function() {
                             $(this).remove();
                         });
-                    } else alert("문의 삭제에 실패했습니다.");
+                    } else alert("臾몄쓽 ??젣???ㅽ뙣?덉뒿?덈떎.");
                 },
                 error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
+                    alert("?쒕쾭 ?듭떊 ?ㅻ쪟 (" + xhr.status + ")");
                 }
             });
         }
-    </script>
-</head>
-<body class="admin-page" data-admin-theme="light">
-    <div id="admin-root">
-        <div class="admin-main-wrapper">
-            <jsp:include page="./admin-navbar.jsp" />
-            <main class="admin-content-area"></main>
-        </div>
-    </div>
-    <script>
-        window.addEventListener('popstate', function() {
-            loadAdminContent(buildAdminAjaxUrlFromLocation(window.location), null, { pushHistory: false });
-        });
-
-        $(document).ready(function() {
-            initializeAdminTheme();
-            loadAdminContent(buildAdminAjaxUrlFromLocation(window.location), null, { pushHistory: false });
-        });
-    </script>
-</body>
-</html>

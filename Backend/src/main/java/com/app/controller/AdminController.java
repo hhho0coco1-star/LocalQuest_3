@@ -247,7 +247,6 @@ public class AdminController {
 	public String inquiryAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "status", required = false) String status,
-	        @RequestParam(value = "userId", required = false) Integer userId,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    String normalizedStatusCandidate = (status != null) ? status.trim() : null;
@@ -255,14 +254,12 @@ public class AdminController {
 	            && InquiryStatus.ADMIN_SEARCH_STATUSES.contains(normalizedStatusCandidate))
 	            ? normalizedStatusCandidate
 	            : null;
-	    Integer normalizedUserId = (userId != null && userId > 0) ? userId : null;
 	    List<InquiryDTO> inquiryList = Collections.emptyList();
 	    String inquiryLoadError = null;
 	    Map<String, Object> inquiryParams = new HashMap<>();
 
 	    inquiryParams.put("keyword", normalizedKeyword);
 	    inquiryParams.put("status", normalizedStatus);
-	    inquiryParams.put("userId", normalizedUserId);
 
 	    try {
 	        inquiryList = inquiryService.findAdminInquiryList(inquiryParams);
@@ -276,7 +273,6 @@ public class AdminController {
 	    model.addAttribute("inquiryLoadError", inquiryLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentStatus", normalizedStatus);
-	    model.addAttribute("currentUserId", normalizedUserId);
 	    return "admin/admin-qna-manage-v3";
 	}
 

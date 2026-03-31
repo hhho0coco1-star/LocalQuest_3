@@ -1,0 +1,425 @@
+@charset "UTF-8";
+
+body.admin-page .admin-content-area .adm-u-container,
+body.admin-page .admin-content-area .adm-b-container {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 28px;
+    box-shadow: var(--admin-shadow);
+    color: var(--admin-text);
+    padding: 32px;
+    margin-top: 0;
+}
+
+body.admin-page .admin-content-area .adm-q-container {
+    padding: 0;
+    background: transparent;
+    min-height: 0;
+    color: var(--admin-text);
+}
+
+body.admin-page .admin-content-area .adm-q-section,
+body.admin-page .admin-content-area .adm-q-card,
+body.admin-page .admin-content-area .adm-b-modal-content,
+body.admin-page .admin-content-area .adm-b-auth-summary-card,
+body.admin-page .admin-content-area .adm-b-detail-item {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    box-shadow: var(--admin-shadow);
+    color: var(--admin-text);
+}
+
+body.admin-page .admin-content-area .adm-q-section {
+    border-radius: 28px;
+}
+
+body.admin-page .admin-content-area .adm-q-card,
+body.admin-page .admin-content-area .adm-b-auth-summary-card,
+body.admin-page .admin-content-area .adm-b-detail-item {
+    border-radius: 22px;
+}
+
+body.admin-page .admin-content-area .adm-u-header,
+body.admin-page .admin-content-area .adm-b-header {
+    border-bottom: 1px solid var(--admin-border);
+}
+
+body.admin-page .admin-content-area .adm-u-title,
+body.admin-page .admin-content-area .adm-b-title,
+body.admin-page .admin-content-area .adm-q-title,
+body.admin-page .admin-content-area .adm-q-section-title,
+body.admin-page .admin-content-area .adm-q-card-title,
+body.admin-page .admin-content-area .adm-b-detail-item strong,
+body.admin-page .admin-content-area .adm-b-auth-summary-card strong {
+    color: var(--admin-text);
+}
+
+body.admin-page .admin-content-area .adm-u-title i,
+body.admin-page .admin-content-area .adm-b-title i,
+body.admin-page .admin-content-area .adm-q-title i {
+    color: var(--admin-primary);
+}
+
+body.admin-page .admin-content-area .adm-q-section-subtitle,
+body.admin-page .admin-content-area .adm-q-card-desc,
+body.admin-page .admin-content-area .adm-b-address-cell small,
+body.admin-page .admin-content-area .adm-b-detail-label,
+body.admin-page .admin-content-area .adm-b-auth-summary-label,
+body.admin-page .admin-content-area .adm-u-date {
+    color: var(--admin-text-muted);
+}
+
+body.admin-page .admin-content-area input:not([type="checkbox"]):not([type="radio"]),
+body.admin-page .admin-content-area select,
+body.admin-page .admin-content-area textarea {
+    border: 1px solid var(--admin-border);
+    border-radius: 16px;
+    background: var(--admin-surface);
+    color: var(--admin-text);
+    box-shadow: none;
+}
+
+body.admin-page .admin-content-area input:not([type="checkbox"]):not([type="radio"])::placeholder,
+body.admin-page .admin-content-area textarea::placeholder {
+    color: var(--admin-text-muted);
+}
+
+body.admin-page .admin-content-area input:not([type="checkbox"]):not([type="radio"]):focus,
+body.admin-page .admin-content-area select:focus,
+body.admin-page .admin-content-area textarea:focus {
+    outline: none;
+    border-color: rgba(217, 61, 94, 0.34);
+    box-shadow: 0 0 0 4px rgba(217, 61, 94, 0.10);
+}
+
+body.admin-page .admin-content-area .adm-u-select,
+body.admin-page .admin-content-area .adm-u-input,
+body.admin-page .admin-content-area .adm-u-table-select,
+body.admin-page .admin-content-area .adm-b-select,
+body.admin-page .admin-content-area .adm-q-controls select {
+    min-height: 46px;
+    padding: 10px 14px;
+}
+
+body.admin-page .admin-content-area .adm-u-search-box,
+body.admin-page .admin-content-area .adm-b-search-box,
+body.admin-page .admin-content-area .adm-q-search-box,
+body.admin-page .admin-content-area .adm-i-search-box,
+body.admin-page .admin-content-area .adm-n-search-box,
+body.admin-page .admin-content-area .adm-f-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px 7px 8px;
+    border: 1px solid rgba(217, 61, 94, 0.16);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 249, 250, 0.98), rgba(255, 252, 253, 0.98));
+    box-shadow: 0 10px 24px rgba(217, 61, 94, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+body.admin-page .admin-content-area .adm-u-search-box:focus-within,
+body.admin-page .admin-content-area .adm-b-search-box:focus-within,
+body.admin-page .admin-content-area .adm-q-search-box:focus-within,
+body.admin-page .admin-content-area .adm-i-search-box:focus-within,
+body.admin-page .admin-content-area .adm-n-search-box:focus-within,
+body.admin-page .admin-content-area .adm-f-search-box:focus-within {
+    border-color: rgba(217, 61, 94, 0.28);
+    box-shadow: 0 0 0 4px rgba(217, 61, 94, 0.10), 0 14px 30px rgba(217, 61, 94, 0.10);
+}
+
+body.admin-page .admin-content-area .adm-u-search-box input,
+body.admin-page .admin-content-area .adm-b-search-box input,
+body.admin-page .admin-content-area .adm-q-search-box input,
+body.admin-page .admin-content-area .adm-i-search-box input,
+body.admin-page .admin-content-area .adm-n-search-box input,
+body.admin-page .admin-content-area .adm-f-search-box input {
+    border: 1px solid rgba(217, 61, 94, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: none;
+    min-width: 0;
+    flex: 1 1 auto;
+    min-height: 50px;
+    padding: 0 22px;
+}
+
+body.admin-page .admin-content-area .adm-u-search-box input:focus,
+body.admin-page .admin-content-area .adm-b-search-box input:focus,
+body.admin-page .admin-content-area .adm-q-search-box input:focus,
+body.admin-page .admin-content-area .adm-i-search-box input:focus,
+body.admin-page .admin-content-area .adm-n-search-box input:focus,
+body.admin-page .admin-content-area .adm-f-search-box input:focus {
+    border-color: rgba(217, 61, 94, 0.24);
+    box-shadow: none;
+}
+
+body.admin-page .admin-content-area .adm-u-search-box button,
+body.admin-page .admin-content-area .adm-b-search-box button,
+body.admin-page .admin-content-area .adm-q-search-box button,
+body.admin-page .admin-content-area .adm-i-search-box button,
+body.admin-page .admin-content-area .adm-n-search-box button,
+body.admin-page .admin-content-area .adm-f-search-box button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 52px;
+    min-width: 52px;
+    height: 52px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--admin-primary);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+body.admin-page .admin-content-area .adm-u-search-box button:hover,
+body.admin-page .admin-content-area .adm-b-search-box button:hover,
+body.admin-page .admin-content-area .adm-q-search-box button:hover,
+body.admin-page .admin-content-area .adm-i-search-box button:hover,
+body.admin-page .admin-content-area .adm-n-search-box button:hover,
+body.admin-page .admin-content-area .adm-f-search-box button:hover {
+    background: rgba(217, 61, 94, 0.10);
+}
+
+body.admin-page .admin-content-area .adm-u-search-box button:disabled,
+body.admin-page .admin-content-area .adm-i-search-box button:disabled {
+    cursor: not-allowed;
+    color: var(--admin-text-muted);
+    background: transparent;
+}
+
+body.admin-page .admin-content-area .adm-u-search-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body.admin-page .admin-content-area .adm-u-search-box {
+    min-width: 320px;
+    flex: 1 1 360px;
+}
+
+body.admin-page .admin-content-area .adm-b-search-box,
+body.admin-page .admin-content-area .adm-q-search-box,
+body.admin-page .admin-content-area .adm-i-search-box,
+body.admin-page .admin-content-area .adm-n-search-box,
+body.admin-page .admin-content-area .adm-f-search-box {
+    min-width: 320px;
+}
+
+body.admin-page .admin-content-area .adm-b-btn-add,
+body.admin-page .admin-content-area .adm-b-btn-submit,
+body.admin-page .admin-content-area .adm-b-btn-qr,
+body.admin-page .admin-content-area .adm-q-btn-add {
+    border: none;
+    border-radius: 16px;
+    background: var(--admin-primary);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 14px 26px rgba(217, 61, 94, 0.18);
+}
+
+body.admin-page .admin-content-area .adm-b-btn-add:hover,
+body.admin-page .admin-content-area .adm-b-btn-submit:hover,
+body.admin-page .admin-content-area .adm-b-btn-qr:hover,
+body.admin-page .admin-content-area .adm-q-btn-add:hover {
+    background: var(--admin-primary-hover);
+}
+
+body.admin-page .admin-content-area .adm-b-tab,
+body.admin-page .admin-content-area .adm-b-detail-tab,
+body.admin-page .admin-content-area .adm-u-btn-stop,
+body.admin-page .admin-content-area .adm-u-btn-activate,
+body.admin-page .admin-content-area .adm-b-btn-view,
+body.admin-page .admin-content-area .adm-b-btn-edit,
+body.admin-page .admin-content-area .adm-b-btn-delete,
+body.admin-page .admin-content-area .adm-b-btn-contract,
+body.admin-page .admin-content-area .adm-b-btn-cancel,
+body.admin-page .admin-content-area .btn-q-stop,
+body.admin-page .admin-content-area .btn-q-start,
+body.admin-page .admin-content-area .btn-q-delete,
+body.admin-page .admin-content-area .adm-q-card-footer button {
+    border-radius: 14px;
+    font-weight: 700;
+}
+
+body.admin-page .admin-content-area .adm-b-tab,
+body.admin-page .admin-content-area .adm-b-detail-tab,
+body.admin-page .admin-content-area .adm-b-btn-cancel,
+body.admin-page .admin-content-area .adm-b-btn-view,
+body.admin-page .admin-content-area .adm-b-btn-edit,
+body.admin-page .admin-content-area .btn-q-stop,
+body.admin-page .admin-content-area .adm-q-card-footer button {
+    border: 1px solid var(--admin-border);
+    background: var(--admin-surface-soft);
+    color: var(--admin-text);
+}
+
+body.admin-page .admin-content-area .adm-b-tab.active,
+body.admin-page .admin-content-area .adm-b-detail-tab.is-active {
+    border-color: rgba(217, 61, 94, 0.18);
+    background: linear-gradient(180deg, rgba(255, 240, 244, 0.95), rgba(255, 248, 251, 0.98));
+    color: var(--admin-primary);
+}
+
+body.admin-page .admin-content-area .adm-u-btn-stop,
+body.admin-page .admin-content-area .adm-b-btn-delete,
+body.admin-page .admin-content-area .btn-q-delete {
+    border: 1px solid rgba(214, 69, 69, 0.18);
+    background: rgba(214, 69, 69, 0.10);
+    color: var(--admin-danger);
+}
+
+body.admin-page .admin-content-area .adm-u-btn-activate,
+body.admin-page .admin-content-area .adm-b-btn-contract,
+body.admin-page .admin-content-area .btn-q-start {
+    border: 1px solid rgba(31, 157, 102, 0.18);
+    background: rgba(31, 157, 102, 0.10);
+    color: var(--admin-success);
+}
+
+body.admin-page .admin-content-area .adm-b-table-wrap {
+    border: 1px solid var(--admin-border);
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--admin-surface);
+    box-shadow: 0 14px 26px rgba(217, 61, 94, 0.05);
+}
+
+body.admin-page .admin-content-area .adm-u-table,
+body.admin-page .admin-content-area .adm-b-table {
+    width: 100%;
+    background: var(--admin-surface);
+}
+
+body.admin-page .admin-content-area .adm-u-table th,
+body.admin-page .admin-content-area .adm-b-table th {
+    background: #fff3f6;
+    color: var(--admin-text-muted);
+    border-bottom: 1px solid var(--admin-border);
+}
+
+body.admin-page .admin-content-area .adm-u-table td,
+body.admin-page .admin-content-area .adm-b-table td {
+    color: var(--admin-text);
+    border-bottom: 1px solid rgba(217, 61, 94, 0.10);
+}
+
+body.admin-page .admin-content-area .adm-u-row:hover,
+body.admin-page .admin-content-area .adm-b-row:hover {
+    background: rgba(217, 61, 94, 0.04);
+}
+
+body.admin-page .admin-content-area .adm-u-bold,
+body.admin-page .admin-content-area .adm-b-strong {
+    color: var(--admin-text);
+}
+
+body.admin-page .admin-content-area .adm-u-badge,
+body.admin-page .admin-content-area .adm-b-status,
+body.admin-page .admin-content-area .adm-q-status-badge,
+body.admin-page .admin-content-area .adm-q-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 999px;
+    font-weight: 800;
+    border: 1px solid transparent;
+    background: rgba(217, 61, 94, 0.10);
+    color: var(--admin-primary);
+    border-color: rgba(217, 61, 94, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-u-badge.ACTIVE,
+body.admin-page .admin-content-area .adm-b-status.ACTIVE,
+body.admin-page .admin-content-area .adm-b-status.ANSWERED,
+body.admin-page .admin-content-area .adm-q-status-badge.ACTIVE,
+body.admin-page .admin-content-area .adm-q-status-badge.ON_SALE {
+    background: rgba(31, 157, 102, 0.10);
+    color: var(--admin-success);
+    border-color: rgba(31, 157, 102, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-u-badge.WITHDRAWN,
+body.admin-page .admin-content-area .adm-b-status.INACTIVE,
+body.admin-page .admin-content-area .adm-b-status.CLOSED,
+body.admin-page .admin-content-area .adm-q-status-badge.DELETED,
+body.admin-page .admin-content-area .adm-q-status-badge.SOLD_OUT {
+    background: rgba(214, 69, 69, 0.10);
+    color: var(--admin-danger);
+    border-color: rgba(214, 69, 69, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-b-status.PENDING,
+body.admin-page .admin-content-area .adm-b-status.UNKNOWN,
+body.admin-page .admin-content-area .adm-q-status-badge.INACTIVE,
+body.admin-page .admin-content-area .adm-q-section-count {
+    background: rgba(217, 61, 94, 0.10);
+    color: var(--admin-primary);
+    border-color: rgba(217, 61, 94, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-q-status-badge.HIDDEN {
+    background: rgba(102, 112, 133, 0.10);
+    color: var(--admin-text-muted);
+    border-color: rgba(102, 112, 133, 0.16);
+}
+
+body.admin-page .admin-content-area .adm-q-status-badge.VISIT {
+    background: rgba(217, 61, 94, 0.10);
+    color: var(--admin-primary);
+    border-color: rgba(217, 61, 94, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-q-status-badge.EXPERIENCE {
+    background: rgba(79, 110, 247, 0.10);
+    color: #4f6ef7;
+    border-color: rgba(79, 110, 247, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-q-status-badge.PURCHASE {
+    background: rgba(245, 158, 11, 0.12);
+    color: #c67a00;
+    border-color: rgba(245, 158, 11, 0.18);
+}
+
+body.admin-page .admin-content-area .adm-b-status.IN_PROGRESS {
+    background: rgba(79, 110, 247, 0.10);
+    color: #4f6ef7;
+    border-color: rgba(79, 110, 247, 0.14);
+}
+
+body.admin-page .admin-content-area .adm-q-section-header,
+body.admin-page .admin-content-area .adm-q-card-header {
+    border-bottom: 1px solid rgba(217, 61, 94, 0.10);
+}
+
+body.admin-page .admin-content-area .adm-q-card-header {
+    background: linear-gradient(180deg, rgba(255, 243, 246, 0.94), rgba(255, 249, 251, 0.98));
+}
+
+body.admin-page .admin-content-area .adm-q-reward,
+body.admin-page .admin-content-area .adm-q-card-footer {
+    background: var(--admin-surface-soft);
+    border-top: 1px solid rgba(217, 61, 94, 0.10);
+}
+
+body.admin-page .admin-content-area .adm-q-card-footer button:hover {
+    background: rgba(217, 61, 94, 0.08);
+    color: var(--admin-text);
+}
+
+body.admin-page .admin-content-area .adm-q-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(217, 61, 94, 0.24);
+    box-shadow: 0 22px 34px rgba(217, 61, 94, 0.12);
+}
+
+body.admin-page .admin-content-area .reward-item span,
+body.admin-page .admin-content-area .quest-timer-text {
+    color: var(--admin-text-muted);
+}
