@@ -1,18 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>LOCALQUEST ADMIN</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-theme.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-components.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-pages.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-secondary-pages.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-darkmode.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
+﻿        // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
         const ctx = "${pageContext.request.contextPath}";
         const ADMIN_THEME_STORAGE_KEY = "localquest-admin-theme";
         const ADMIN_DEFAULT_VIEW = "users";
@@ -2459,24 +2445,3 @@ function deleteBusiness(businessId) {
                 }
             });
         }
-    </script>
-</head>
-<body class="admin-page" data-admin-theme="light">
-    <div id="admin-root">
-        <div class="admin-main-wrapper">
-            <jsp:include page="./admin-navbar.jsp" />
-            <main class="admin-content-area"></main>
-        </div>
-    </div>
-    <script>
-        window.addEventListener('popstate', function() {
-            loadAdminContent(buildAdminAjaxUrlFromLocation(window.location), null, { pushHistory: false });
-        });
-
-        $(document).ready(function() {
-            initializeAdminTheme();
-            loadAdminContent(buildAdminAjaxUrlFromLocation(window.location), null, { pushHistory: false });
-        });
-    </script>
-</body>
-</html>

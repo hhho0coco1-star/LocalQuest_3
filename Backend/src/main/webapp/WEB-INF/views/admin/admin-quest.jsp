@@ -34,7 +34,7 @@
 
     #questModal .modal-footer {
         flex-shrink: 0;
-        background: #252537;
+        background: var(--admin-surface-soft, rgba(255, 248, 251, 0.98));
     }
 
     #questModal .adm-q-time-limit-group {
@@ -61,7 +61,7 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 0;
-        color: #ffffff;
+        color: var(--admin-text, #172033);
         font-size: 13px;
         cursor: pointer;
         white-space: nowrap;
@@ -73,6 +73,16 @@
 
     #questModal .adm-q-time-limit-group input[type="number"] {
         margin-bottom: 8px;
+    }
+
+    #questModal .adm-q-place-search button {
+        background: var(--admin-primary, #d93d5e);
+        color: #ffffff;
+        box-shadow: 0 12px 22px rgba(217, 61, 94, 0.16);
+    }
+
+    #questModal .adm-q-place-search button:hover {
+        background: var(--admin-primary-hover, #c73455);
     }
 
     #questModal .adm-q-help-text {
@@ -136,7 +146,14 @@
                             <c:forEach var="quest" items="${activeQuestList}">
                                 <div class="adm-q-card ${quest.status}">
                                     <div class="adm-q-card-header">
-                                        <span class="adm-q-status-badge">${quest.status}</span>
+                                        <span class="adm-q-status-badge ${quest.status}">
+                                            <c:choose>
+                                                <c:when test="${quest.status == 'ACTIVE'}">활성화</c:when>
+                                                <c:when test="${quest.status == 'INACTIVE'}">비활성화</c:when>
+                                                <c:when test="${quest.status == 'DELETED'}">삭제됨</c:when>
+                                                <c:otherwise>${quest.status}</c:otherwise>
+                                            </c:choose>
+                                        </span>
                                     </div>
 
                                     <div class="adm-q-card-body"
@@ -203,7 +220,14 @@
                             <c:forEach var="quest" items="${inactiveQuestList}">
                                 <div class="adm-q-card ${quest.status}">
                                     <div class="adm-q-card-header">
-                                        <span class="adm-q-status-badge">${quest.status}</span>
+                                        <span class="adm-q-status-badge ${quest.status}">
+                                            <c:choose>
+                                                <c:when test="${quest.status == 'ACTIVE'}">활성화</c:when>
+                                                <c:when test="${quest.status == 'INACTIVE'}">비활성화</c:when>
+                                                <c:when test="${quest.status == 'DELETED'}">삭제됨</c:when>
+                                                <c:otherwise>${quest.status}</c:otherwise>
+                                            </c:choose>
+                                        </span>
                                     </div>
 
                                     <div class="adm-q-card-body"
@@ -270,7 +294,14 @@
                             <c:forEach var="quest" items="${deletedQuestList}">
                                 <div class="adm-q-card ${quest.status}">
                                     <div class="adm-q-card-header">
-                                        <span class="adm-q-status-badge">${quest.status}</span>
+                                        <span class="adm-q-status-badge ${quest.status}">
+                                            <c:choose>
+                                                <c:when test="${quest.status == 'ACTIVE'}">활성화</c:when>
+                                                <c:when test="${quest.status == 'INACTIVE'}">비활성화</c:when>
+                                                <c:when test="${quest.status == 'DELETED'}">삭제됨</c:when>
+                                                <c:otherwise>${quest.status}</c:otherwise>
+                                            </c:choose>
+                                        </span>
                                     </div>
 
                                     <div class="adm-q-card-body"
@@ -327,7 +358,14 @@
                 <c:forEach var="quest" items="${questList}">
                     <div class="adm-q-card ${quest.status}">
                         <div class="adm-q-card-header">
-                            <span class="adm-q-status-badge">${quest.status}</span>
+                            <span class="adm-q-status-badge ${quest.status}">
+                                <c:choose>
+                                    <c:when test="${quest.status == 'ACTIVE'}">활성화</c:when>
+                                    <c:when test="${quest.status == 'INACTIVE'}">비활성화</c:when>
+                                    <c:when test="${quest.status == 'DELETED'}">삭제됨</c:when>
+                                    <c:otherwise>${quest.status}</c:otherwise>
+                                </c:choose>
+                            </span>
                         </div>
 
                         <div class="adm-q-card-body"

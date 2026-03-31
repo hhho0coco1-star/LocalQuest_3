@@ -1,0 +1,96 @@
+@charset "UTF-8";
+
+body.admin-page[data-admin-theme="light"] {
+    --admin-bg: #fff7fa;
+    --admin-bg-accent: #fff0f4;
+    --admin-surface: #ffffff;
+    --admin-surface-soft: #fff8fb;
+    --admin-surface-raise: #fffafc;
+    --admin-surface-press: #fff5f8;
+    --admin-surface-press-strong: #fff1f5;
+    --admin-text: #172033;
+    --admin-text-muted: #667085;
+    --admin-primary: #d93d5e;
+    --admin-primary-hover: #c33152;
+    --admin-border: rgba(217, 61, 94, 0.14);
+    --admin-shadow: 0 16px 40px rgba(217, 61, 94, 0.08);
+    --admin-success: #1f9d66;
+    --admin-danger: #d64545;
+    --admin-warning: #d47f17;
+    --admin-page-top: #ffffff;
+    --admin-nav-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 249, 251, 0.98) 100%);
+    --admin-brand-icon-bg: linear-gradient(135deg, rgba(217, 61, 94, 0.14), rgba(255, 236, 241, 0.96));
+    --admin-brand-icon-border: rgba(217, 61, 94, 0.12);
+    --admin-menu-active-bg: linear-gradient(180deg, rgba(255, 240, 244, 0.95), rgba(255, 248, 251, 0.98));
+    --admin-table-head: #fff3f6;
+    --admin-overlay: rgba(23, 32, 51, 0.24);
+}
+
+body.admin-page[data-admin-theme="dark"] {
+    --admin-bg: #13111a;
+    --admin-bg-accent: #1b1522;
+    --admin-surface: #1d1824;
+    --admin-surface-soft: #251d2d;
+    --admin-surface-raise: #241d2d;
+    --admin-surface-press: #2a2234;
+    --admin-surface-press-strong: #332537;
+    --admin-text: #f7f4f8;
+    --admin-text-muted: #c4bdd0;
+    --admin-primary: #ff6f91;
+    --admin-primary-hover: #ff85a3;
+    --admin-border: rgba(255, 111, 145, 0.22);
+    --admin-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+    --admin-success: #4fd69d;
+    --admin-danger: #ff7b7b;
+    --admin-warning: #ffbf66;
+    --admin-page-top: #18131f;
+    --admin-nav-bg: linear-gradient(180deg, rgba(32, 26, 39, 0.96) 0%, rgba(24, 19, 31, 0.98) 100%);
+    --admin-brand-icon-bg: linear-gradient(135deg, rgba(255, 111, 145, 0.18), rgba(58, 38, 68, 0.96));
+    --admin-brand-icon-border: rgba(255, 111, 145, 0.16);
+    --admin-menu-active-bg: linear-gradient(180deg, rgba(255, 111, 145, 0.14), rgba(56, 37, 53, 0.96));
+    --admin-table-head: #261f30;
+    --admin-overlay: rgba(7, 9, 14, 0.64);
+}
+
+html,
+body.admin-page {
+    min-height: 100%;
+}
+
+body.admin-page {
+    margin: 0;
+    background:
+        radial-gradient(circle at top left, var(--admin-bg-accent) 0%, transparent 36%),
+        linear-gradient(180deg, var(--admin-page-top) 0%, var(--admin-bg) 100%);
+    color: var(--admin-text);
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+body.admin-page * {
+    box-sizing: border-box;
+}
+
+body.admin-page a {
+    color: inherit;
+}
+
+#admin-root {
+    min-height: 100vh;
+}
+
+.admin-main-wrapper {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding: 32px 24px 48px;
+}
+
+.admin-content-area {
+    min-height: calc(100vh - 180px);
+    width: 100%;
+    color: var(--admin-text);
+}
