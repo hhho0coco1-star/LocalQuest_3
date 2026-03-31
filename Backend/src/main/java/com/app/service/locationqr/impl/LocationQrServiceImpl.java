@@ -26,6 +26,7 @@ import com.google.zxing.common.BitMatrix;
 public class LocationQrServiceImpl implements LocationQrService {
 
     private static final String DEFAULT_LOCATION_TYPE = "BUSINESS_STORE";
+    private static final String DEFAULT_LOCATION_CATEGORY = "EXPERIENCE";
     private static final int DEFAULT_QR_SIZE = 320;
     private static final int MIN_QR_SIZE = 160;
     private static final int MAX_QR_SIZE = 1024;
@@ -191,6 +192,7 @@ public class LocationQrServiceImpl implements LocationQrService {
             newLocation.setLatitude(null);
             newLocation.setLongitude(null);
             newLocation.setLocationType(DEFAULT_LOCATION_TYPE);
+            newLocation.setLocationCategory(DEFAULT_LOCATION_CATEGORY);
             newLocation.setDescription(business.getDescription());
 
             locationService.saveLocation(newLocation);
@@ -205,6 +207,7 @@ public class LocationQrServiceImpl implements LocationQrService {
         if (representativeLocation.getLocationType() == null || representativeLocation.getLocationType().trim().isEmpty()) {
             representativeLocation.setLocationType(DEFAULT_LOCATION_TYPE);
         }
+        representativeLocation.setLocationCategory(DEFAULT_LOCATION_CATEGORY);
         representativeLocation.setDescription(business.getDescription());
         locationService.updateRepresentativeLocation(representativeLocation);
         return representativeLocation;

@@ -15,14 +15,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.app.auth.SessionAuthKeys;
 import com.app.dto.quest.QuestDTO;
 import com.app.dto.quest.QuestDetailDTO;
 import com.app.dto.quest.QuestMapDTO;
 import com.app.dto.quest.QuestTopRatedDTO;
 import com.app.service.quest.QuestService;
+import com.app.service.user.auth.LoginUserResolver;
 import com.app.service.userquest.UserQuestService;
 
 @RestController
@@ -34,6 +35,9 @@ public class QuestAPIController {
 
     @Autowired
     private UserQuestService userQuestService;
+
+    @Autowired
+    private LoginUserResolver loginUserResolver;
 
     @GetMapping
     public ResponseEntity<List<QuestDTO>> getQuestList() {
@@ -50,8 +54,11 @@ public class QuestAPIController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getMyQuestList(HttpSession session) {
-        Integer loginUserId = resolveLoginUserId(session);
+    public ResponseEntity<?> getMyQuestList(
+        HttpSession session,
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader
+    ) {
+        Integer loginUserId = loginUserResolver.resolveUserId(session, authorizationHeader);
         if (loginUserId == null || loginUserId <= 0) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(messageBody("\uB85C\uADF8\uC778\uC774\u0020\uD544\uC694\uD569\uB2C8\uB2E4\u002E"));
@@ -100,8 +107,12 @@ public class QuestAPIController {
     }
 
     @PostMapping("/{questId}/accept")
-    public ResponseEntity<?> acceptQuest(@PathVariable int questId, HttpSession session) {
-        Integer loginUserId = resolveLoginUserId(session);
+    public ResponseEntity<?> acceptQuest(
+        @PathVariable int questId,
+        HttpSession session,
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader
+    ) {
+        Integer loginUserId = loginUserResolver.resolveUserId(session, authorizationHeader);
         if (loginUserId == null || loginUserId <= 0) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(messageBody("\uB85C\uADF8\uC778\uC774\u0020\uD544\uC694\uD569\uB2C8\uB2E4\u002E"));
@@ -120,8 +131,12 @@ public class QuestAPIController {
     }
 
     @GetMapping("/{questId}/me")
-    public ResponseEntity<?> getMyQuestSummary(@PathVariable int questId, HttpSession session) {
-        Integer loginUserId = resolveLoginUserId(session);
+    public ResponseEntity<?> getMyQuestSummary(
+        @PathVariable int questId,
+        HttpSession session,
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader
+    ) {
+        Integer loginUserId = loginUserResolver.resolveUserId(session, authorizationHeader);
         if (loginUserId == null || loginUserId <= 0) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(messageBody("\uB85C\uADF8\uC778\uC774\u0020\uD544\uC694\uD569\uB2C8\uB2E4\u002E"));
@@ -135,27 +150,6 @@ public class QuestAPIController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(messageBody("\uB0B4\u0020\uD018\uC2A4\uD2B8\u0020\uC0C1\uD0DC\u0020\uC870\uD68C\u0020\uC911\u0020\uC624\uB958\uAC00\u0020\uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4\u002E"));
         }
-    }
-
-    private Integer resolveLoginUserId(HttpSession session) {
-        if (session == null) {
-            return null;
-        }
-
-        Object sessionUserId = session.getAttribute(SessionAuthKeys.USER_ID);
-        if (sessionUserId instanceof Number) {
-            return ((Number) sessionUserId).intValue();
-        }
-
-        if (sessionUserId instanceof String) {
-            try {
-                return Integer.parseInt(((String) sessionUserId).trim());
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-
-        return null;
     }
 
     private Map<String, String> messageBody(String message) {

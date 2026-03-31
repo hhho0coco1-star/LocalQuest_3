@@ -49,4 +49,9 @@ public class LocationServiceImpl implements LocationService {
     public int deleteUnusedLocationsByIds(List<Integer> locationIds) {
         return dao.deleteUnusedLocationsByIds(locationIds);
     }
+
+    @Override
+    public String findActiveQrAuthKeyByLocationId(int locationId) {
+        return dao.findActiveQrAuthKeyByLocationId(locationId);
+    }
 }
