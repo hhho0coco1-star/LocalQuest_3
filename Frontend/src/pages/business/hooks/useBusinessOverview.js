@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { businessApi } from '../../../api/BusinessApi';
 import { EMPTY_DASHBOARD } from '../utils/businessConstants';
@@ -37,6 +37,17 @@ export function useBusinessOverview() {
   const [errorMessage, setErrorMessage] = useState('');
   const [business, setBusiness] = useState(null);
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
+  const [qrInfo, setQrInfo] = useState(null);
+  const [qrImageSrc, setQrImageSrc] = useState('');
+  const qrObjectUrlRef = useRef('');
+
+  const clearQrImage = useCallback(() => {
+    if (qrObjectUrlRef.current && typeof URL !== 'undefined') {
+      URL.revokeObjectURL(qrObjectUrlRef.current);
+    }
+    qrObjectUrlRef.current = '';
+    setQrImageSrc('');
+  }, []);
 
   const loadBusinessOverview = useCallback(async () => {
     try {
@@ -69,6 +80,41 @@ export function useBusinessOverview() {
 
       setBusiness(payload.business || null);
       setDashboard(payload.dashboard || EMPTY_DASHBOARD);
+      const qrPayload = payload.qr || null;
+      setQrInfo(qrPayload);
+
+      const effectiveBusinessId = isAdmin ? (loadedBusinessId || businessId || null) : null;
+      if (qrPayload && qrPayload.active !== false) {
+        try {
+          const imageParams = {};
+          if (effectiveBusinessId) {
+            imageParams.businessId = effectiveBusinessId;
+          }
+          const qrVersion = parsePositiveInt(qrPayload.qrId);
+          if (qrVersion) {
+            imageParams.v = qrVersion;
+          }
+          const imageResponse = await businessApi.getMyBusinessQrImage(
+            Object.keys(imageParams).length ? imageParams : null
+          );
+          const qrBlob = imageResponse?.data;
+
+          if (!(qrBlob instanceof Blob) || qrBlob.size <= 0 || typeof URL === 'undefined') {
+            clearQrImage();
+          } else {
+            if (qrObjectUrlRef.current) {
+              URL.revokeObjectURL(qrObjectUrlRef.current);
+            }
+            const objectUrl = URL.createObjectURL(qrBlob);
+            qrObjectUrlRef.current = objectUrl;
+            setQrImageSrc(objectUrl);
+          }
+        } catch {
+          clearQrImage();
+        }
+      } else {
+        clearQrImage();
+      }
     } catch (error) {
       const status = error?.response?.status;
       if (status === 404) {
@@ -80,14 +126,22 @@ export function useBusinessOverview() {
 
       setBusiness(null);
       setDashboard(EMPTY_DASHBOARD);
+      setQrInfo(null);
+      clearQrImage();
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [clearQrImage, isAdmin]);
 
   useEffect(() => {
     loadBusinessOverview();
   }, [loadBusinessOverview]);
+
+  useEffect(() => () => {
+    if (qrObjectUrlRef.current && typeof URL !== 'undefined') {
+      URL.revokeObjectURL(qrObjectUrlRef.current);
+    }
+  }, []);
 
   const dashboardCards = useMemo(
     () => [
@@ -167,18 +221,16 @@ export function useBusinessOverview() {
   }, [dashboard.todayCouponUseCount]);
 
   const qrLink = useMemo(() => {
-    const slug = (business?.businessName || 'localquest-store')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-');
-    return `localquest.io/q/${slug || 'localquest-store'}`;
-  }, [business?.businessName]);
+    return qrInfo?.verifyUrl || '-';
+  }, [qrInfo?.verifyUrl]);
 
   return {
     loading,
     errorMessage,
     business,
     dashboard,
+    qrInfo,
+    qrImageSrc,
     dashboardCards,
     storeInfoRows,
     hasAuthHistory,

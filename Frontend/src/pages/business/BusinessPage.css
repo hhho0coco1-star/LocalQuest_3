@@ -391,9 +391,27 @@
   margin-bottom: 16px;
 }
 
-.business-qr-frame svg {
+.business-qr-image {
   width: 130px;
   height: 130px;
+  object-fit: contain;
+  background: var(--b-white);
+}
+
+.business-qr-empty {
+  width: 130px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  border-radius: 12px;
+  color: var(--b-gray-600);
+  background: var(--b-white);
+  border: 1px dashed var(--b-gray-200);
 }
 
 .business-qr-label {
@@ -889,5 +907,31 @@
   .business-modal-row {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .business-print-target,
+  .business-print-target * {
+    visibility: visible !important;
+  }
+
+  .business-print-target {
+    position: fixed;
+    left: 50%;
+    top: 10mm;
+    transform: translateX(-50%);
+    width: 86mm;
+    margin: 0;
+    background: #ffffff;
+    box-shadow: none;
   }
 }

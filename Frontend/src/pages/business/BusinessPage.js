@@ -32,6 +32,8 @@ function BusinessPage() {
     errorMessage,
     business,
     dashboard,
+    qrInfo,
+    qrImageSrc,
     dashboardCards,
     storeInfoRows,
     hasAuthHistory,
@@ -54,38 +56,21 @@ function BusinessPage() {
   } = useBusinessCoupons(showToast);
 
   const handleDownloadQr = useCallback(() => {
-    const svg = document.getElementById('business-qr-svg');
-    if (!svg) {
-      showToast('QR 이미지를 찾을 수 없습니다.');
+    if (!qrImageSrc) {
+      if (qrInfo && qrInfo.active === false) {
+        showToast('운영중지 상태에서는 QR 이미지를 표시할 수 없습니다.');
+        return;
+      }
+      showToast('QR 이미지를 아직 불러오지 못했습니다.');
       return;
     }
 
-    const serialized = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 400;
-    const context = canvas.getContext('2d');
-    const image = new Image();
-
-    image.onload = () => {
-      if (!context) {
-        showToast('QR 다운로드를 준비하지 못했습니다.');
-        return;
-      }
-
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-      const link = document.createElement('a');
-      link.download = `localquest_qr_${sanitizeFileName(business?.businessName)}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      showToast('QR 이미지를 다운로드합니다.');
-    };
-
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(serialized)}`;
-  }, [business?.businessName, showToast]);
+    const link = document.createElement('a');
+    link.download = `localquest_qr_${sanitizeFileName(business?.businessName)}.png`;
+    link.href = qrImageSrc;
+    link.click();
+    showToast('QR 이미지를 다운로드합니다.');
+  }, [business?.businessName, qrImageSrc, qrInfo, showToast]);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -216,6 +201,8 @@ function BusinessPage() {
             todayQuestCompleteCount={todayQuestCompleteCount}
             todayCouponUseCount={todayCouponUseCount}
             qrLink={qrLink}
+            qrImageSrc={qrImageSrc}
+            qrActive={qrInfo?.active !== false}
             onDownloadQr={handleDownloadQr}
             onPrint={handlePrint}
           />
