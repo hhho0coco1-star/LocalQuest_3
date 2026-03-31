@@ -9,6 +9,18 @@ import {
   padTwoDigits
 } from '../utils/businessUtils';
 
+const resolveBusinessIdFromQuery = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const raw = new URLSearchParams(window.location.search).get('businessId');
+  if (!raw) {
+    return null;
+  }
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 export function useBusinessOverview() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -20,7 +32,10 @@ export function useBusinessOverview() {
       setLoading(true);
       setErrorMessage('');
 
-      const response = await businessApi.getMyBusinessOverview();
+      const businessId = resolveBusinessIdFromQuery();
+      const response = await businessApi.getMyBusinessOverview(
+        businessId ? { businessId } : null
+      );
       const payload = response?.data || {};
 
       setBusiness(payload.business || null);
