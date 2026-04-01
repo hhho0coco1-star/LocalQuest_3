@@ -26,6 +26,8 @@ public class RewardServiceImpl implements RewardService {
 
 	private static final int WEEKLY_XP_GOAL = 700;
 	private static final String DEFAULT_REWARD_STATUS = "ON_SALE";
+	private static final String DEFAULT_COUPON_SCOPE = "GENERAL";
+	private static final String DEFAULT_STORE_NAME = "리워드 상점";
 
 	@Autowired
 	private RewardDAO rewardDAO;
@@ -84,13 +86,7 @@ public class RewardServiceImpl implements RewardService {
 		}
 
 		for (RewardShopItem item : items) {
-			item.setPricePoint(Math.max(0, safeInt(item.getPricePoint(), 0)));
-			item.setStock(Math.max(0, safeInt(item.getStock(), 0)));
-
-			String status = trimToEmpty(item.getStatus());
-			if (status.isEmpty()) {
-				item.setStatus(item.getStock() > 0 ? DEFAULT_REWARD_STATUS : "SOLD_OUT");
-			}
+			normalizeRewardShopItem(item);
 		}
 
 		return items;
@@ -247,6 +243,10 @@ public class RewardServiceImpl implements RewardService {
 			return;
 		}
 
+		coupon.setStore(defaultIfBlank(coupon.getStoreName(), defaultIfBlank(coupon.getStore(), DEFAULT_STORE_NAME)));
+		coupon.setStoreAddress(trimToEmpty(coupon.getStoreAddress()));
+		coupon.setCouponScope(normalizeCouponScope(coupon.getCouponScope()));
+
 		Integer daysLeft = coupon.getDaysLeft();
 		if (daysLeft == null) {
 			coupon.setExpire("만료일 미정");
@@ -260,6 +260,24 @@ public class RewardServiceImpl implements RewardService {
 			coupon.setExpire(daysLeft + "일 남음");
 		}
 		coupon.setUrgent(daysLeft <= 2);
+	}
+
+	private void normalizeRewardShopItem(RewardShopItem item) {
+		if (item == null) {
+			return;
+		}
+
+		item.setPricePoint(Math.max(0, safeInt(item.getPricePoint(), 0)));
+		item.setStock(Math.max(0, safeInt(item.getStock(), 0)));
+
+		String status = trimToEmpty(item.getStatus());
+		if (status.isEmpty()) {
+			item.setStatus(item.getStock() > 0 ? DEFAULT_REWARD_STATUS : "SOLD_OUT");
+		}
+
+		item.setCouponScope(normalizeCouponScope(item.getCouponScope()));
+		item.setStoreName(defaultIfBlank(item.getStoreName(), DEFAULT_STORE_NAME));
+		item.setStoreAddress(trimToEmpty(item.getStoreAddress()));
 	}
 
 	private int safeInt(Integer value, int fallback) {
@@ -284,6 +302,16 @@ public class RewardServiceImpl implements RewardService {
 
 	private String trimToEmpty(String value) {
 		return value == null ? "" : value.trim();
+	}
+
+	private String defaultIfBlank(String value, String fallback) {
+		String normalized = trimToEmpty(value);
+		return normalized.isEmpty() ? fallback : normalized;
+	}
+
+	private String normalizeCouponScope(String value) {
+		String normalized = trimToEmpty(value).toUpperCase();
+		return "BUSINESS_LOCATION".equals(normalized) ? "BUSINESS_LOCATION" : DEFAULT_COUPON_SCOPE;
 	}
 
 	private int clamp(int value, int min, int max) {

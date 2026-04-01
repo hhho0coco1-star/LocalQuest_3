@@ -15,6 +15,8 @@
         <typeAlias type="com.app.dto.business.BusinessDashboardDTO" alias="BusinessDashboardDTO"/>
         <typeAlias type="com.app.dto.business.BusinessHourlyAuthDTO" alias="BusinessHourlyAuthDTO"/>
         <typeAlias type="com.app.dto.business.BusinessOverviewDTO" alias="BusinessOverviewDTO"/>
+        <typeAlias type="com.app.dto.businesscouponrequest.BusinessCouponRequestDTO" alias="BusinessCouponRequestDTO"/>
+        <typeAlias type="com.app.dto.businesscouponrequest.BusinessCouponRequestHistoryDTO" alias="BusinessCouponRequestHistoryDTO"/>
         <typeAlias type="com.app.dto.businessinquiry.BusinessInquiryDTO" alias="BusinessInquiryDTO"/>
         <typeAlias type="com.app.dto.faq.FaqDTO" alias="FaqDTO"/>
         <typeAlias type="com.app.dto.graderange.GradeRangeDTO" alias="GradeRangeDTO"/>

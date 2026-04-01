@@ -8,6 +8,12 @@ export const businessApi = {
       responseType: 'blob',
       ...(params ? { params } : {})
     }),
-  updateMyBusiness: (payload) => api.post('/api/businesses/me', payload)
+  updateMyBusiness: (payload) => api.post('/api/businesses/me', payload),
+  getMyCouponRequests: (params) => api.get('/api/businesses/me/coupon-requests', { params }),
+  getMyCouponRequestDetail: (requestId) => api.get(`/api/businesses/me/coupon-requests/${requestId}`),
+  holdMyCouponRequest: (requestId, holdReason) =>
+    api.post(`/api/businesses/me/coupon-requests/${requestId}/hold`, { holdReason }),
+  acceptMyCouponRequest: (requestId) =>
+    api.post(`/api/businesses/me/coupon-requests/${requestId}/accept`)
 };
 

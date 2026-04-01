@@ -319,4 +319,34 @@
   }
 }
 
+.reward-route-tag.reward-is-business {
+  background: #fff7ed;
+  color: #c2410c;
+}
 
+.reward-route-tag.reward-is-general {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.reward-shop-store-name {
+  color: #0f172a;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.reward-shop-address {
+  color: var(--reward-text-soft);
+  font-size: var(--reward-fs-xs);
+  line-height: 1.4;
+  margin: 2px 0 0;
+}
+
+.reward-ticket-content .reward-route-tag {
+  margin-bottom: 6px;
+  margin-top: 2px;
+}
+
+.reward-ticket-address {
+  margin-top: -4px;
+}

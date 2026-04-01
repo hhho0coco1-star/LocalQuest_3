@@ -14,6 +14,9 @@
 		PRICE_POINT as pricePoint,
 		STOCK,
 		STATUS,
+		LOCATION_ID as locationId,
+		REQUEST_ID as requestId,
+		COUPON_SCOPE as couponScope,
 		CREATED_AT as createdAt
 		FROM LQ_REWARD_ITEM
 		WHERE STATUS != 'DELETED'
@@ -35,6 +38,9 @@
 	</insert>
 
 	<insert id="saveRewardItem" parameterType="RewardItem">
+		<selectKey keyProperty="rewardItemId" resultType="int" order="BEFORE">
+			SELECT SEQ_LQ_REWARD_ITEM_PK.NEXTVAL FROM DUAL
+		</selectKey>
 		INSERT INTO LQ_REWARD_ITEM (
 		REWARD_ITEM_ID,
 		NAME,
@@ -42,14 +48,20 @@
 		PRICE_POINT,
 		STOCK,
 		STATUS,
+		LOCATION_ID,
+		REQUEST_ID,
+		COUPON_SCOPE,
 		CREATED_AT
 		) VALUES (
-		SEQ_LQ_REWARD_ITEM_PK.NEXTVAL,
+		#{rewardItemId},
 		#{name},
 		#{description},
 		#{pricePoint},
 		#{stock},
-		#{status},
+		NVL(#{status}, 'ON_SALE'),
+		#{locationId},
+		#{requestId},
+		NVL(#{couponScope}, 'GENERAL'),
 		SYSDATE
 		)
 	</insert>
