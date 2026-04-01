@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+           "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="businesscouponrequest_mapper">
+
+    <select id="getBusinessCouponRequestList" parameterType="map" resultType="BusinessCouponRequestDTO">
+        SELECT
+            R.REQUEST_ID AS requestId,
+            R.BUSINESS_ID AS businessId,
+            R.LOCATION_ID AS locationId,
+            R.ADMIN_USER_ID AS adminUserId,
+            R.COUPON_NAME AS couponName,
+            R.COUPON_DESCRIPTION AS couponDescription,
+            R.PRICE_POINT AS pricePoint,
+            R.STOCK AS stock,
+            R.TARGET_STATUS AS targetStatus,
+            R.REQUEST_STATUS AS requestStatus,
+            R.REQUEST_VERSION AS requestVersion,
+            R.LAST_HOLD_REASON AS lastHoldReason,
+            R.APPROVED_REWARD_ITEM_ID AS approvedRewardItemId,
+            R.REQUESTED_AT AS requestedAt,
+            R.RESPONDED_AT AS respondedAt,
+            R.CREATED_AT AS createdAt,
+            R.UPDATED_AT AS updatedAt,
+            B.USER_ID AS businessUserId,
+            B.BUSINESS_NAME AS businessName,
+            L.NAME AS locationName,
+            L.ADDRESS AS locationAddress,
+            AU.NICKNAME AS adminNickname
+        FROM LQ_BUSINESS_COUPON_REQUEST R
+        INNER JOIN LQ_BUSINESS B
+            ON B.BUSINESS_ID = R.BUSINESS_ID
+        INNER JOIN LQ_LOCATION L
+            ON L.LOCATION_ID = R.LOCATION_ID
+        LEFT JOIN LQ_USER AU
+            ON AU.USER_ID = R.ADMIN_USER_ID
+        <where>
+            <if test="requestStatus != null and requestStatus != ''">
+                AND R.REQUEST_STATUS = #{requestStatus}
+            </if>
+            <if test="businessId != null">
+                AND R.BUSINESS_ID = #{businessId}
+            </if>
+            <if test="locationId != null">
+                AND R.LOCATION_ID = #{locationId}
+            </if>
+            <if test="adminUserId != null">
+                AND R.ADMIN_USER_ID = #{adminUserId}
+            </if>
+            <if test="businessUserId != null">
+                AND B.USER_ID = #{businessUserId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    R.COUPON_NAME LIKE '%' || #{keyword} || '%'
+                    OR B.BUSINESS_NAME LIKE '%' || #{keyword} || '%'
+                    OR L.NAME LIKE '%' || #{keyword} || '%'
+                )
+            </if>
+        </where>
+        ORDER BY R.REQUEST_ID DESC
+    </select>
+
+    <select id="getBusinessCouponRequestById" parameterType="long" resultType="BusinessCouponRequestDTO">
+        SELECT
+            R.REQUEST_ID AS requestId,
+            R.BUSINESS_ID AS businessId,
+            R.LOCATION_ID AS locationId,
+            R.ADMIN_USER_ID AS adminUserId,
+            R.COUPON_NAME AS couponName,
+            R.COUPON_DESCRIPTION AS couponDescription,
+            R.PRICE_POINT AS pricePoint,
+            R.STOCK AS stock,
+            R.TARGET_STATUS AS targetStatus,
+            R.REQUEST_STATUS AS requestStatus,
+            R.REQUEST_VERSION AS requestVersion,
+            R.LAST_HOLD_REASON AS lastHoldReason,
+            R.APPROVED_REWARD_ITEM_ID AS approvedRewardItemId,
+            R.REQUESTED_AT AS requestedAt,
+            R.RESPONDED_AT AS respondedAt,
+            R.CREATED_AT AS createdAt,
+            R.UPDATED_AT AS updatedAt,
+            B.USER_ID AS businessUserId,
+            B.BUSINESS_NAME AS businessName,
+            L.NAME AS locationName,
+            L.ADDRESS AS locationAddress,
+            AU.NICKNAME AS adminNickname
+        FROM LQ_BUSINESS_COUPON_REQUEST R
+        INNER JOIN LQ_BUSINESS B
+            ON B.BUSINESS_ID = R.BUSINESS_ID
+        INNER JOIN LQ_LOCATION L
+            ON L.LOCATION_ID = R.LOCATION_ID
+        LEFT JOIN LQ_USER AU
+            ON AU.USER_ID = R.ADMIN_USER_ID
+        WHERE R.REQUEST_ID = #{value}
+    </select>
+
+    <insert id="saveBusinessCouponRequest" parameterType="BusinessCouponRequestDTO">
+        <selectKey keyProperty="requestId" resultType="long" order="BEFORE">
+            SELECT SEQ_LQ_BC_REQ_PK.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO LQ_BUSINESS_COUPON_REQUEST (
+            REQUEST_ID,
+            BUSINESS_ID,
+            LOCATION_ID,
+            ADMIN_USER_ID,
+            COUPON_NAME,
+            COUPON_DESCRIPTION,
+            PRICE_POINT,
+            STOCK,
+            TARGET_STATUS,
+            REQUEST_STATUS,
+            REQUEST_VERSION,
+            LAST_HOLD_REASON,
+            APPROVED_REWARD_ITEM_ID,
+            REQUESTED_AT,
+            RESPONDED_AT,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{requestId},
+            #{businessId},
+            #{locationId},
+            #{adminUserId},
+            #{couponName},
+            #{couponDescription},
+            #{pricePoint},
+            #{stock},
+            NVL(#{targetStatus}, 'ON_SALE'),
+            NVL(#{requestStatus}, 'REQUESTED'),
+            NVL(#{requestVersion}, 1),
+            #{lastHoldReason},
+            #{approvedRewardItemId},
+            SYSDATE,
+            NULL,
+            SYSDATE,
+            SYSDATE
+        )
+    </insert>
+
+    <update id="updateBusinessCouponRequest" parameterType="BusinessCouponRequestDTO">
+        UPDATE LQ_BUSINESS_COUPON_REQUEST
+        SET
+            BUSINESS_ID = #{businessId},
+            LOCATION_ID = #{locationId},
+            ADMIN_USER_ID = #{adminUserId},
+            COUPON_NAME = #{couponName},
+            COUPON_DESCRIPTION = #{couponDescription},
+            PRICE_POINT = #{pricePoint},
+            STOCK = #{stock},
+            TARGET_STATUS = #{targetStatus},
+            UPDATED_AT = SYSDATE
+        WHERE REQUEST_ID = #{requestId}
+    </update>
+
+    <update id="resubmitBusinessCouponRequest" parameterType="BusinessCouponRequestDTO">
+        UPDATE LQ_BUSINESS_COUPON_REQUEST
+        SET
+            BUSINESS_ID = #{businessId},
+            LOCATION_ID = #{locationId},
+            ADMIN_USER_ID = #{adminUserId},
+            COUPON_NAME = #{couponName},
+            COUPON_DESCRIPTION = #{couponDescription},
+            PRICE_POINT = #{pricePoint},
+            STOCK = #{stock},
+            TARGET_STATUS = #{targetStatus},
+            REQUEST_STATUS = 'REQUESTED',
+            REQUEST_VERSION = NVL(REQUEST_VERSION, 1) + 1,
+            LAST_HOLD_REASON = NULL,
+            REQUESTED_AT = SYSDATE,
+            RESPONDED_AT = NULL,
+            UPDATED_AT = SYSDATE
+        WHERE REQUEST_ID = #{requestId}
+    </update>
+
+    <update id="holdBusinessCouponRequest" parameterType="map">
+        UPDATE LQ_BUSINESS_COUPON_REQUEST
+        SET
+            REQUEST_STATUS = 'HOLD',
+            LAST_HOLD_REASON = #{holdReason},
+            RESPONDED_AT = SYSDATE,
+            UPDATED_AT = SYSDATE
+        WHERE REQUEST_ID = #{requestId}
+    </update>
+
+    <update id="acceptBusinessCouponRequest" parameterType="map">
+        UPDATE LQ_BUSINESS_COUPON_REQUEST
+        SET
+            REQUEST_STATUS = 'ACCEPTED',
+            APPROVED_REWARD_ITEM_ID = #{approvedRewardItemId},
+            RESPONDED_AT = SYSDATE,
+            UPDATED_AT = SYSDATE
+        WHERE REQUEST_ID = #{requestId}
+    </update>
+
+    <update id="cancelBusinessCouponRequest" parameterType="map">
+        UPDATE LQ_BUSINESS_COUPON_REQUEST
+        SET
+            REQUEST_STATUS = 'CANCELLED',
+            UPDATED_AT = SYSDATE
+        WHERE REQUEST_ID = #{requestId}
+    </update>
+
+    <select id="getBusinessCouponRequestHistoryList" parameterType="long" resultType="BusinessCouponRequestHistoryDTO">
+        SELECT
+            H.HISTORY_ID AS historyId,
+            H.REQUEST_ID AS requestId,
+            H.ACTION_TYPE AS actionType,
+            H.ACTION_ROLE AS actionRole,
+            H.ACTION_BY_USER_ID AS actionByUserId,
+            H.REQUEST_VERSION AS requestVersion,
+            H.COMMENT_TEXT AS commentText,
+            H.SNAPSHOT_COUPON_NAME AS snapshotCouponName,
+            H.SNAPSHOT_COUPON_DESC AS snapshotCouponDesc,
+            H.SNAPSHOT_PRICE_POINT AS snapshotPricePoint,
+            H.SNAPSHOT_STOCK AS snapshotStock,
+            H.SNAPSHOT_TARGET_STATUS AS snapshotTargetStatus,
+            H.CREATED_AT AS createdAt,
+            U.NICKNAME AS actionByNickname
+        FROM LQ_BUSINESS_COUPON_REQ_HIST H
+        LEFT JOIN LQ_USER U
+            ON U.USER_ID = H.ACTION_BY_USER_ID
+        WHERE H.REQUEST_ID = #{value}
+        ORDER BY H.HISTORY_ID ASC
+    </select>
+
+    <insert id="saveBusinessCouponRequestHistory" parameterType="BusinessCouponRequestHistoryDTO">
+        <selectKey keyProperty="historyId" resultType="long" order="BEFORE">
+            SELECT SEQ_LQ_BC_REQ_HIS_PK.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO LQ_BUSINESS_COUPON_REQ_HIST (
+            HISTORY_ID,
+            REQUEST_ID,
+            ACTION_TYPE,
+            ACTION_ROLE,
+            ACTION_BY_USER_ID,
+            REQUEST_VERSION,
+            COMMENT_TEXT,
+            SNAPSHOT_COUPON_NAME,
+            SNAPSHOT_COUPON_DESC,
+            SNAPSHOT_PRICE_POINT,
+            SNAPSHOT_STOCK,
+            SNAPSHOT_TARGET_STATUS,
+            CREATED_AT
+        ) VALUES (
+            #{historyId},
+            #{requestId},
+            #{actionType},
+            #{actionRole},
+            #{actionByUserId},
+            #{requestVersion},
+            #{commentText},
+            #{snapshotCouponName},
+            #{snapshotCouponDesc},
+            #{snapshotPricePoint},
+            #{snapshotStock},
+            #{snapshotTargetStatus},
+            SYSDATE
+        )
+    </insert>
+
+</mapper>

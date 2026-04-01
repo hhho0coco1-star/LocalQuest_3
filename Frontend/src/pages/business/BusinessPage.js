@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { businessApi } from '../../api/BusinessApi';
+import BusinessCouponRequestPanel from './BusinessCouponRequestPanel';
 import './BusinessPage.css';
 
 const EMPTY_DASHBOARD = {
@@ -271,6 +272,8 @@ function BusinessPage() {
             <button type="button" className="business-primary-btn">정보 업데이트</button>
           </article>
         </section>
+
+        <BusinessCouponRequestPanel />
       </section>
     </main>
   );

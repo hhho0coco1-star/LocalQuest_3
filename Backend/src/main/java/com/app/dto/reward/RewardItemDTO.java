@@ -13,6 +13,9 @@ public class RewardItemDTO {
     private int pricePoint;
     private int stock;
     private String status; // 'ON_SALE', 'SOLD_OUT', 'HIDDEN'
+    private Integer locationId;
+    private Long requestId;
+    private String couponScope;
     private Date createdAt;
     
 }
