@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+import com.app.dao.businessauthlog.BusinessAuthLogDAO;
 import com.app.dao.locationqr.LocationQrDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,8 @@ import com.app.dao.receipt.ReceiptDAO;
 import com.app.dao.user.UserDAO;
 import com.app.dao.userquest.UserQuestDAO;
 import com.app.dao.userquestprogress.UserQuestProgressDAO;
+import com.app.dto.business.BusinessAuthLogItemDTO;
+import com.app.dto.location.LocationDTO;
 import com.app.dto.locationqr.LocationQrDTO;
 import com.app.dto.locationqr.QrVerificationQuestResultDTO;
 import com.app.dto.locationqr.QrVerificationResponseDTO;
@@ -67,6 +70,7 @@ public class UserQuestServiceImpl implements UserQuestService {
     private static final String LOCATION_TYPE_VISIT = "VISIT";
     private static final String LOCATION_TYPE_EXPERIENCE = "EXPERIENCE";
     private static final String LOCATION_TYPE_PURCHASE = "PURCHASE";
+    private static final String BUSINESS_AUTH_TYPE_QR = "QR";
     private static final double GPS_VERIFY_RADIUS_METERS = 50.0;
 
     @Autowired
@@ -86,6 +90,9 @@ public class UserQuestServiceImpl implements UserQuestService {
 
     @Autowired
     private UserDAO userDAO;
+
+    @Autowired
+    private BusinessAuthLogDAO businessAuthLogDAO;
 
     @Autowired
     private PointHistoryService pointHistoryService;
@@ -351,6 +358,10 @@ public class UserQuestServiceImpl implements UserQuestService {
         response.setVerifiedQuestCount(verifiedQuestCount);
         response.setCompletedQuestCount(completedQuestCount);
         response.setNewlyAwardedBadges(new ArrayList<>(newlyAwardedBadgeMap.values()));
+
+        if (verifiedQuestCount > 0) {
+            recordBusinessAuthIfApplicable(userId, locationQr.getLocationId(), BUSINESS_AUTH_TYPE_QR);
+        }
 
         response.setMessage(buildQrVerificationMessage(results, verifiedQuestCount, completedQuestCount));
         return response;
@@ -724,7 +735,7 @@ public class UserQuestServiceImpl implements UserQuestService {
             return response;
         }
 
-        return completeLocationVerification(userId, userQuestId, questLocationId, "GPS 인증이 완료되었습니다.");
+        return completeLocationVerification(userId, userQuestId, questLocationId, "GPS 인증이 완료되었습니다.", null);
     }
 
     @Override
@@ -757,7 +768,13 @@ public class UserQuestServiceImpl implements UserQuestService {
             return response;
         }
 
-        return completeLocationVerification(userId, userQuestId, questLocationId, "QR 인증이 완료되었습니다.");
+        return completeLocationVerification(
+            userId,
+            userQuestId,
+            questLocationId,
+            "QR 인증이 완료되었습니다.",
+            BUSINESS_AUTH_TYPE_QR
+        );
     }
 
     private UserQuestDetailLocationDTO findTargetLocation(UserQuestDetailDTO detail, int questLocationId) {
@@ -836,7 +853,8 @@ public class UserQuestServiceImpl implements UserQuestService {
         int userId,
         int userQuestId,
         int questLocationId,
-        String successMessage
+        String successMessage,
+        String authType
     ) {
         VerificationContext context = requireVerificationContext(userId, userQuestId, questLocationId);
         if (context.isAlreadyCompleted()) {
@@ -850,12 +868,33 @@ public class UserQuestServiceImpl implements UserQuestService {
         Date completedAt = new Date();
         userQuestProgressDAO.upsertCompletedProgress(userQuestId, questLocationId, completedAt);
         userQuestDAO.updateUserQuestStatusAndCompletedAt(userQuestId, USER_QUEST_STATUS_IN_PROGRESS, null);
+        recordBusinessAuthIfApplicable(userId, context.getTargetLocation().getLocationId(), authType);
 
         Map<String, Object> response = new HashMap<>();
         response.put("verified", true);
         response.put("message", successMessage);
         response.put("detail", getUserQuestDetail(userId, userQuestId));
         return response;
+    }
+
+    private void recordBusinessAuthIfApplicable(int userId, int locationId, String authType) {
+        if (userId <= 0 || locationId <= 0 || authType == null || authType.trim().isEmpty()) {
+            return;
+        }
+
+        LocationDTO location = locationDAO.findLocationById(locationId);
+        if (location == null || location.getBusinessId() == null || location.getBusinessId() <= 0) {
+            return;
+        }
+
+        BusinessAuthLogItemDTO businessAuthLog = new BusinessAuthLogItemDTO();
+        businessAuthLog.setBusinessId(location.getBusinessId());
+        businessAuthLog.setLocationId(locationId);
+        businessAuthLog.setUserId(userId);
+        businessAuthLog.setAuthType(authType.trim().toUpperCase(Locale.ROOT));
+        businessAuthLog.setPaymentAmount(0L);
+        businessAuthLog.setSettlementAmount(0L);
+        businessAuthLogDAO.saveBusinessAuthLog(businessAuthLog);
     }
 
     private double calculateDistanceMeters(

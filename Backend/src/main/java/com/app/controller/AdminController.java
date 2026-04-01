@@ -46,6 +46,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+    private static final int ADMIN_USER_PAGE_SIZE = 30;
+    private static final int ADMIN_USER_PAGE_BUTTON_COUNT = 5;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 	
@@ -90,11 +92,14 @@ public class AdminController {
 	public String noticeAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "pinned", required = false) Integer pinned,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    Integer normalizedPinned = (pinned != null && (pinned == 0 || pinned == 1)) ? pinned : null;
 	    List<NoticeDTO> noticeList = Collections.emptyList();
 	    String noticeLoadError = null;
+	    int normalizedSize = normalizeAdminPageSize(size);
 
 	    try {
 	        List<NoticeDTO> allNoticeList = noticeService.findNoticeList();
@@ -134,10 +139,23 @@ public class AdminController {
 	        e.printStackTrace();
 	    }
 
-	    model.addAttribute("noticeList", noticeList);
+	    int totalCount = noticeList.size();
+	    int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+	    int currentPage = Math.min(Math.max(page, 1), totalPages);
+	    int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+	    int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+	    List<NoticeDTO> pagedNoticeList = paginateAdminList(noticeList, currentPage, normalizedSize);
+
+	    model.addAttribute("noticeList", pagedNoticeList);
 	    model.addAttribute("noticeLoadError", noticeLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentPinned", normalizedPinned);
+	    model.addAttribute("currentPage", currentPage);
+	    model.addAttribute("pageSize", normalizedSize);
+	    model.addAttribute("totalCount", totalCount);
+	    model.addAttribute("totalPages", totalPages);
+	    model.addAttribute("startPage", startPage);
+	    model.addAttribute("endPage", endPage);
 	    return "admin/admin-notice";
 	}
 
@@ -164,12 +182,15 @@ public class AdminController {
 	public String faqAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "category", required = false) String category,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    String normalizedCategory = (category != null && !category.trim().isEmpty()) ? category.trim() : null;
 	    List<FaqDTO> faqList = Collections.emptyList();
 	    List<String> faqCategoryOptions = new ArrayList<>();
 	    String faqLoadError = null;
+	    int normalizedSize = normalizeAdminPageSize(size);
 
 	    try {
 	        List<FaqDTO> allFaqList = faqService.findAllFaq();
@@ -215,11 +236,24 @@ public class AdminController {
 	        e.printStackTrace();
 	    }
 
-	    model.addAttribute("faqList", faqList);
+	    int totalCount = faqList.size();
+	    int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+	    int currentPage = Math.min(Math.max(page, 1), totalPages);
+	    int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+	    int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+	    List<FaqDTO> pagedFaqList = paginateAdminList(faqList, currentPage, normalizedSize);
+
+	    model.addAttribute("faqList", pagedFaqList);
 	    model.addAttribute("faqCategoryOptions", faqCategoryOptions);
 	    model.addAttribute("faqLoadError", faqLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentCategory", normalizedCategory);
+	    model.addAttribute("currentPage", currentPage);
+	    model.addAttribute("pageSize", normalizedSize);
+	    model.addAttribute("totalCount", totalCount);
+	    model.addAttribute("totalPages", totalPages);
+	    model.addAttribute("startPage", startPage);
+	    model.addAttribute("endPage", endPage);
 	    return "admin/admin-faq";
 	}
 
@@ -247,6 +281,8 @@ public class AdminController {
 	public String inquiryAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "status", required = false) String status,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    String normalizedStatusCandidate = (status != null) ? status.trim() : null;
@@ -257,6 +293,7 @@ public class AdminController {
 	    List<InquiryDTO> inquiryList = Collections.emptyList();
 	    String inquiryLoadError = null;
 	    Map<String, Object> inquiryParams = new HashMap<>();
+	    int normalizedSize = normalizeAdminPageSize(size);
 
 	    inquiryParams.put("keyword", normalizedKeyword);
 	    inquiryParams.put("status", normalizedStatus);
@@ -268,11 +305,24 @@ public class AdminController {
 	        e.printStackTrace();
 	    }
 
+	    int totalCount = inquiryList.size();
+	    int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+	    int currentPage = Math.min(Math.max(page, 1), totalPages);
+	    int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+	    int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+	    List<InquiryDTO> pagedInquiryList = paginateAdminList(inquiryList, currentPage, normalizedSize);
+
 	    model.addAttribute("statusOptions", InquiryStatus.ADMIN_SEARCH_STATUSES);
-	    model.addAttribute("inquiryList", inquiryList);
+	    model.addAttribute("inquiryList", pagedInquiryList);
 	    model.addAttribute("inquiryLoadError", inquiryLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentStatus", normalizedStatus);
+	    model.addAttribute("currentPage", currentPage);
+	    model.addAttribute("pageSize", normalizedSize);
+	    model.addAttribute("totalCount", totalCount);
+	    model.addAttribute("totalPages", totalPages);
+	    model.addAttribute("startPage", startPage);
+	    model.addAttribute("endPage", endPage);
 	    return "admin/admin-qna-manage-v3";
 	}
 
@@ -336,13 +386,12 @@ public class AdminController {
 	        @RequestParam(value="sort", defaultValue="DESC") String sort,
 	        @RequestParam(value="type", required=false) String type,
 	        @RequestParam(value="keyword", required=false) String keyword,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    
 	    // Service에서 정렬과 검색을 함께 처리합니다.
-	    List<User> userList = userService.searchUsers(type, keyword, sort);
-	    model.addAttribute("userList", userList);
-	    
-	    return "admin/admin-user"; 
+	    return renderAdminUserList(sort, type, keyword, page, size, model); 
 	}
 
 	// 2. 회원 검색
@@ -350,21 +399,81 @@ public class AdminController {
 	public String searchUsers(
 	        @RequestParam("type") String type, 
 	        @RequestParam("keyword") String keyword, 
-	        @RequestParam(value="sort", defaultValue="DESC") String sort, // 정렬 파라미터
+	        @RequestParam(value="sort", defaultValue="DESC") String sort,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
-	    
-	    // 검색 메서드는 type, keyword, sort 세 가지 값을 받습니다.
-	    List<User> searchList = userService.searchUsers(type, keyword, sort);
-	    
-	    model.addAttribute("userList", searchList);
-	    model.addAttribute("searchType", type);
-	    model.addAttribute("keyword", keyword);
-	    model.addAttribute("sort", sort);
-	    
-	    return "admin/admin-user";
+
+	    return renderAdminUserList(sort, type, keyword, page, size, model);
 	}
     
     // 회원 정보 권한 변경
+    private String renderAdminUserList(
+        String sort,
+        String type,
+        String keyword,
+        int page,
+        int size,
+        Model model
+    ) {
+        String normalizedSort = "ASC".equalsIgnoreCase(sort) ? "ASC" : "DESC";
+        String normalizedType = normalizeAdminUserSearchType(type);
+        String normalizedKeyword = normalizeAdminKeyword(keyword);
+        int normalizedSize = size > 0 ? size : ADMIN_USER_PAGE_SIZE;
+        int totalCount = userService.countUsers(normalizedType, normalizedKeyword);
+        int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+        int currentPage = Math.min(Math.max(page, 1), totalPages);
+        int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+        int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+        List<User> userList = totalCount <= 0
+            ? Collections.emptyList()
+            : userService.searchUsersPaged(normalizedType, normalizedKeyword, normalizedSort, currentPage, normalizedSize);
+
+        model.addAttribute("userList", userList);
+        model.addAttribute("searchType", normalizedType);
+        model.addAttribute("keyword", normalizedKeyword);
+        model.addAttribute("sort", normalizedSort);
+        model.addAttribute("currentPage", currentPage);
+        model.addAttribute("pageSize", normalizedSize);
+        model.addAttribute("totalCount", totalCount);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("startPage", startPage);
+        model.addAttribute("endPage", endPage);
+        return "admin/admin-user";
+    }
+
+    private String normalizeAdminUserSearchType(String type) {
+        if ("userLoginId".equals(type) || "name".equals(type) || "nickname".equals(type)) {
+            return type;
+        }
+        return "userLoginId";
+    }
+
+    private String normalizeAdminKeyword(String keyword) {
+        if (keyword == null) {
+            return "";
+        }
+        return keyword.trim();
+    }
+
+    private int normalizeAdminPageSize(int size) {
+        return size > 0 ? size : ADMIN_USER_PAGE_SIZE;
+    }
+
+    private <T> List<T> paginateAdminList(List<T> sourceList, int currentPage, int pageSize) {
+        if (sourceList == null || sourceList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        int fromIndex = Math.max((currentPage - 1) * pageSize, 0);
+        if (fromIndex >= sourceList.size()) {
+            return Collections.emptyList();
+        }
+
+        int toIndex = Math.min(fromIndex + pageSize, sourceList.size());
+        return sourceList.subList(fromIndex, toIndex);
+    }
+
     @PostMapping("/users/updateRole")
     @ResponseBody
     public String updateRole(@RequestParam int userId, @RequestParam String role) {
@@ -931,6 +1040,9 @@ public class AdminController {
             @RequestParam(value = "inquiryKeyword", required = false) String inquiryKeyword,
             @RequestParam(value = "inquiryStatus", required = false) String inquiryStatus,
             @RequestParam(value = "userId", required = false) Integer userId,
+            @RequestParam(value = "businessPage", defaultValue = "1") int businessPage,
+            @RequestParam(value = "inquiryPage", defaultValue = "1") int inquiryPage,
+            @RequestParam(value = "size", defaultValue = "30") int size,
             Model model) {
 
         Map<String, Object> businessParams = new HashMap<>();
@@ -946,6 +1058,7 @@ public class AdminController {
         List<BusinessInquiryDTO> businessInquiryList = null;
         String businessError = null;
         String businessInquiryError = null;
+        int normalizedSize = normalizeAdminPageSize(size);
 
         try {
             businessList = businessService.getBusinessList(businessParams);
@@ -962,13 +1075,39 @@ public class AdminController {
             e.printStackTrace();
         }
 
+        List<BusinessDTO> normalizedBusinessList = businessList == null ? Collections.emptyList() : businessList;
+        List<BusinessInquiryDTO> normalizedBusinessInquiryList = businessInquiryList == null ? Collections.emptyList() : businessInquiryList;
+
+        int totalBusinessCount = normalizedBusinessList.size();
+        int totalBusinessPages = totalBusinessCount <= 0 ? 1 : (int) Math.ceil((double) totalBusinessCount / normalizedSize);
+        int currentBusinessPage = Math.min(Math.max(businessPage, 1), totalBusinessPages);
+        int businessStartPage = ((currentBusinessPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+        int businessEndPage = Math.min(businessStartPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalBusinessPages);
+
+        int totalInquiryCount = normalizedBusinessInquiryList.size();
+        int totalInquiryPages = totalInquiryCount <= 0 ? 1 : (int) Math.ceil((double) totalInquiryCount / normalizedSize);
+        int currentInquiryPage = Math.min(Math.max(inquiryPage, 1), totalInquiryPages);
+        int inquiryStartPage = ((currentInquiryPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+        int inquiryEndPage = Math.min(inquiryStartPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalInquiryPages);
+
         model.addAttribute("currentTab", tab);
-        model.addAttribute("businessList", businessList);
-        model.addAttribute("businessInquiryList", businessInquiryList);
+        model.addAttribute("businessList", paginateAdminList(normalizedBusinessList, currentBusinessPage, normalizedSize));
+        model.addAttribute("businessInquiryList", paginateAdminList(normalizedBusinessInquiryList, currentInquiryPage, normalizedSize));
         model.addAttribute("currentBusinessKeyword", businessKeyword);
         model.addAttribute("currentInquiryKeyword", inquiryKeyword);
         model.addAttribute("currentInquiryStatus", inquiryStatus);
         model.addAttribute("currentUserId", userId);
+        model.addAttribute("pageSize", normalizedSize);
+        model.addAttribute("businessCurrentPage", currentBusinessPage);
+        model.addAttribute("businessTotalCount", totalBusinessCount);
+        model.addAttribute("businessTotalPages", totalBusinessPages);
+        model.addAttribute("businessStartPage", businessStartPage);
+        model.addAttribute("businessEndPage", businessEndPage);
+        model.addAttribute("inquiryCurrentPage", currentInquiryPage);
+        model.addAttribute("inquiryTotalCount", totalInquiryCount);
+        model.addAttribute("inquiryTotalPages", totalInquiryPages);
+        model.addAttribute("inquiryStartPage", inquiryStartPage);
+        model.addAttribute("inquiryEndPage", inquiryEndPage);
 
         return "admin/admin-business";
     }

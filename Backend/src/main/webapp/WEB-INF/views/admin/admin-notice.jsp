@@ -7,7 +7,7 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="${path}/css/admin-notice.css">
 
-<div class="adm-n-container">
+<div class="adm-n-container" data-current-page="${currentPage}" data-page-size="${pageSize}">
     <div class="adm-n-header">
         <div class="adm-n-title-wrap">
             <h2 class="adm-n-title">
@@ -50,7 +50,7 @@
     </c:if>
 
     <div class="adm-n-meta">
-        <span class="adm-n-meta-badge">전체 ${fn:length(noticeList)}건</span>
+        <span class="adm-n-meta-badge">전체 ${totalCount}건</span>
         <span class="adm-n-meta-text">고정 공지는 목록 상단에 우선 노출됩니다.</span>
     </div>
 
@@ -120,6 +120,22 @@
             </tbody>
         </table>
     </div>
+
+    <c:if test="${totalPages > 1}">
+        <div class="adm-n-pagination">
+            <button type="button" class="adm-n-page-btn"
+                onclick="goAdminNoticePage(${currentPage - 1})"
+                ${currentPage <= 1 ? 'disabled' : ''}>이전</button>
+            <c:forEach var="pageNumber" begin="${startPage}" end="${endPage}">
+                <button type="button"
+                    class="adm-n-page-btn ${pageNumber == currentPage ? 'is-active' : ''}"
+                    onclick="goAdminNoticePage(${pageNumber})">${pageNumber}</button>
+            </c:forEach>
+            <button type="button" class="adm-n-page-btn"
+                onclick="goAdminNoticePage(${currentPage + 1})"
+                ${currentPage >= totalPages ? 'disabled' : ''}>다음</button>
+        </div>
+    </c:if>
 </div>
 
 <div id="adminNoticeDetailModal" class="adm-n-modal">
@@ -214,23 +230,28 @@
 </div>
 
 <script>
-    function searchAdminNotice() {
+    function buildAdminNoticeListUrl(page) {
         const keyword = ($('#adminNoticeKeyword').val() || '').trim();
         const pinned = ($('#adminNoticePinned').val() || '').trim();
-        let url = ctx + "/admin/notice";
-        const params = [];
+        const params = new URLSearchParams();
 
+        params.set("page", String(page > 0 ? page : 1));
+        params.set("size", "30");
         if (keyword) {
-            params.push("keyword=" + encodeURIComponent(keyword));
+            params.set("keyword", keyword);
         }
         if (pinned !== '') {
-            params.push("pinned=" + encodeURIComponent(pinned));
+            params.set("pinned", pinned);
         }
-        if (params.length > 0) {
-            url += "?" + params.join("&");
-        }
+        return ctx + "/admin/notice?" + params.toString();
+    }
 
-        loadAdminContent(url);
+    function searchAdminNotice() {
+        loadAdminContent(buildAdminNoticeListUrl(1));
+    }
+
+    function goAdminNoticePage(page) {
+        loadAdminContent(buildAdminNoticeListUrl(page));
     }
 
     function loadAdminNoticeDetail(noticeId, onSuccess) {

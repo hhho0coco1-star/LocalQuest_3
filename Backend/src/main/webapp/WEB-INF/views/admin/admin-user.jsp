@@ -7,7 +7,7 @@
 	href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="${path}/css/admin-user.css">
 
-<div class="adm-u-container">
+<div class="adm-u-container" data-current-page="${currentPage}" data-page-size="${pageSize}">
 	<div class="adm-u-header">
 		<h2 class="adm-u-title">
 			<i class="fas fa-users-cog"></i> 회원 관리
@@ -27,10 +27,12 @@
 		</div>
 	</div>
 
+	<div class="adm-u-summary">총 <strong>${totalCount}</strong>명</div>
+
 	<table class="adm-u-table">
 		<thead>
 			<tr>
-				<th onclick="sortUserList('${sort}')" style="cursor: pointer;">
+				<th onclick="sortUserList()" style="cursor: pointer;">
 					번호 <i
 					class="fas ${sort == 'ASC' ? 'fa-sort-up' : (sort == 'DESC' ? 'fa-sort-down' : 'fa-sort')}"
 					id="sortIcon"></i>
@@ -45,6 +47,11 @@
 			</tr>
 		</thead>
 		<tbody id="userTableBody">
+			<c:if test="${empty userList}">
+				<tr class="adm-u-row adm-u-empty">
+					<td colspan="8">조건에 맞는 회원이 없습니다.</td>
+				</tr>
+			</c:if>
 			<c:forEach var="user" items="${userList}">
 				<tr class="adm-u-row">
 					<td>${user.userId}</td>
@@ -63,11 +70,10 @@
 							<option value="ADMIN" ${user.role == 'ADMIN' ? 'selected' : ''}>관리자</option>
 					</select> <%-- 안내 문구 추가 (선택사항) --%> <c:choose>
 							<c:when test="${user.userId == 1}">
-								<small style="display: block; color: #7239ea; font-size: 10px;">Master</small>
+								<small class="adm-u-role-note adm-u-role-note-master">Master</small>
 							</c:when>
 							<c:when test="${user.status == 'WITHDRAWN'}">
-								<small style="display: block; color: #ff4d4f; font-size: 10px;">정지된
-									회원</small>
+								<small class="adm-u-role-note adm-u-role-note-withdrawn">정지된 회원</small>
 							</c:when>
 						</c:choose></td>
 					<td><span class="adm-u-badge ${user.status}">${user.status}</span>
@@ -94,4 +100,20 @@
 			</c:forEach>
 		</tbody>
 	</table>
+
+	<c:if test="${totalPages > 1}">
+		<div class="adm-u-pagination">
+			<button type="button" class="adm-u-page-btn"
+				onclick="goUserPage(${currentPage - 1})"
+				${currentPage <= 1 ? 'disabled' : ''}>이전</button>
+			<c:forEach var="pageNumber" begin="${startPage}" end="${endPage}">
+				<button type="button"
+					class="adm-u-page-btn ${pageNumber == currentPage ? 'is-active' : ''}"
+					onclick="goUserPage(${pageNumber})">${pageNumber}</button>
+			</c:forEach>
+			<button type="button" class="adm-u-page-btn"
+				onclick="goUserPage(${currentPage + 1})"
+				${currentPage >= totalPages ? 'disabled' : ''}>다음</button>
+		</div>
+	</c:if>
 </div>

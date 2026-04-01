@@ -24,6 +24,8 @@ public interface UserDAO {
 	// 1. 전체 회원 목록 조회
     // 2. 회원 검색 (아이디, 닉네임 등)
     List<User> searchUsers(Map<String, Object> params);
+    int countUsers(Map<String, Object> params);
+    List<User> searchUsersPaged(Map<String, Object> params);
 
     // 3. 회원 권한(ROLE) 변경
     public int updateUserRole(Map<String, Object> roleMap);

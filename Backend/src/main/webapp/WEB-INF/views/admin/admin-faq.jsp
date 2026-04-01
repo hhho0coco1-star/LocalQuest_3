@@ -7,7 +7,7 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="${path}/css/admin-faq.css">
 
-<div class="adm-f-container">
+<div class="adm-f-container" data-current-page="${currentPage}" data-page-size="${pageSize}">
     <div class="adm-f-header">
         <div class="adm-f-title-wrap">
             <h2 class="adm-f-title">
@@ -59,7 +59,7 @@
     </c:if>
 
     <div class="adm-f-meta">
-        <span class="adm-f-meta-badge">전체 ${fn:length(faqList)}건</span>
+        <span class="adm-f-meta-badge">전체 ${totalCount}건</span>
         <span class="adm-f-meta-text">FAQ 상세 조회는 관리자 화면에서 조회수를 올리지 않습니다.</span>
     </div>
 
@@ -129,6 +129,22 @@
             </tbody>
         </table>
     </div>
+
+    <c:if test="${totalPages > 1}">
+        <div class="adm-f-pagination">
+            <button type="button" class="adm-f-page-btn"
+                onclick="goAdminFaqPage(${currentPage - 1})"
+                ${currentPage <= 1 ? 'disabled' : ''}>이전</button>
+            <c:forEach var="pageNumber" begin="${startPage}" end="${endPage}">
+                <button type="button"
+                    class="adm-f-page-btn ${pageNumber == currentPage ? 'is-active' : ''}"
+                    onclick="goAdminFaqPage(${pageNumber})">${pageNumber}</button>
+            </c:forEach>
+            <button type="button" class="adm-f-page-btn"
+                onclick="goAdminFaqPage(${currentPage + 1})"
+                ${currentPage >= totalPages ? 'disabled' : ''}>다음</button>
+        </div>
+    </c:if>
 </div>
 
 <div id="adminFaqDetailModal" class="adm-f-modal">
@@ -239,23 +255,28 @@
 </div>
 
 <script>
-    function searchAdminFaq() {
+    function buildAdminFaqListUrl(page) {
         const keyword = ($('#adminFaqKeyword').val() || '').trim();
         const category = ($('#adminFaqCategoryFilter').val() || '').trim();
-        let url = ctx + "/admin/faq";
-        const params = [];
+        const params = new URLSearchParams();
 
+        params.set("page", String(page > 0 ? page : 1));
+        params.set("size", "30");
         if (category) {
-            params.push("category=" + encodeURIComponent(category));
+            params.set("category", category);
         }
         if (keyword) {
-            params.push("keyword=" + encodeURIComponent(keyword));
+            params.set("keyword", keyword);
         }
-        if (params.length > 0) {
-            url += "?" + params.join("&");
-        }
+        return ctx + "/admin/faq?" + params.toString();
+    }
 
-        loadAdminContent(url);
+    function searchAdminFaq() {
+        loadAdminContent(buildAdminFaqListUrl(1));
+    }
+
+    function goAdminFaqPage(page) {
+        loadAdminContent(buildAdminFaqListUrl(page));
     }
 
     function loadAdminFaqDetail(faqId, onSuccess) {

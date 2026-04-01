@@ -51,6 +51,53 @@ body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-table tbody 
     background: rgba(255, 111, 145, 0.07);
 }
 
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-page-btn {
+    background: linear-gradient(180deg, rgba(39, 31, 49, 0.98), rgba(28, 23, 35, 0.98));
+    border-color: rgba(255, 111, 145, 0.18);
+    color: var(--admin-text);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-page-btn:hover:not(:disabled) {
+    border-color: rgba(255, 111, 145, 0.34);
+    color: #ffd8e3;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-u-page-btn.is-active {
+    background: linear-gradient(135deg, rgba(255, 111, 145, 0.96), rgba(217, 61, 94, 0.96));
+    border-color: rgba(255, 111, 145, 0.48);
+    color: #ffffff;
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-page-btn,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-page-btn,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-page-btn,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-page-btn {
+    background: linear-gradient(180deg, rgba(39, 31, 49, 0.98), rgba(28, 23, 35, 0.98));
+    border-color: rgba(255, 111, 145, 0.18);
+    color: var(--admin-text);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-page-btn:hover:not(:disabled),
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-page-btn:hover:not(:disabled),
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-page-btn:hover:not(:disabled),
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-page-btn:hover:not(:disabled) {
+    border-color: rgba(255, 111, 145, 0.34);
+    color: #ffd8e3;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-page-btn.is-active,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-i-page-btn.is-active,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-n-page-btn.is-active,
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-f-page-btn.is-active {
+    background: linear-gradient(135deg, rgba(255, 111, 145, 0.96), rgba(217, 61, 94, 0.96));
+    border-color: rgba(255, 111, 145, 0.48);
+    color: #ffffff;
+}
+
 body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-section,
 body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-modal-content,
 body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-q-modal .adm-q-modal-content,
@@ -119,6 +166,17 @@ body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-detail-modal
 }
 
 body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-detail-modal .adm-b-detail-item strong {
+    background: transparent;
+    border: 0;
+    color: var(--admin-text);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-qr-modal .adm-b-detail-item {
+    background: var(--admin-surface-raise);
+    border-color: rgba(255, 111, 145, 0.14);
+}
+
+body.admin-page[data-admin-theme="dark"] .admin-content-area .adm-b-qr-modal .adm-b-detail-item strong {
     background: transparent;
     border: 0;
     color: var(--admin-text);
