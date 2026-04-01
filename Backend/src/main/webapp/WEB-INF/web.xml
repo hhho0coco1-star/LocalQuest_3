@@ -32,7 +32,7 @@
 	</context-param>
 	<context-param>
 		<param-name>lq.frontend.base-url</param-name>
-		<param-value>https://localhost:3000</param-value>
+		<param-value>http://192.168.0.111:3000</param-value>
 	</context-param>
 
 	<listener>

@@ -19,6 +19,8 @@ import java.util.UUID;
 
 import com.app.dao.businessauthlog.BusinessAuthLogDAO;
 import com.app.dao.locationqr.LocationQrDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +58,8 @@ import com.app.service.pointhistory.PointHistoryService;
 
 @Service
 public class UserQuestServiceImpl implements UserQuestService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserQuestServiceImpl.class);
 
     private static final String OCR_VERIFY_URL = "http://localhost:8000/ocr";
     private static final Path RECEIPT_UPLOAD_DIR = Paths.get("D:/fileStorage");
@@ -755,11 +759,28 @@ public class UserQuestServiceImpl implements UserQuestService {
         ensureLocationCategory(targetLocation, LOCATION_TYPE_EXPERIENCE);
 
         String savedAuthKey = locationDAO.findActiveQrAuthKeyByLocationId(targetLocation.getLocationId());
+        log.info(
+            "[QR verify] userId={} userQuestId={} questLocationId={} targetLocationId={} targetLocationName={} scannedQrAuthKey={} savedQrAuthKey={}",
+            userId,
+            userQuestId,
+            questLocationId,
+            targetLocation.getLocationId(),
+            targetLocation.getName(),
+            qrAuthKey,
+            savedAuthKey
+        );
         if (savedAuthKey == null || savedAuthKey.trim().isEmpty()) {
             throw new IllegalStateException("등록된 QR 인증 정보가 없습니다.");
         }
 
         if (!savedAuthKey.trim().equalsIgnoreCase(qrAuthKey.trim())) {
+            log.info(
+                "[QR verify] mismatch userId={} userQuestId={} questLocationId={} targetLocationId={}",
+                userId,
+                userQuestId,
+                questLocationId,
+                targetLocation.getLocationId()
+            );
             Map<String, Object> response = new HashMap<>();
             response.put("verified", false);
             response.put("message", "QR 인증에 실패했습니다.");
@@ -767,6 +788,14 @@ public class UserQuestServiceImpl implements UserQuestService {
             response.put("detail", context.getDetail());
             return response;
         }
+
+        log.info(
+            "[QR verify] matched userId={} userQuestId={} questLocationId={} targetLocationId={}",
+            userId,
+            userQuestId,
+            questLocationId,
+            targetLocation.getLocationId()
+        );
 
         return completeLocationVerification(
             userId,

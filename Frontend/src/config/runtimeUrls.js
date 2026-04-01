@@ -9,11 +9,7 @@ export const resolveBackendBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port, origin } = window.location;
     if (port === '3000') {
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:8080';
-      }
-      const backendPort = protocol === 'https:' ? '8443' : '8080';
-      return `${protocol}//${hostname}:${backendPort}`;
+      return `${protocol}//${hostname}:8080`;
     }
     return origin;
   }

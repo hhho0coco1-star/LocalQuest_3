@@ -426,12 +426,20 @@ function MyQuestDetail() {
       setQrError('');
       setScannerStatus('verifying');
       setScannerMessage(QR_SCANNER_MESSAGES.verifying);
+      console.debug('[LocalQuest][QR] submitting scanned key', {
+        userQuestId,
+        questLocationId: selectedQrLocation.questLocationId,
+        locationId: selectedQrLocation.locationId,
+        locationName: selectedQrLocation.name,
+        qrAuthKey: authKey.trim(),
+      });
       const response = await questApi.verifyQuestQr(
         userQuestId,
         selectedQrLocation.questLocationId,
         authKey.trim()
       );
       const result = response.data || {};
+      console.debug('[LocalQuest][QR] verification response', result);
       if (result.verified) {
         if (result.detail) setDetail(result.detail);
         closeQrModal({ force: true });
@@ -443,6 +451,10 @@ function MyQuestDetail() {
       closeQrModal({ force: true });
       openVerificationFailure(failureLocationName, result.message || 'QR 인증에 실패했습니다.', result.reason || '');
     } catch (qrSubmitError) {
+      console.debug('[LocalQuest][QR] verification error', {
+        message: qrSubmitError.response?.data?.message || qrSubmitError.message,
+        payload: qrSubmitError.response?.data,
+      });
       const message = qrSubmitError.response?.data?.message || 'QR 인증 중 문제가 발생했습니다.';
       setQrError(message);
     } finally {
@@ -547,6 +559,12 @@ function MyQuestDetail() {
             }
 
             if (detectedValue) {
+              console.debug('[LocalQuest][QR] detected value from scanner', {
+                questLocationId: selectedQrLocation?.questLocationId,
+                locationId: selectedQrLocation?.locationId,
+                locationName: selectedQrLocation?.name,
+                qrAuthKey: detectedValue,
+              });
               setQrAuthKey(detectedValue);
               setQrError('');
               setScannerStatus('scanned');
@@ -577,6 +595,12 @@ function MyQuestDetail() {
                 const detectedValue = codes.find((code) => code.rawValue)?.rawValue?.trim();
 
                 if (detectedValue) {
+                  console.debug('[LocalQuest][QR] detected value from bitmap fallback', {
+                    questLocationId: selectedQrLocation?.questLocationId,
+                    locationId: selectedQrLocation?.locationId,
+                    locationName: selectedQrLocation?.name,
+                    qrAuthKey: detectedValue,
+                  });
                   setQrAuthKey(detectedValue);
                   setQrError('');
                   setScannerStatus('scanned');
