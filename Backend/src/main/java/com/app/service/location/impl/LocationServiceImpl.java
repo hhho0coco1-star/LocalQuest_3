@@ -22,6 +22,11 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
+    public LocationDTO findLocationById(int locationId) {
+        return dao.findLocationById(locationId);
+    }
+
+    @Override
     public LocationDTO findRepresentativeLocationByBusinessId(int businessId) {
         return dao.findRepresentativeLocationByBusinessId(businessId);
     }

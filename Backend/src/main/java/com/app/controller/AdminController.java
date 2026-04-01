@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.app.auth.SessionAuthKeys;
 import com.app.dto.business.BusinessDTO;
+import com.app.dto.businesscouponrequest.BusinessCouponRequestDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
 import com.app.dto.faq.FaqDTO;
 import com.app.dto.inquiry.InquiryDTO;
@@ -31,6 +35,7 @@ import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
+import com.app.service.businesscouponrequest.BusinessCouponRequestService;
 import com.app.service.businessinquiry.BusinessInquiryService;
 import com.app.service.faq.FaqService;
 import com.app.service.inquiry.InquiryService;
@@ -65,6 +70,9 @@ public class AdminController {
 	
 	@Autowired
 	private BusinessService businessService;
+
+	@Autowired
+	private BusinessCouponRequestService businessCouponRequestService;
 
 	@Autowired
 	private BusinessInquiryService businessInquiryService;
@@ -684,19 +692,26 @@ public class AdminController {
     @GetMapping("/locations/search")
     @ResponseBody
     public List<Map<String, Object>> searchLocations(
-        @RequestParam(value = "keyword", required = false) String keyword) {
+        @RequestParam(value = "keyword", required = false) String keyword,
+        @RequestParam(value = "businessOnly", defaultValue = "false") boolean businessOnly) {
         try {
             List<LocationDTO> locations = locationService.searchLocations(keyword);
             List<Map<String, Object>> response = new java.util.ArrayList<>();
+            Map<Integer, String> businessNameCache = new HashMap<>();
 
             for (LocationDTO location : locations) {
                 if (location == null) {
                     continue;
                 }
 
+                Integer businessId = location.getBusinessId();
+                if (businessOnly && (businessId == null || businessId.intValue() <= 0)) {
+                    continue;
+                }
+
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("locationId", location.getLocationId());
-                item.put("businessId", location.getBusinessId());
+                item.put("businessId", businessId);
                 item.put("name", location.getName());
                 item.put("zipCode", location.getZipCode());
                 item.put("address", location.getAddress());
@@ -705,6 +720,7 @@ public class AdminController {
                 item.put("longitude", location.getLongitude());
                 item.put("locationType", location.getLocationType());
                 item.put("description", location.getDescription());
+                item.put("businessName", resolveBusinessNameForLocation(businessId, businessNameCache));
                 response.add(item);
             }
 
@@ -970,23 +986,48 @@ public class AdminController {
      */
     @GetMapping("/shop")
     public String itemList(
+            @RequestParam(value = "tab", required = false) String tab,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "requestStatus", required = false) String requestStatus,
+            @RequestParam(value = "requestKeyword", required = false) String requestKeyword,
             Model model) {
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("status", (status != null && !status.isEmpty()) ? status : null);
-        params.put("keyword", (keyword != null && !keyword.isEmpty()) ? keyword : null);
+        String currentTab = normalizeRewardAdminTab(tab);
+        String normalizedStatus = normalizeNullable(status);
+        String normalizedKeyword = normalizeNullable(keyword);
+        String normalizedRequestStatus = normalizeNullable(requestStatus);
+        String normalizedRequestKeyword = normalizeNullable(requestKeyword);
 
-        // 서비스 조회
-        List<RewardItemDTO> itemList = rewardItemService.getSearchItems(params);
+        Map<String, Object> itemParams = new HashMap<>();
+        itemParams.put("status", normalizedStatus);
+        itemParams.put("keyword", normalizedKeyword);
+
+        Map<String, Object> requestParams = new HashMap<>();
+        requestParams.put("requestStatus", normalizedRequestStatus);
+        requestParams.put("keyword", normalizedRequestKeyword);
+
+        List<RewardItemDTO> itemList = rewardItemService.getSearchItems(itemParams);
+        List<BusinessCouponRequestDTO> requestList = businessCouponRequestService.getBusinessCouponRequestList(requestParams);
+
+        if (itemList == null) {
+            itemList = Collections.emptyList();
+        }
+        if (requestList == null) {
+            requestList = Collections.emptyList();
+        }
+
         model.addAttribute("itemList", itemList);
-        
-        // 필터 상태 유지
-        model.addAttribute("currentStatus", status);
-        model.addAttribute("currentKeyword", keyword);
+        model.addAttribute("requestList", requestList);
+        model.addAttribute("currentTab", currentTab);
+        model.addAttribute("currentStatus", normalizedStatus);
+        model.addAttribute("currentKeyword", normalizedKeyword);
+        model.addAttribute("currentRequestStatus", normalizedRequestStatus);
+        model.addAttribute("currentRequestKeyword", normalizedRequestKeyword);
+        model.addAttribute("itemCount", itemList.size());
+        model.addAttribute("requestCount", requestList.size());
 
-        return "admin/admin-reward-item"; // admin-shop.jsp로 이동
+        return "admin/admin-reward-item";
     }
 
     /**
@@ -995,20 +1036,76 @@ public class AdminController {
      */
     @PostMapping("/shop/save")
     @ResponseBody
-    public String saveItem(RewardItemDTO item) {
+    public Map<String, Object> saveItem(
+        RewardItemDTO item,
+        @RequestParam(value = "requestId", required = false) Long requestId,
+        @RequestParam(value = "requestAction", required = false) String requestAction,
+        @RequestParam(value = "businessLocationId", required = false) Integer businessLocationId,
+        HttpSession session) {
         try {
-            boolean result;
-            // rewardItemId가 0이면 등록, 아니면 수정
-            if (item.getRewardItemId() == 0) {
-                result = rewardItemService.registerItem(item);
-            } else {
-                result = rewardItemService.modifyItem(item);
+            if ((businessLocationId != null && businessLocationId.intValue() > 0)
+                || (requestId != null && requestId.longValue() > 0L)) {
+                return saveBusinessCouponRequest(item, requestId, requestAction, businessLocationId, session);
             }
-            return result ? "success" : "fail";
+
+            item.setStatus(normalizeRewardItemStatus(item.getStatus()));
+            boolean result = item.getRewardItemId() == 0
+                ? rewardItemService.saveRewardItem(item) > 0
+                : rewardItemService.modifyItem(item);
+
+            return buildShopSaveResponse(
+                result,
+                "item",
+                "items",
+                item.getRewardItemId() == 0 ? "created" : "updated",
+                item.getRewardItemId() == 0 ? "일반 쿠폰을 생성했습니다." : "일반 쿠폰을 수정했습니다.",
+                "일반 쿠폰 저장에 실패했습니다."
+            );
         } catch (Exception e) {
             System.err.println("!!! 상점 아이템 저장 중 서버 에러 발생 !!!");
             e.printStackTrace();
-            return "error";
+            return buildShopSaveResponse(false, "item", "items", "error", "저장에 실패했습니다.", "저장 중 서버 오류가 발생했습니다.");
+        }
+    }
+
+    @GetMapping("/shop/request/detail")
+    @ResponseBody
+    public Map<String, Object> getBusinessCouponRequestDetail(@RequestParam long requestId) {
+        BusinessCouponRequestDTO request = businessCouponRequestService.getBusinessCouponRequestById(requestId);
+        if (request == null) {
+            return null;
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("request", request);
+        response.put("history", businessCouponRequestService.getBusinessCouponRequestHistoryList(requestId));
+        return response;
+    }
+
+    @PostMapping("/shop/request/cancel")
+    @ResponseBody
+    public Map<String, Object> cancelBusinessCouponRequest(
+        @RequestParam("requestId") long requestId,
+        @RequestParam(value = "comment", required = false) String comment,
+        HttpSession session) {
+        Integer adminUserId = resolveAdminUserId(session);
+        if (adminUserId == null) {
+            return buildShopSaveResponse(false, "request", "requests", "cancel", "관리자 인증 정보를 확인해 주세요.", "관리자 인증 정보를 확인해 주세요.");
+        }
+
+        try {
+            boolean cancelled = businessCouponRequestService.cancelBusinessCouponRequest(requestId, adminUserId, normalizeNullable(comment));
+            return buildShopSaveResponse(
+                cancelled,
+                "request",
+                "requests",
+                "cancel",
+                "비즈니스 쿠폰 요청을 취소했습니다.",
+                "비즈니스 쿠폰 요청 취소에 실패했습니다."
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildShopSaveResponse(false, "request", "requests", "cancel", "비즈니스 쿠폰 요청 취소에 실패했습니다.", "요청 취소 중 서버 오류가 발생했습니다.");
         }
     }
 
@@ -1026,6 +1123,183 @@ public class AdminController {
             e.printStackTrace();
             return "error";
         }
+    }
+
+    private Map<String, Object> saveBusinessCouponRequest(
+        RewardItemDTO item,
+        Long requestId,
+        String requestAction,
+        Integer businessLocationId,
+        HttpSession session) {
+        if (item != null && item.getRewardItemId() > 0) {
+            return buildShopSaveResponse(
+                false,
+                "request",
+                "items",
+                "blocked",
+                "이미 생성된 일반 쿠폰은 비즈니스 요청으로 전환할 수 없습니다. 새 쿠폰으로 등록해 주세요.",
+                "이미 생성된 일반 쿠폰은 비즈니스 요청으로 전환할 수 없습니다. 새 쿠폰으로 등록해 주세요."
+            );
+        }
+
+        Integer adminUserId = resolveAdminUserId(session);
+        if (adminUserId == null) {
+            return buildShopSaveResponse(false, "request", "requests", "auth", "관리자 인증 정보를 확인해 주세요.", "관리자 인증 정보를 확인해 주세요.");
+        }
+
+        BusinessCouponRequestDTO currentRequest = null;
+        if (requestId != null && requestId.longValue() > 0L) {
+            currentRequest = businessCouponRequestService.getBusinessCouponRequestById(requestId.longValue());
+            if (currentRequest == null) {
+                return buildShopSaveResponse(false, "request", "requests", "missing", "비즈니스 쿠폰 요청을 찾을 수 없습니다.", "비즈니스 쿠폰 요청을 찾을 수 없습니다.");
+            }
+        }
+
+        Integer resolvedLocationId = businessLocationId;
+        if ((resolvedLocationId == null || resolvedLocationId.intValue() <= 0) && currentRequest != null) {
+            resolvedLocationId = currentRequest.getLocationId();
+        }
+        if (resolvedLocationId == null || resolvedLocationId.intValue() <= 0) {
+            return buildShopSaveResponse(false, "request", "requests", "invalid", "비즈니스 매장을 선택해 주세요.", "비즈니스 매장을 선택해 주세요.");
+        }
+
+        LocationDTO selectedLocation = locationService.findLocationById(resolvedLocationId.intValue());
+        if (selectedLocation == null) {
+            return buildShopSaveResponse(false, "request", "requests", "missing", "선택한 매장 정보를 찾을 수 없습니다.", "선택한 매장 정보를 찾을 수 없습니다.");
+        }
+        if (selectedLocation.getBusinessId() == null || selectedLocation.getBusinessId().intValue() <= 0) {
+            return buildShopSaveResponse(false, "request", "requests", "invalid", "비즈니스와 연결된 매장만 선택할 수 있습니다.", "비즈니스와 연결된 매장만 선택할 수 있습니다.");
+        }
+
+        BusinessCouponRequestDTO request = new BusinessCouponRequestDTO();
+        request.setRequestId(requestId);
+        request.setBusinessId(selectedLocation.getBusinessId());
+        request.setLocationId(Integer.valueOf(selectedLocation.getLocationId()));
+        request.setAdminUserId(adminUserId);
+        request.setCouponName(item == null ? null : item.getName());
+        request.setCouponDescription(item == null ? null : item.getDescription());
+        request.setPricePoint(item == null ? null : Integer.valueOf(item.getPricePoint()));
+        request.setStock(item == null ? null : Integer.valueOf(item.getStock()));
+        request.setTargetStatus(normalizeRewardItemStatus(item == null ? null : item.getStatus()));
+
+        String normalizedAction = normalizeRewardRequestAction(requestAction, currentRequest);
+        boolean result;
+        String action;
+        String successMessage;
+
+        if (currentRequest == null) {
+            result = businessCouponRequestService.createBusinessCouponRequest(request);
+            action = "created";
+            successMessage = "비즈니스 매장 쿠폰 제안을 등록했습니다.";
+        } else if ("resubmit".equals(normalizedAction)) {
+            result = businessCouponRequestService.resubmitBusinessCouponRequest(request, adminUserId);
+            action = "resubmitted";
+            successMessage = "비즈니스 매장 쿠폰 제안을 다시 요청했습니다.";
+        } else {
+            result = businessCouponRequestService.updateBusinessCouponRequest(request, adminUserId);
+            action = "updated";
+            successMessage = "비즈니스 매장 쿠폰 제안을 수정했습니다.";
+        }
+
+        return buildShopSaveResponse(
+            result,
+            "request",
+            "requests",
+            action,
+            successMessage,
+            "비즈니스 쿠폰 요청 저장에 실패했습니다."
+        );
+    }
+
+    private Map<String, Object> buildShopSaveResponse(
+        boolean success,
+        String mode,
+        String nextTab,
+        String action,
+        String successMessage,
+        String failMessage
+    ) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("result", success ? "success" : "fail");
+        response.put("mode", mode);
+        response.put("nextTab", nextTab);
+        response.put("action", action);
+        response.put("message", success ? successMessage : failMessage);
+        return response;
+    }
+
+    private String normalizeRewardAdminTab(String tab) {
+        return "requests".equalsIgnoreCase(normalizeNullable(tab)) ? "requests" : "items";
+    }
+
+    private String normalizeRewardRequestAction(String requestAction, BusinessCouponRequestDTO currentRequest) {
+        String normalizedAction = normalizeNullable(requestAction);
+        if ("resubmit".equalsIgnoreCase(normalizedAction)) {
+            return "resubmit";
+        }
+        if ("update".equalsIgnoreCase(normalizedAction)) {
+            return "update";
+        }
+        if (currentRequest != null && "HOLD".equalsIgnoreCase(currentRequest.getRequestStatus())) {
+            return "resubmit";
+        }
+        return "update";
+    }
+
+    private String normalizeRewardItemStatus(String status) {
+        String normalized = normalizeNullable(status);
+        if ("SOLD_OUT".equalsIgnoreCase(normalized)) {
+            return "SOLD_OUT";
+        }
+        if ("HIDDEN".equalsIgnoreCase(normalized)) {
+            return "HIDDEN";
+        }
+        return "ON_SALE";
+    }
+
+    private Integer resolveAdminUserId(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+        Object role = session.getAttribute(SessionAuthKeys.USER_ROLE);
+        if (role == null || !"ADMIN".equalsIgnoreCase(String.valueOf(role).trim())) {
+            return null;
+        }
+
+        Object userId = session.getAttribute(SessionAuthKeys.USER_ID);
+        if (userId instanceof Number) {
+            return Integer.valueOf(((Number) userId).intValue());
+        }
+        if (userId != null) {
+            try {
+                return Integer.valueOf(String.valueOf(userId).trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private String resolveBusinessNameForLocation(Integer businessId, Map<Integer, String> businessNameCache) {
+        if (businessId == null || businessId.intValue() <= 0) {
+            return null;
+        }
+        if (businessNameCache.containsKey(businessId)) {
+            return businessNameCache.get(businessId);
+        }
+
+        BusinessDTO business = businessService.getBusinessById(businessId.intValue());
+        String businessName = business == null ? null : business.getBusinessName();
+        businessNameCache.put(businessId, businessName);
+        return businessName;
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
     
     // ================ Business ================

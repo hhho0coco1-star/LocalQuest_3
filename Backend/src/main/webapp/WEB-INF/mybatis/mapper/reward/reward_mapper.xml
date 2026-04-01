@@ -125,15 +125,41 @@
 
 	<select id="findRewardShopItems" resultType="RewardShopItem">
 		SELECT
-			REWARD_ITEM_ID,
-			NAME,
-			DESCRIPTION,
-			PRICE_POINT,
-			STOCK,
-			STATUS,
-			CREATED_AT
-		FROM LQ_REWARD_ITEM
-		ORDER BY CREATED_AT DESC, REWARD_ITEM_ID DESC
+			RI.REWARD_ITEM_ID,
+			RI.NAME,
+			RI.DESCRIPTION,
+			RI.PRICE_POINT,
+			RI.STOCK,
+			UPPER(NVL(RI.STATUS, 'ON_SALE')) AS STATUS,
+			NVL(RI.COUPON_SCOPE, 'GENERAL') AS couponScope,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NVL(NULLIF(TRIM(L.NAME), ''), NVL(NULLIF(TRIM(B.BUSINESS_NAME), ''), '비즈니스 매장'))
+				ELSE '리워드 상점'
+			END AS storeName,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NULLIF(
+						TRIM(
+							NVL(L.ADDRESS, '')
+							|| CASE
+								WHEN NULLIF(TRIM(L.ADDRESS_DETAIL), '') IS NOT NULL
+									THEN ' ' || TRIM(L.ADDRESS_DETAIL)
+								ELSE ''
+							END
+						),
+						''
+					)
+				ELSE NULL
+			END AS storeAddress,
+			RI.CREATED_AT
+		FROM LQ_REWARD_ITEM RI
+		LEFT JOIN LQ_LOCATION L
+			ON L.LOCATION_ID = RI.LOCATION_ID
+		LEFT JOIN LQ_BUSINESS B
+			ON B.BUSINESS_ID = L.BUSINESS_ID
+		WHERE UPPER(NVL(RI.STATUS, 'ON_SALE')) IN ('ON_SALE', 'SOLD_OUT')
+		ORDER BY RI.CREATED_AT DESC, RI.REWARD_ITEM_ID DESC
 	</select>
 
 	<select id="findRewardWeeklyStats" parameterType="string" resultType="RewardWeeklyStats">
@@ -219,6 +245,27 @@
 			RI.NAME,
 			NVL(NULLIF(TRIM(RI.DESCRIPTION), ''), '리워드 상점') AS STORE,
 			RE.STATUS,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NVL(NULLIF(TRIM(L.NAME), ''), NVL(NULLIF(TRIM(B.BUSINESS_NAME), ''), '비즈니스 매장'))
+				ELSE '리워드 상점'
+			END AS storeName,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NULLIF(
+						TRIM(
+							NVL(L.ADDRESS, '')
+							|| CASE
+								WHEN NULLIF(TRIM(L.ADDRESS_DETAIL), '') IS NOT NULL
+									THEN ' ' || TRIM(L.ADDRESS_DETAIL)
+								ELSE ''
+							END
+						),
+						''
+					)
+				ELSE NULL
+			END AS storeAddress,
+			NVL(RI.COUPON_SCOPE, 'GENERAL') AS couponScope,
 			RE.EXPIRED_AT,
 			CASE
 				WHEN RE.EXPIRED_AT IS NULL THEN NULL
@@ -229,6 +276,10 @@
 			ON U.USER_ID = RE.USER_ID
 		INNER JOIN LQ_REWARD_ITEM RI
 			ON RI.REWARD_ITEM_ID = RE.REWARD_ITEM_ID
+		LEFT JOIN LQ_LOCATION L
+			ON L.LOCATION_ID = RI.LOCATION_ID
+		LEFT JOIN LQ_BUSINESS B
+			ON B.BUSINESS_ID = L.BUSINESS_ID
 		WHERE UPPER(NVL(U.STATUS, 'ACTIVE')) = 'ACTIVE'
 		<if test="_parameter != null and _parameter != ''">
 			AND U.NICKNAME = #{_parameter}
@@ -259,15 +310,40 @@
 
 	<select id="findRewardShopItemById" parameterType="long" resultType="RewardShopItem">
 		SELECT
-			REWARD_ITEM_ID,
-			NAME,
-			DESCRIPTION,
-			PRICE_POINT,
-			STOCK,
-			STATUS,
-			CREATED_AT
-		FROM LQ_REWARD_ITEM
-		WHERE REWARD_ITEM_ID = #{value}
+			RI.REWARD_ITEM_ID,
+			RI.NAME,
+			RI.DESCRIPTION,
+			RI.PRICE_POINT,
+			RI.STOCK,
+			UPPER(NVL(RI.STATUS, 'ON_SALE')) AS STATUS,
+			NVL(RI.COUPON_SCOPE, 'GENERAL') AS couponScope,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NVL(NULLIF(TRIM(L.NAME), ''), NVL(NULLIF(TRIM(B.BUSINESS_NAME), ''), '비즈니스 매장'))
+				ELSE '리워드 상점'
+			END AS storeName,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NULLIF(
+						TRIM(
+							NVL(L.ADDRESS, '')
+							|| CASE
+								WHEN NULLIF(TRIM(L.ADDRESS_DETAIL), '') IS NOT NULL
+									THEN ' ' || TRIM(L.ADDRESS_DETAIL)
+								ELSE ''
+							END
+						),
+						''
+					)
+				ELSE NULL
+			END AS storeAddress,
+			RI.CREATED_AT
+		FROM LQ_REWARD_ITEM RI
+		LEFT JOIN LQ_LOCATION L
+			ON L.LOCATION_ID = RI.LOCATION_ID
+		LEFT JOIN LQ_BUSINESS B
+			ON B.BUSINESS_ID = L.BUSINESS_ID
+		WHERE RI.REWARD_ITEM_ID = #{value}
 	</select>
 
 	<update id="deductUserPoint" parameterType="map">
@@ -447,6 +523,27 @@
 			RI.NAME,
 			NVL(NULLIF(TRIM(RI.DESCRIPTION), ''), '리워드 상점') AS STORE,
 			RE.STATUS,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NVL(NULLIF(TRIM(L.NAME), ''), NVL(NULLIF(TRIM(B.BUSINESS_NAME), ''), '비즈니스 매장'))
+				ELSE '리워드 상점'
+			END AS storeName,
+			CASE
+				WHEN NVL(RI.COUPON_SCOPE, 'GENERAL') = 'BUSINESS_LOCATION'
+					THEN NULLIF(
+						TRIM(
+							NVL(L.ADDRESS, '')
+							|| CASE
+								WHEN NULLIF(TRIM(L.ADDRESS_DETAIL), '') IS NOT NULL
+									THEN ' ' || TRIM(L.ADDRESS_DETAIL)
+								ELSE ''
+							END
+						),
+						''
+					)
+				ELSE NULL
+			END AS storeAddress,
+			NVL(RI.COUPON_SCOPE, 'GENERAL') AS couponScope,
 			RE.EXPIRED_AT,
 			CASE
 				WHEN RE.EXPIRED_AT IS NULL THEN NULL
@@ -455,6 +552,10 @@
 		FROM LQ_REWARD_EXCHANGE RE
 		INNER JOIN LQ_REWARD_ITEM RI
 			ON RI.REWARD_ITEM_ID = RE.REWARD_ITEM_ID
+		LEFT JOIN LQ_LOCATION L
+			ON L.LOCATION_ID = RI.LOCATION_ID
+		LEFT JOIN LQ_BUSINESS B
+			ON B.BUSINESS_ID = L.BUSINESS_ID
 		WHERE RE.EXCHANGE_ID = #{value}
 	</select>
 </mapper>

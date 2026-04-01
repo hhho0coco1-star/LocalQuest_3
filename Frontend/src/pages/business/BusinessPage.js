@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { businessApi } from '../../api/BusinessApi';
 import { resolveApiErrorMessage } from '../../utils/errorMessage';
+import BusinessCouponRequestPanel from './BusinessCouponRequestPanel';
 import BusinessTabNav from './components/BusinessTabNav';
 import BusinessUpdateModal from './components/BusinessUpdateModal';
 import CouponTab from './components/CouponTab';
@@ -209,16 +210,19 @@ function BusinessPage() {
         )}
 
         {activeTab === 'coupon' && (
-          <CouponTab
-            proposedCoupons={proposedCoupons}
-            activeCoupons={activeCoupons}
-            proposedCouponCount={proposedCouponCount}
-            runningCouponCount={runningCouponCount}
-            onAcceptCoupon={acceptCoupon}
-            onHoldCoupon={holdCoupon}
-            onPauseCoupon={pauseCoupon}
-            onResumeCoupon={resumeCoupon}
-          />
+          <>
+            <CouponTab
+              proposedCoupons={proposedCoupons}
+              activeCoupons={activeCoupons}
+              proposedCouponCount={proposedCouponCount}
+              runningCouponCount={runningCouponCount}
+              onAcceptCoupon={acceptCoupon}
+              onHoldCoupon={holdCoupon}
+              onPauseCoupon={pauseCoupon}
+              onResumeCoupon={resumeCoupon}
+            />
+            <BusinessCouponRequestPanel />
+          </>
         )}
       </section>
 

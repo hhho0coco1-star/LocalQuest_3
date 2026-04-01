@@ -167,6 +167,18 @@ function formatDateLabel(dateValue) {
   return `${year}-${month}-${day}`;
 }
 
+function normalizeCouponScope(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toUpperCase();
+
+  return normalized === "BUSINESS_LOCATION" ? "BUSINESS_LOCATION" : "GENERAL";
+}
+
+function getCouponScopeLabel(scope) {
+  return scope === "BUSINESS_LOCATION" ? "비즈니스 매장 쿠폰" : "일반 쿠폰";
+}
+
 function normalizeRewardItems(items) {
   if (!Array.isArray(items)) {
     return [];
@@ -182,6 +194,10 @@ function normalizeRewardItems(items) {
       .trim()
       .toUpperCase();
     const status = rawStatus || (stock > 0 ? "ON_SALE" : "SOLD_OUT");
+    const couponScope = normalizeCouponScope(item?.couponScope ?? item?.COUPON_SCOPE);
+    const storeName = String(item?.storeName ?? item?.STORE_NAME ?? "")
+      .trim() || "리워드 상점";
+    const storeAddress = String(item?.storeAddress ?? item?.STORE_ADDRESS ?? "").trim();
 
     return {
       REWARD_ITEM_ID: rewardItemId,
@@ -190,6 +206,9 @@ function normalizeRewardItems(items) {
       PRICE_POINT: Math.max(0, toSafeNumber(item?.pricePoint ?? item?.PRICE_POINT, 0)),
       STOCK: stock,
       STATUS: status,
+      COUPON_SCOPE: couponScope,
+      STORE_NAME: storeName,
+      STORE_ADDRESS: storeAddress,
       CREATED_AT: formatDateLabel(item?.createdAt ?? item?.CREATED_AT),
     };
   });
@@ -221,6 +240,8 @@ function normalizeWalletCoupons(coupons) {
     name: coupon?.name ?? "쿠폰",
     store: coupon?.store ?? "리워드 상점",
     expire: coupon?.expire ?? "만료일 미정",
+    storeAddress: String(coupon?.storeAddress ?? coupon?.STORE_ADDRESS ?? "").trim(),
+    couponScope: normalizeCouponScope(coupon?.couponScope ?? coupon?.COUPON_SCOPE),
     urgent: Boolean(coupon?.urgent),
   }));
 }
@@ -997,7 +1018,19 @@ function RewardPage() {
                           <h3>{coupon.name}</h3>
                           <span className={coupon.urgent ? "reward-is-urgent" : ""}>{coupon.expire}</span>
                         </div>
+                        <span
+                          className={`reward-route-tag ${
+                            coupon.couponScope === "BUSINESS_LOCATION"
+                              ? "reward-is-business"
+                              : "reward-is-general"
+                          }`}
+                        >
+                          {getCouponScopeLabel(coupon.couponScope)}
+                        </span>
                         <p>{coupon.store}</p>
+                        {coupon.storeAddress ? (
+                          <p className="reward-ticket-address">{coupon.storeAddress}</p>
+                        ) : null}
                         <button type="button" className="reward-ticket-use-button">바로 사용</button>
                       </div>
                     </article>
@@ -1175,6 +1208,16 @@ function RewardPage() {
                     <div className="reward-shop-card-body">
                       {item.STATUS === "SOLD_OUT" ? <span className="reward-limited-badge">품절</span> : null}
 
+                      <span
+                        className={`reward-route-tag ${
+                          item.COUPON_SCOPE === "BUSINESS_LOCATION"
+                            ? "reward-is-business"
+                            : "reward-is-general"
+                        }`}
+                      >
+                        {getCouponScopeLabel(item.COUPON_SCOPE)}
+                      </span>
+
                       <div className="reward-shop-card-top reward-is-single">
                         <div className="reward-shop-price-wrap">
                           <strong>{formatPoint(item.PRICE_POINT)}</strong>
@@ -1183,6 +1226,10 @@ function RewardPage() {
                       </div>
 
                       <h3>{item.NAME}</h3>
+                      <p className="reward-shop-store reward-shop-store-name">{item.STORE_NAME}</p>
+                      {item.STORE_ADDRESS ? (
+                        <p className="reward-shop-address">{item.STORE_ADDRESS}</p>
+                      ) : null}
                       <p className="reward-shop-store">등록일 {item.CREATED_AT}</p>
                       <p className="reward-shop-expire">{item.DESCRIPTION || "상품 설명이 준비 중입니다."}</p>
 

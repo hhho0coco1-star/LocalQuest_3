@@ -1,0 +1,418 @@
+.business-coupon-section {
+  margin-top: 18px;
+  border: 1px solid #d2dbea;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.business-coupon-header,
+.business-coupon-filter-group,
+.business-coupon-layout,
+.business-coupon-item-top,
+.business-coupon-item-meta,
+.business-coupon-detail-header,
+.business-coupon-detail-badges,
+.business-coupon-action-buttons,
+.business-coupon-history-top,
+.business-coupon-history-meta,
+.business-coupon-list-header,
+.business-coupon-history-header {
+  display: flex;
+  gap: 12px;
+}
+
+.business-coupon-header,
+.business-coupon-history-top,
+.business-coupon-history-meta,
+.business-coupon-list-header {
+  justify-content: space-between;
+}
+
+.business-coupon-header,
+.business-coupon-detail-header {
+  align-items: flex-start;
+}
+
+.business-coupon-filter-group,
+.business-coupon-detail-badges,
+.business-coupon-action-buttons {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.business-coupon-header {
+  margin-bottom: 14px;
+}
+
+.business-coupon-title-wrap h2,
+.business-coupon-list-header h3,
+.business-coupon-detail-header h3,
+.business-coupon-action-copy h4,
+.business-coupon-history-header h4 {
+  margin: 0;
+  color: #102444;
+}
+
+.business-coupon-subtitle,
+.business-coupon-detail-header p,
+.business-coupon-detail-label,
+.business-coupon-item-meta span,
+.business-coupon-action-copy p,
+.business-coupon-history-meta,
+.business-coupon-notice,
+.business-coupon-empty,
+.business-coupon-empty.is-compact {
+  color: #61738d;
+}
+
+.business-coupon-subtitle,
+.business-coupon-action-copy p,
+.business-coupon-detail-card p,
+.business-coupon-history-comment {
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+.business-coupon-filter {
+  border: 1px solid #d7dfeb;
+  border-radius: 999px;
+  background: #f6f9fc;
+  padding: 10px 16px;
+  color: #6a7b93;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.business-coupon-filter.is-active {
+  border-color: #f14662;
+  background: #fff0f4;
+  color: #d93d5e;
+}
+
+.business-coupon-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.business-coupon-summary-card {
+  border: 1px solid #d8e1ee;
+  border-radius: 16px;
+  background: #f8fbff;
+  padding: 14px 16px;
+}
+
+.business-coupon-summary-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #7b8ca4;
+}
+
+.business-coupon-summary-value {
+  display: block;
+  margin-top: 10px;
+  color: #102444;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.business-coupon-notice {
+  margin-bottom: 14px;
+  border: 1px solid #d8e1ef;
+  border-radius: 12px;
+  background: #f3f6fb;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.business-coupon-notice.is-success {
+  border-color: #cce8d8;
+  background: #effaf3;
+  color: #16744d;
+}
+
+.business-coupon-notice.is-error {
+  border-color: #f3d1d8;
+  background: #fff4f6;
+  color: #b2364a;
+}
+
+.business-coupon-layout {
+  align-items: stretch;
+  gap: 14px;
+}
+
+.business-coupon-list-panel,
+.business-coupon-detail-panel {
+  border: 1px solid #d9e2ef;
+  border-radius: 16px;
+  background: #f8fbff;
+  padding: 16px;
+}
+
+.business-coupon-list-panel {
+  flex: 0 0 360px;
+}
+
+.business-coupon-detail-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.business-coupon-list-header {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.business-coupon-list-header span,
+.business-coupon-history-header span {
+  color: #7d8ca3;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.business-coupon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.business-coupon-item {
+  width: 100%;
+  border: 1px solid #d6dfeb;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.business-coupon-item.is-active {
+  border-color: #f14662;
+  background: #fff4f7;
+  box-shadow: 0 16px 30px rgba(241, 70, 98, 0.08);
+}
+
+.business-coupon-item-top strong,
+.business-coupon-detail-card strong {
+  color: #112546;
+}
+
+.business-coupon-item-meta {
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.business-coupon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.business-coupon-badge.is-requested,
+.business-coupon-badge.is-target-on_sale {
+  background: #fff0f4;
+  border-color: #ffd7df;
+  color: #d93d5e;
+}
+
+.business-coupon-badge.is-hold,
+.business-coupon-badge.is-target-sold_out {
+  background: #fff7eb;
+  border-color: #f6dfb8;
+  color: #c97915;
+}
+
+.business-coupon-badge.is-accepted {
+  background: #edf9f1;
+  border-color: #cce8d8;
+  color: #1a8b5a;
+}
+
+.business-coupon-badge.is-cancelled,
+.business-coupon-badge.is-target-hidden {
+  background: #eef2f7;
+  border-color: #d7dfeb;
+  color: #6b7b92;
+}
+
+.business-coupon-detail-header {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.business-coupon-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.business-coupon-detail-card {
+  border: 1px solid #d8e1ee;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.business-coupon-detail-card.is-wide {
+  grid-column: 1 / -1;
+}
+
+.business-coupon-detail-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.business-coupon-detail-card p {
+  color: #2b3d5b;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.business-coupon-action-panel,
+.business-coupon-history-panel {
+  border: 1px solid #d8e1ee;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.business-coupon-action-panel {
+  margin-bottom: 14px;
+}
+
+.business-coupon-hold-input {
+  width: 100%;
+  min-height: 120px;
+  margin-top: 14px;
+  border: 1px solid #d5dfea;
+  border-radius: 14px;
+  background: #f8fbff;
+  padding: 14px;
+  color: #203351;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.business-coupon-action-buttons {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.business-coupon-secondary-btn,
+.business-coupon-primary-btn {
+  min-width: 144px;
+}
+
+.business-coupon-secondary-btn {
+  border: 1px solid #d7dfeb;
+  border-radius: 12px;
+  background: #f5f8fc;
+  padding: 12px 18px;
+  color: #213452;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.business-coupon-action-state {
+  margin-top: 12px;
+  border-radius: 12px;
+  background: #f3f6fb;
+  padding: 14px;
+  color: #61738d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.business-coupon-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.business-coupon-history-item {
+  border: 1px solid #d9e2ef;
+  border-radius: 14px;
+  background: #f8fbff;
+  padding: 14px;
+}
+
+.business-coupon-history-comment {
+  color: #304363;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.business-coupon-empty {
+  border: 1px dashed #d7dfeb;
+  border-radius: 14px;
+  background: #f4f7fb;
+  padding: 18px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.business-coupon-empty.is-compact {
+  margin-top: 12px;
+  padding: 14px;
+}
+
+@media (max-width: 1240px) {
+  .business-coupon-layout {
+    flex-direction: column;
+  }
+
+  .business-coupon-list-panel {
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .business-coupon-summary-grid,
+  .business-coupon-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .business-coupon-header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .business-coupon-filter-group,
+  .business-coupon-action-buttons,
+  .business-coupon-detail-header,
+  .business-coupon-item-top,
+  .business-coupon-item-meta,
+  .business-coupon-history-top,
+  .business-coupon-history-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .business-coupon-filter,
+  .business-coupon-secondary-btn,
+  .business-coupon-primary-btn {
+    width: 100%;
+  }
+}
