@@ -13,5 +13,8 @@ public class RewardShopItem {
 	private Integer pricePoint;
 	private Integer stock;
 	private String status;
+	private String couponScope;
+	private String storeName;
+	private String storeAddress;
 	private Date createdAt;
 }
