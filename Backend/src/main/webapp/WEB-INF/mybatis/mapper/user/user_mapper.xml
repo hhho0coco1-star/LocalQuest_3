@@ -5,6 +5,22 @@
 
 <mapper namespace="user_mapper">
 
+	<sql id="userSearchConditions">
+		<if test="type != null and type != '' and keyword != null and keyword != ''">
+			<choose>
+				<when test="type == 'userLoginId'">
+					AND USER_LOGIN_ID LIKE '%' || #{keyword} || '%'
+				</when>
+				<when test="type == 'name'">
+					AND NAME LIKE '%' || #{keyword} || '%'
+				</when>
+				<when test="type == 'nickname'">
+					AND NICKNAME LIKE '%' || #{keyword} || '%'
+				</when>
+			</choose>
+		</if>
+	</sql>
+
 	<!-- 관리자_회원정보 조회 -->
 	<!-- 관리자_회원정보 검색 -->
 	<select id="searchUser" resultType="User">
@@ -21,25 +37,52 @@
 		CREATED_AT as createdAt
 		FROM LQ_USER
 		<where>
-			<if test="type != null and keyword != null and keyword != ''">
-				<choose>
-					<when test="type == 'userLoginId'">
-						AND USER_LOGIN_ID LIKE '%' || #{keyword} || '%'
-					</when>
-					<when test="type == 'name'">
-						AND NAME LIKE '%' || #{keyword} || '%'
-					</when>
-					<when test="type == 'nickname'">
-						AND NICKNAME LIKE '%' || #{keyword} || '%'
-					</when>
-				</choose>
-			</if>
+			<include refid="userSearchConditions" />
 		</where>
 		ORDER BY USER_ID
 		<choose>
 			<when test="sort == 'ASC'">ASC</when>
 			<otherwise>DESC</otherwise>
 		</choose>
+	</select>
+
+	<select id="countUsers" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_USER
+		<where>
+			<include refid="userSearchConditions" />
+		</where>
+	</select>
+
+	<select id="searchUserPaged" parameterType="map" resultType="User">
+		SELECT *
+		FROM (
+			SELECT user_rows.*, ROWNUM AS rowNumber
+			FROM (
+				SELECT
+					USER_ID as userId,
+					USER_LOGIN_ID as userLoginId,
+					NAME,
+					EMAIL,
+					NICKNAME,
+					ROLE,
+					EXP,
+					POINT,
+					STATUS,
+					CREATED_AT as createdAt
+				FROM LQ_USER
+				<where>
+					<include refid="userSearchConditions" />
+				</where>
+				ORDER BY USER_ID
+				<choose>
+					<when test="sort == 'ASC'">ASC</when>
+					<otherwise>DESC</otherwise>
+				</choose>
+			) user_rows
+			WHERE ROWNUM &lt;= #{endRow}
+		)
+		WHERE rowNumber &gt;= #{startRow}
 	</select>
 
 	<!-- 관리자_회원정보 변경(User_Type 변경) -->

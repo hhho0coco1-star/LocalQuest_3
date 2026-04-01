@@ -892,7 +892,7 @@
             }
 
             if (!confirm("권한을 변경하시겠습니까?")) {
-                loadAdminContent(ctx + '/admin/users');
+                loadAdminContent(buildAdminUserListUrl(getCurrentUserListPage(), getCurrentUserSortOrder()));
                 return;
             }
 
@@ -905,7 +905,7 @@
                         alert("권한이 변경되었습니다.");
                     } else {
                         alert("변경에 실패했습니다.");
-                        loadAdminContent(ctx + '/admin/users');
+                        loadAdminContent(buildAdminUserListUrl(getCurrentUserListPage(), getCurrentUserSortOrder()));
                     }
                 },
                 error: function(xhr) {
@@ -916,39 +916,157 @@
         
         let currentSortOrder = 'DESC'; // 湲곕낯 ?뺣젹 ?곹깭 (理쒖떊??
 
+        function getCurrentUserListPage() {
+            const currentPage = Number($('.adm-u-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentUserPageSize() {
+            const pageSize = Number($('.adm-u-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function getCurrentUserSortOrder() {
+            if ($('#sortIcon').hasClass('fa-sort-up')) {
+                return 'ASC';
+            }
+            if ($('#sortIcon').hasClass('fa-sort-down')) {
+                return 'DESC';
+            }
+            return currentSortOrder || 'DESC';
+        }
+
+        function buildAdminUserListUrl(page, sortOverride) {
+            const type = ($('#searchType').val() || 'userLoginId').trim();
+            const keyword = ($('#keyword').val() || '').trim();
+            const sort = (sortOverride || getCurrentUserSortOrder() || 'DESC').trim();
+            const params = new URLSearchParams();
+
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentUserPageSize()));
+            params.set('sort', sort);
+            params.set('type', type);
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+
+            return ctx + "/admin/users?" + params.toString();
+        }
+
+        function goUserPage(page) {
+            loadAdminContent(buildAdminUserListUrl(page, getCurrentUserSortOrder()));
+        }
+
         /**
          * ?뚯썝 寃???⑥닔
          */
         function searchUser() {
-            const type = $('#searchType').val();
-            const keyword = $('#keyword').val();
-            
-            // 寃???쒖뿉??contextPath(ctx)瑜??ъ슜?⑸땲??
-            const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword);
-            loadAdminContent(url);
+            loadAdminContent(buildAdminUserListUrl(1, getCurrentUserSortOrder()));
         }
 
-        /**
-         * ?뚯썝踰덊샇 ?뺣젹 ?⑥닔 (?쒕쾭 ?뺣젹 湲곗? ?좎?)
-         * ?꾩옱???쒕쾭 ?붿껌 諛⑹떇?쇰줈 泥섎━?⑸땲??
-         */
-        function searchAdminInquiry() {
+        function getCurrentAdminInquiryPage() {
+            const currentPage = Number($('.adm-i-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentAdminInquiryPageSize() {
+            const pageSize = Number($('.adm-i-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function buildAdminInquiryListUrl(page) {
             const keyword = ($('#adminInquiryKeyword').val() || '').trim();
             const status = ($('#adminInquiryStatus').val() || '').trim();
-            let url = ctx + "/admin/qna";
-            const params = [];
+            const params = new URLSearchParams();
 
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentAdminInquiryPageSize()));
             if (keyword) {
-                params.push("keyword=" + encodeURIComponent(keyword));
+                params.set('keyword', keyword);
             }
             if (status) {
-                params.push("status=" + encodeURIComponent(status));
-            }
-            if (params.length > 0) {
-                url += "?" + params.join("&");
+                params.set('status', status);
             }
 
-            loadAdminContent(url);
+            return ctx + "/admin/qna?" + params.toString();
+        }
+
+        function searchAdminInquiry() {
+            loadAdminContent(buildAdminInquiryListUrl(1));
+        }
+
+        function goAdminInquiryPage(page) {
+            loadAdminContent(buildAdminInquiryListUrl(page > 0 ? page : getCurrentAdminInquiryPage()));
+        }
+
+        function getCurrentAdminNoticePage() {
+            const currentPage = Number($('.adm-n-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentAdminNoticePageSize() {
+            const pageSize = Number($('.adm-n-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function buildAdminNoticeListUrl(page) {
+            const keyword = ($('#adminNoticeKeyword').val() || '').trim();
+            const pinned = ($('#adminNoticePinned').val() || '').trim();
+            const params = new URLSearchParams();
+
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentAdminNoticePageSize()));
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+            if (pinned !== '') {
+                params.set('pinned', pinned);
+            }
+
+            return ctx + "/admin/notice?" + params.toString();
+        }
+
+        function searchAdminNotice() {
+            loadAdminContent(buildAdminNoticeListUrl(1));
+        }
+
+        function goAdminNoticePage(page) {
+            loadAdminContent(buildAdminNoticeListUrl(page > 0 ? page : getCurrentAdminNoticePage()));
+        }
+
+        function getCurrentAdminFaqPage() {
+            const currentPage = Number($('.adm-f-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentAdminFaqPageSize() {
+            const pageSize = Number($('.adm-f-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function buildAdminFaqListUrl(page) {
+            const keyword = ($('#adminFaqKeyword').val() || '').trim();
+            const category = ($('#adminFaqCategoryFilter').val() || '').trim();
+            const params = new URLSearchParams();
+
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentAdminFaqPageSize()));
+            if (category) {
+                params.set('category', category);
+            }
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+
+            return ctx + "/admin/faq?" + params.toString();
+        }
+
+        function searchAdminFaq() {
+            loadAdminContent(buildAdminFaqListUrl(1));
+        }
+
+        function goAdminFaqPage(page) {
+            loadAdminContent(buildAdminFaqListUrl(page > 0 ? page : getCurrentAdminFaqPage()));
         }
 
         function loadAdminInquiryDetail(inquiryId, onSuccess) {
@@ -1066,13 +1184,8 @@
         }
 
         function sortUserList() {
-            currentSortOrder = (currentSortOrder === 'DESC') ? 'ASC' : 'DESC';
-            const type = $('#searchType').val();
-            const keyword = $('#keyword').val();
-            
-            // 湲곗〈 寃??議곌굔???좎???梨??뺣젹留?蹂寃쏀빀?덈떎.
-            const url = ctx + "/admin/users?sort=" + currentSortOrder + "&type=" + type + "&keyword=" + keyword;
-            loadAdminContent(url);
+            currentSortOrder = (getCurrentUserSortOrder() === 'DESC') ? 'ASC' : 'DESC';
+            loadAdminContent(buildAdminUserListUrl(1, currentSortOrder));
         }
         
         /**
@@ -1102,13 +1215,7 @@
                         alert("상태가 정상적으로 변경되었습니다.");
                         
                         // ?꾩옱 寃?됱뼱/?뺣젹 議곌굔???좎???梨??ㅼ떆 濡쒕뱶?⑸땲??
-                        const type = $('#searchType').val();
-                        const keyword = $('#keyword').val();
-                        // ?뺣젹 ?꾩씠肄??곹깭濡??꾩옱 ?뺣젹???뺤씤?⑸땲??
-                        const sort = $('#sortIcon').hasClass('fa-sort-up') ? 'ASC' : 'DESC';
-                        
-                        const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword) + "&sort=" + sort;
-                        loadAdminContent(url);
+                        loadAdminContent(buildAdminUserListUrl(getCurrentUserListPage(), getCurrentUserSortOrder()));
                     } else {
                         alert("변경에 실패했습니다.");
                     }
@@ -1465,11 +1572,6 @@
         }
         
         /* --- Business 愿??JS --- */
-
-        function searchBusiness() {
-            const keyword = $('#searchBusinessKeyword').val() || '';
-            loadAdminContent(ctx + "/admin/store-info?keyword=" + encodeURIComponent(keyword));
-        }
 
         function loadBusinessDetail(businessId, onSuccess) {
             $.ajax({
@@ -1835,29 +1937,58 @@
             });
         }
 
-        function loadBusinessAdmin(tab) {
-            const activeTab = tab || 'inquiry';
-            const businessKeyword = $('#searchBusinessKeyword').val() || '';
-            const inquiryKeyword = $('#searchInquiryKeyword').val() || '';
-            const inquiryStatus = $('#filterInquiryStatus').val() || '';
+        function getBusinessAdminPageSize() {
+            const pageSize = Number($('.adm-b-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
 
-            const url = ctx + "/admin/store-info?tab=" + encodeURIComponent(activeTab)
-                + "&businessKeyword=" + encodeURIComponent(businessKeyword)
-                + "&inquiryKeyword=" + encodeURIComponent(inquiryKeyword)
-                + "&inquiryStatus=" + encodeURIComponent(inquiryStatus);
+        function buildBusinessAdminUrl(tab, options) {
+            const $container = $('.adm-b-container');
+            const activeTab = tab || $container.data('current-tab') || 'inquiry';
+            const businessKeyword = ($('#searchBusinessKeyword').val() || '').trim();
+            const inquiryKeyword = ($('#searchInquiryKeyword').val() || '').trim();
+            const inquiryStatus = ($('#filterInquiryStatus').val() || '').trim();
+            const userId = ($container.data('user-id') || '').toString().trim();
+            const currentBusinessPage = Number($container.data('business-page')) || 1;
+            const currentInquiryPage = Number($container.data('inquiry-page')) || 1;
+            const nextOptions = options || {};
+            const nextBusinessPage = Number(nextOptions.businessPage || currentBusinessPage);
+            const nextInquiryPage = Number(nextOptions.inquiryPage || currentInquiryPage);
+            const params = new URLSearchParams();
 
-            loadAdminContent(url);
+            params.set('tab', activeTab);
+            params.set('businessPage', String(nextBusinessPage > 0 ? nextBusinessPage : 1));
+            params.set('inquiryPage', String(nextInquiryPage > 0 ? nextInquiryPage : 1));
+            params.set('size', String(getBusinessAdminPageSize()));
+
+            if (businessKeyword) {
+                params.set('businessKeyword', businessKeyword);
+            }
+            if (inquiryKeyword) {
+                params.set('inquiryKeyword', inquiryKeyword);
+            }
+            if (inquiryStatus) {
+                params.set('inquiryStatus', inquiryStatus);
+            }
+            if (userId) {
+                params.set('userId', userId);
+            }
+
+            return ctx + "/admin/store-info?" + params.toString();
+        }
+
+        function loadBusinessAdmin(tab, options) {
+            loadAdminContent(buildBusinessAdminUrl(tab, options));
         }
 
         function showBusinessTab(tabName) {
-            $('.adm-b-tab').removeClass('active');
-            $('.adm-b-panel').removeClass('active');
-            $('.adm-b-tab[data-tab="' + tabName + '"]').addClass('active');
-            $('.adm-b-panel[data-panel="' + tabName + '"]').addClass('active');
+            loadBusinessAdmin(tabName);
         }
 
-        function searchBusiness() { loadBusinessAdmin('business'); }
-        function searchBusinessInquiry() { loadBusinessAdmin('inquiry'); }
+        function searchBusiness() { loadBusinessAdmin('business', { businessPage: 1 }); }
+        function searchBusinessInquiry() { loadBusinessAdmin('inquiry', { inquiryPage: 1 }); }
+        function goBusinessPage(page) { loadBusinessAdmin('business', { businessPage: page }); }
+        function goBusinessInquiryPage(page) { loadBusinessAdmin('inquiry', { inquiryPage: page }); }
 
 
 function loadBusinessInquiryDetail(inquiryId, onSuccess) {
@@ -2431,17 +2562,3 @@ function deleteBusiness(businessId) {
             if (!confirm("문의글을 삭제하시겠습니까?")) return;
             $.ajax({
                 url: ctx + "/admin/store-info/inquiry/delete",
-                type: "POST",
-                data: { inquiryId: inquiryId },
-                success: function(res) {
-                    if (res.trim() === "success") {
-                        $('#business-inquiry-row-' + inquiryId).fadeOut(200, function() {
-                            $(this).remove();
-                        });
-                    } else alert("문의 삭제에 실패했습니다.");
-                },
-                error: function(xhr) {
-                    alert("서버 통신 오류 (" + xhr.status + ")");
-                }
-            });
-        }

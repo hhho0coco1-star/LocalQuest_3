@@ -1,0 +1,314 @@
+.partner-center-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 48px 28px 88px;
+}
+
+.partner-center-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
+  gap: 28px;
+  align-items: stretch;
+  margin-bottom: 72px;
+}
+
+.partner-center-hero-copy,
+.partner-center-hero-panel,
+.partner-center-highlight-card,
+.partner-center-segment-card,
+.partner-center-flow-card,
+.partner-center-banner {
+  border: 1px solid #f0dde2;
+  border-radius: 30px;
+  background: #ffffff;
+  box-shadow: 0 20px 40px rgba(217, 61, 94, 0.08);
+}
+
+.partner-center-hero-copy {
+  padding: 34px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 226, 233, 0.85), transparent 36%),
+    linear-gradient(180deg, #ffffff 0%, #fff9f8 100%);
+}
+
+.partner-center-chip,
+.partner-center-section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 15px;
+  border-radius: 999px;
+  border: 1px solid #f2dfe2;
+  background: rgba(255, 247, 247, 0.94);
+  color: #dc6278;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.partner-center-hero-copy h1,
+.partner-center-heading h2,
+.partner-center-banner h2 {
+  margin: 18px 0 14px;
+  color: #181d2b;
+  letter-spacing: -0.045em;
+  word-break: keep-all;
+}
+
+.partner-center-hero-copy h1 {
+  max-width: 760px;
+  font-size: clamp(36px, 4.3vw, 58px);
+  line-height: 1.04;
+}
+
+.partner-center-hero-copy p,
+.partner-center-heading p,
+.partner-center-highlight-card p,
+.partner-center-segment-card p,
+.partner-center-flow-card p,
+.partner-center-banner p {
+  margin: 0;
+  color: #6d798d;
+  line-height: 1.74;
+  word-break: keep-all;
+}
+
+.partner-center-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.partner-center-primary-btn,
+.partner-center-secondary-btn,
+.partner-center-banner-primary,
+.partner-center-banner-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.partner-center-primary-btn,
+.partner-center-banner-primary {
+  background: #d93d5e;
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(217, 61, 94, 0.24);
+}
+
+.partner-center-secondary-btn,
+.partner-center-banner-secondary {
+  border: 1px solid #f0d2d8;
+  background: #ffffff;
+  color: #d93d5e;
+}
+
+.partner-center-text-link {
+  color: #182039;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.partner-center-hero-panel {
+  padding: 32px 28px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(53, 63, 108, 0.45), transparent 32%),
+    radial-gradient(circle at 82% 82%, rgba(106, 52, 101, 0.28), transparent 30%),
+    linear-gradient(135deg, #171d32 0%, #151827 100%);
+  color: #ffffff;
+}
+
+.partner-center-panel-kicker {
+  display: inline-flex;
+  margin-bottom: 18px;
+  color: #ffdce5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.partner-center-hero-panel strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.28;
+  letter-spacing: -0.04em;
+  word-break: keep-all;
+}
+
+.partner-center-hero-panel ul {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.partner-center-hero-panel li {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.84);
+  font-weight: 700;
+}
+
+.partner-center-section {
+  margin-bottom: 68px;
+}
+
+.partner-center-heading {
+  margin-bottom: 24px;
+}
+
+.partner-center-heading h2 {
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.14;
+}
+
+.partner-center-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.partner-center-highlight-card,
+.partner-center-segment-card {
+  padding: 24px;
+}
+
+.partner-center-highlight-card strong,
+.partner-center-segment-card h3,
+.partner-center-flow-card strong {
+  display: block;
+  margin-bottom: 12px;
+  color: #17203a;
+  letter-spacing: -0.03em;
+}
+
+.partner-center-highlight-card strong {
+  font-size: 20px;
+}
+
+.partner-center-segment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.partner-center-segment-card h3 {
+  margin-top: 0;
+  font-size: 24px;
+}
+
+.partner-center-flow-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.partner-center-flow-card {
+  display: flex;
+  gap: 18px;
+  padding: 24px;
+}
+
+.partner-center-flow-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  border-radius: 20px;
+  background: #fff0f4;
+  color: #d93d5e;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.partner-center-flow-card strong {
+  font-size: 22px;
+}
+
+.partner-center-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 30px 32px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 224, 230, 0.72), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #fff7f8 100%);
+}
+
+.partner-center-section-badge.is-banner {
+  background: #ffe7ec;
+}
+
+.partner-center-banner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .partner-center-page {
+    padding: 34px 18px 72px;
+  }
+
+  .partner-center-hero,
+  .partner-center-banner,
+  .partner-center-highlight-grid,
+  .partner-center-segment-grid,
+  .partner-center-flow-list {
+    grid-template-columns: 1fr;
+  }
+
+  .partner-center-banner-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .partner-center-page {
+    padding: 28px 14px 60px;
+  }
+
+  .partner-center-hero-copy,
+  .partner-center-hero-panel,
+  .partner-center-highlight-card,
+  .partner-center-segment-card,
+  .partner-center-flow-card,
+  .partner-center-banner {
+    border-radius: 24px;
+  }
+
+  .partner-center-hero-copy,
+  .partner-center-hero-panel,
+  .partner-center-highlight-card,
+  .partner-center-segment-card,
+  .partner-center-flow-card,
+  .partner-center-banner {
+    padding: 22px;
+  }
+
+  .partner-center-cta-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .partner-center-primary-btn,
+  .partner-center-secondary-btn,
+  .partner-center-banner-primary,
+  .partner-center-banner-secondary {
+    width: 100%;
+  }
+}

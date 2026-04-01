@@ -34,6 +34,24 @@
 		WHERE ROWNUM &lt;= 50
 	</select>
 
+	<select id="findLocationById" parameterType="int" resultType="LocationDTO">
+		SELECT
+			LOCATION_ID as locationId,
+			BUSINESS_ID as businessId,
+			NAME as name,
+			ZIP_CODE as zipCode,
+			ADDRESS as address,
+			ADDRESS_DETAIL as addressDetail,
+			LATITUDE as latitude,
+			LONGITUDE as longitude,
+			LOCATION_TYPE as locationType,
+			LOCATION_CATEGORY as locationCategory,
+			DESCRIPTION as description,
+			CREATED_AT as createdAt
+		FROM LQ_LOCATION
+		WHERE LOCATION_ID = #{_parameter}
+	</select>
+
 	<select id="findRepresentativeLocationByBusinessId" parameterType="int" resultType="LocationDTO">
 		SELECT *
 		FROM (
