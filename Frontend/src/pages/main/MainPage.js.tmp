@@ -11,47 +11,10 @@ const DEFAULT_MAP_LEVEL = 5;
 const CURRENT_LOCATION_MARKER_COLOR = '#5d7cff';
 const QUEST_MARKER_COLOR = '#e25068';
 const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥로 215';
-const BUSINESS_INQUIRY_PENDING_USER_KEY = 'localquest_business_inquiry_pending_user_id';
 const HUMAN_CENTER_FALLBACK = {
   lat: 36.81511,
   lng: 127.11389,
 };
-
-function safeReadBrowserStorage(key) {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.localStorage.getItem(key);
-  } catch (error) {
-    return null;
-  }
-}
-
-function safeWriteBrowserStorage(key, value) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(key, value);
-  } catch (error) {
-    // ignore browser storage errors
-  }
-}
-
-function safeRemoveBrowserStorage(key) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.removeItem(key);
-  } catch (error) {
-    // ignore browser storage errors
-  }
-}
 
 const questTabItems = [
   { key: 'overview', label: '홈' },
@@ -247,9 +210,7 @@ function resolveBusinessCta({ normalizedRole, latestInquiryStatus, isLoadingInqu
     };
   }
 
-  // 관리자 화면에서 실제로 사용하는 진행 상태는 PENDING / IN_PROGRESS / ANSWERED 이다.
-  // 승인 전까지는 사용자가 재신청하지 않도록 모두 "심사 중입니다"로 묶어 처리한다.
-  if (latestInquiryStatus && latestInquiryStatus !== 'REJECTED' && latestInquiryStatus !== 'CLOSED') {
+  if (latestInquiryStatus === 'PENDING' || latestInquiryStatus === 'IN_PROGRESS') {
     return {
       label: '심사 중입니다',
       to: null,
@@ -364,17 +325,9 @@ function MainPage() {
 
   const kakaoMapKey = process.env.REACT_APP_KAKAO_MAP_KEY;
   const normalizedUserRole = String(authUser?.role || 'GUEST').replace(/^ROLE_/, '');
-  const pendingInquiryUserId = safeReadBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY);
-  const hasPendingInquiryFallback =
-    String(authUser?.userId || '') !== '' &&
-    String(authUser?.userId || '') === String(pendingInquiryUserId || '');
   const businessCta = resolveBusinessCta({
     normalizedRole: normalizedUserRole,
-    latestInquiryStatus: String(
-      latestBusinessInquiry?.status || (hasPendingInquiryFallback ? 'PENDING' : '')
-    )
-      .trim()
-      .toUpperCase(),
+    latestInquiryStatus: String(latestBusinessInquiry?.status || '').toUpperCase(),
     isLoadingInquiryStatus: isBusinessInquiryLoading,
   });
 
@@ -403,17 +356,10 @@ function MainPage() {
         const response = await businessInquiryApi.getLatestInquiry(authUser.userId);
 
         if (!isCancelled) {
-          console.debug('[MainPage][businessInquiry] latest inquiry response:', response?.data);
           setLatestBusinessInquiry(response.data ?? null);
         }
       } catch (error) {
         if (!isCancelled) {
-          console.debug('[MainPage][businessInquiry] latest inquiry request failed:', {
-            status: error?.response?.status,
-            data: error?.response?.data,
-            message: error?.message,
-            userId: authUser?.userId,
-          });
           setLatestBusinessInquiry(null);
         }
       } finally {
@@ -429,60 +375,6 @@ function MainPage() {
       isCancelled = true;
     };
   }, [authUser?.userId, isAuthenticated, normalizedUserRole]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || Number(authUser?.userId) <= 0) {
-      return;
-    }
-
-    const currentUserId = String(authUser?.userId || '');
-    if (!currentUserId) {
-      return;
-    }
-    const latestInquiryStatus = String(latestBusinessInquiry?.status || '')
-      .trim()
-      .toUpperCase();
-
-    if (normalizedUserRole === 'BUSINESS' || normalizedUserRole === 'ADMIN') {
-      if (safeReadBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY) === currentUserId) {
-        safeRemoveBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY);
-      }
-      return;
-    }
-
-    if (!latestInquiryStatus) {
-      return;
-    }
-
-    if (latestInquiryStatus === 'REJECTED' || latestInquiryStatus === 'CLOSED') {
-      if (safeReadBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY) === currentUserId) {
-        safeRemoveBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY);
-      }
-      return;
-    }
-
-    safeWriteBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY, currentUserId);
-  }, [authUser?.userId, latestBusinessInquiry?.status, normalizedUserRole]);
-
-  useEffect(() => {
-    console.debug('[MainPage][businessInquiry] CTA state:', {
-      isAuthenticated,
-      authUser,
-      normalizedUserRole,
-      latestBusinessInquiry,
-      pendingInquiryUserId,
-      hasPendingInquiryFallback,
-      businessCta,
-    });
-  }, [
-    authUser,
-    businessCta,
-    hasPendingInquiryFallback,
-    isAuthenticated,
-    latestBusinessInquiry,
-    normalizedUserRole,
-    pendingInquiryUserId,
-  ]);
 
   // 리뷰 목록은 생성/수정/삭제 이후에도 재사용되므로 별도 함수로 분리해 둔다.
   const fetchQuestReviews = useCallback(async (questId, options = {}) => {
@@ -1019,7 +911,7 @@ function MainPage() {
     };
   }, [finishTopQuestDrag, handleTopQuestPointerMove]);
 
-  // 마커와 오버레이는 퀘스트 목록/선택 상태가 바뀔 때마다 다시 그린다.
+  // 마커와 오버레이는 퀘스트 목록과 선택 상태가 바뀔 때마다 다시 그린다.
   useEffect(() => {
     if (mapStatus !== 'ready' || !mapInstanceRef.current || !window.kakao?.maps) {
       return undefined;
@@ -1186,7 +1078,7 @@ function MainPage() {
     };
   }, [activeQuestId, currentLocation, handleQuestSelect, mapStatus, mapViewportVersion, overlapQuestPicker?.groupId, searchCenter, visibleQuestList]);
 
-  // 상세 패널이 열리면 퀘스트 상세/리뷰를 함께 불러와서 탭 전환 시 즉시 보여준다.
+  // 상세 패널이 열리면 퀘스트 상세와 리뷰를 함께 불러와 탭 전환 시 바로 보여준다.
   useEffect(() => {
     if (!selectedQuest?.questId) {
       return undefined;
@@ -1278,8 +1170,8 @@ function MainPage() {
           <div className="hero-copy">
             <span className="hero-chip">MISSION BASED O2O PLATFORM</span>
             <h1 className="hero-title">
-              <span className="hero-title-line">매일 걷는 그 길이</span>
-              <span className="hero-title-line accent">혜택이 되는 순간</span>
+              <span className="hero-title-line">캐치프라이즈 매일 걷는</span>
+              <span className="hero-title-line accent">그 길이 혜택이 되는 순간</span>
             </h1>
             <p className="hero-description">
               오늘 뭐 먹지? 어디 갈까? 고민은 이제 그만.
@@ -1464,12 +1356,12 @@ function MainPage() {
             aria-label="겹친 퀘스트 선택"
             onClick={(event) => event.stopPropagation()}
           >
-            <strong>퀘스트 선택</strong>
+            <strong>겹친 퀘스트 선택</strong>
             <div className="map-quest-hit-picker-head">
               <div className="map-quest-hit-picker-copy">
                 <span className="map-quest-hit-picker-chip">MULTI QUEST</span>
                 <strong>겹친 퀘스트 선택</strong>
-                <p>같은 위치의 퀘스트가 겹쳐 있어요. 아래에서 원하는 퀘스트를 골라보세요.</p>
+                <p>같은 위치에 퀘스트가 겹쳐 있어요. 아래에서 원하는 퀘스트를 골라보세요.</p>
               </div>
               <button
                 type="button"
@@ -1704,3 +1596,4 @@ function MainPage() {
 }
 
 export default MainPage;
+
