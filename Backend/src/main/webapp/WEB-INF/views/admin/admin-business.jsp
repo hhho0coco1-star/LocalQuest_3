@@ -5,7 +5,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="${path}/css/admin-business.css">
 
-<div class="adm-b-container">
+<div class="adm-b-container"
+    data-current-tab="${currentTab}"
+    data-business-page="${businessCurrentPage}"
+    data-inquiry-page="${inquiryCurrentPage}"
+    data-page-size="${pageSize}"
+    data-user-id="${currentUserId}">
     <div class="adm-b-header">
         <div class="adm-b-title-wrap">
             <h2 class="adm-b-title"><i class="fas fa-map-marked-alt"></i> 매장 관리</h2>
@@ -72,6 +77,22 @@
                 </tbody>
             </table>
         </div>
+
+        <c:if test="${inquiryTotalPages > 1}">
+            <div class="adm-b-pagination">
+                <button type="button" class="adm-b-page-btn"
+                    onclick="goBusinessInquiryPage(${inquiryCurrentPage - 1})"
+                    ${inquiryCurrentPage <= 1 ? 'disabled' : ''}>이전</button>
+                <c:forEach var="pageNumber" begin="${inquiryStartPage}" end="${inquiryEndPage}">
+                    <button type="button"
+                        class="adm-b-page-btn ${pageNumber == inquiryCurrentPage ? 'is-active' : ''}"
+                        onclick="goBusinessInquiryPage(${pageNumber})">${pageNumber}</button>
+                </c:forEach>
+                <button type="button" class="adm-b-page-btn"
+                    onclick="goBusinessInquiryPage(${inquiryCurrentPage + 1})"
+                    ${inquiryCurrentPage >= inquiryTotalPages ? 'disabled' : ''}>다음</button>
+            </div>
+        </c:if>
     </section>
 
     <section class="adm-b-panel ${currentTab == 'business' ? 'active' : ''}" data-panel="business">
@@ -149,6 +170,22 @@
                 </tbody>
             </table>
         </div>
+
+        <c:if test="${businessTotalPages > 1}">
+            <div class="adm-b-pagination">
+                <button type="button" class="adm-b-page-btn"
+                    onclick="goBusinessPage(${businessCurrentPage - 1})"
+                    ${businessCurrentPage <= 1 ? 'disabled' : ''}>이전</button>
+                <c:forEach var="pageNumber" begin="${businessStartPage}" end="${businessEndPage}">
+                    <button type="button"
+                        class="adm-b-page-btn ${pageNumber == businessCurrentPage ? 'is-active' : ''}"
+                        onclick="goBusinessPage(${pageNumber})">${pageNumber}</button>
+                </c:forEach>
+                <button type="button" class="adm-b-page-btn"
+                    onclick="goBusinessPage(${businessCurrentPage + 1})"
+                    ${businessCurrentPage >= businessTotalPages ? 'disabled' : ''}>다음</button>
+            </div>
+        </c:if>
     </section>
 </div>
 

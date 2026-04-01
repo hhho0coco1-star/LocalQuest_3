@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+           "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="businessauthlog_mapper">
+    <insert id="saveBusinessAuthLog" parameterType="com.app.dto.business.BusinessAuthLogItemDTO">
+        <selectKey keyProperty="logId" resultType="int" order="BEFORE">
+            SELECT NVL(MAX(AUTH_LOG_ID), 0) + 1
+            FROM LQ_BUSINESS_AUTH_LOG
+        </selectKey>
+        INSERT INTO LQ_BUSINESS_AUTH_LOG (
+            AUTH_LOG_ID,
+            BUSINESS_ID,
+            LOCATION_ID,
+            USER_ID,
+            AUTH_TYPE,
+            PAYMENT_AMOUNT,
+            SETTLEMENT_AMT,
+            CREATED_AT
+        ) VALUES (
+            #{logId},
+            #{businessId},
+            #{locationId},
+            #{userId},
+            #{authType},
+            NVL(#{paymentAmount}, 0),
+            NVL(#{settlementAmount}, 0),
+            SYSDATE
+        )
+    </insert>
+</mapper>

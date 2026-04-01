@@ -102,4 +102,15 @@ public class UserDAOImpl implements UserDAO {
         return sqlSessionTemplate.selectList("user_mapper.searchUser", searchParams);
     }
 
+    @Override
+    public int countUsers(Map<String, Object> searchParams) {
+        Integer count = sqlSessionTemplate.selectOne("user_mapper.countUsers", searchParams);
+        return count == null ? 0 : count;
+    }
+
+    @Override
+    public List<User> searchUsersPaged(Map<String, Object> searchParams) {
+        return sqlSessionTemplate.selectList("user_mapper.searchUserPaged", searchParams);
+    }
+
 }
