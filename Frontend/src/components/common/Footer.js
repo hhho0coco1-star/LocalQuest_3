@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import LocalQuestLogo from './LocalQuestLogo';
 import { TERMS } from '../../data/termsData';
@@ -227,6 +228,7 @@ const extractRankingRows = (payload) => {
 };
 
 const Footer = () => {
+  const authUser = useSelector((state) => state.auth.user);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalBody, setModalBody] = useState('');
@@ -239,13 +241,15 @@ const Footer = () => {
   const [badgeDexItems, setBadgeDexItems] = useState([]);
   const [isBadgeDexLoading, setIsBadgeDexLoading] = useState(false);
   const [badgeDexErrorMessage, setBadgeDexErrorMessage] = useState('');
+  const normalizedUserRole = String(authUser?.role || 'GUEST').replace(/^ROLE_/, '');
+  const isBusinessUser = normalizedUserRole === 'BUSINESS' || normalizedUserRole === 'ADMIN';
 
   // --- [1. 페이지 경로 설정] ---
   const paths = {
     explore: "/explore",
     partner: "/business/partner",
     guide: "/business/guide",
-    alliance: "/inquiry",
+    alliance: isBusinessUser ? "/business" : "/business/story",
     faq: "/support/faq",
     notice: "/support/notice",
     contact: "/support/contact",
@@ -435,7 +439,7 @@ const Footer = () => {
               <ul className="footer-menu-list">
                 <li><Link to={paths.partner} className="footer-link">파트너 센터</Link></li>
                 <li><Link to={paths.guide} className="footer-link">입점 안내</Link></li>
-                <li><Link to={paths.alliance} className="footer-link">제휴 제안</Link></li>
+                <li><Link to={paths.alliance} className="footer-link">{isBusinessUser ? '비즈니스 관리' : '파트너 스토리'}</Link></li>
               </ul>
             </div>
             <div className="footer-menu-col">

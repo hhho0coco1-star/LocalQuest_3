@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import './PartnerCenterPage.css';
 
@@ -60,6 +61,10 @@ const operationFlow = [
 ];
 
 function PartnerCenterPage() {
+  const authUser = useSelector((state) => state.auth.user);
+  const normalizedUserRole = String(authUser?.role || 'GUEST').replace(/^ROLE_/, '');
+  const isBusinessUser = normalizedUserRole === 'BUSINESS' || normalizedUserRole === 'ADMIN';
+  const primaryCtaTo = isBusinessUser ? '/business' : '/inquiry';
   return (
     <main className="partner-center-page">
       <section className="partner-center-hero">
@@ -72,9 +77,15 @@ function PartnerCenterPage() {
           </p>
 
           <div className="partner-center-cta-row">
-            <Link to="/inquiry" className="partner-center-primary-btn">
+            {isBusinessUser ? (
+              <Link to={primaryCtaTo} className="partner-center-primary-btn">
+                비즈니스 관리하기
+              </Link>
+            ) : (
+              <Link to={primaryCtaTo} className="partner-center-primary-btn">
               파트너 상담 신청하기
-            </Link>
+              </Link>
+            )}
             <Link to="/business/guide" className="partner-center-secondary-btn">
               입점 절차 먼저 보기
             </Link>
@@ -154,9 +165,15 @@ function PartnerCenterPage() {
         </div>
 
         <div className="partner-center-banner-actions">
-          <Link to="/inquiry" className="partner-center-banner-primary">
+          {isBusinessUser ? (
+            <Link to={primaryCtaTo} className="partner-center-banner-primary">
+              비즈니스 관리하기
+            </Link>
+          ) : (
+            <Link to={primaryCtaTo} className="partner-center-banner-primary">
             상담 신청
-          </Link>
+            </Link>
+          )}
           <Link to="/business/guide" className="partner-center-banner-secondary">
             입점 안내 보기
           </Link>

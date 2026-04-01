@@ -7,15 +7,43 @@ import './BusinessInquiryPage.css';
 const POSTCODE_SCRIPT_SRC = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
 const KAKAO_MAP_SCRIPT_ATTR = 'data-business-inquiry-kakao';
 const POSTCODE_SCRIPT_ATTR = 'data-business-inquiry-postcode';
+const BUSINESS_INQUIRY_PENDING_USER_KEY = 'localquest_business_inquiry_pending_user_id';
+
+const safeWriteBrowserStorage = (key, value) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (error) {
+    // ignore browser storage errors
+  }
+};
 
 const INITIAL_FORM = {
   title: '',
   content: '',
+  phone: '',
   zipCode: '',
   address: '',
   addressDetail: '',
   latitude: '',
   longitude: '',
+};
+
+const formatPhoneNumber = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+
+  if (digits.length <= 3) {
+    return digits;
+  }
+
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+
+  return `${digits.slice(0, 3)}-${digits.slice(3, digits.length === 10 ? 6 : 7)}-${digits.slice(digits.length === 10 ? 6 : 7)}`;
 };
 
 const loadScript = (src, attributeName) =>
@@ -136,7 +164,7 @@ function BusinessInquiryPage() {
     const { name, value } = event.target;
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'phone' ? formatPhoneNumber(value) : value,
     }));
   };
 
@@ -215,6 +243,7 @@ function BusinessInquiryPage() {
 
     const trimmedTitle = form.title.trim();
     const trimmedContent = form.content.trim();
+    const trimmedPhone = form.phone.trim();
     const trimmedZipCode = form.zipCode.trim();
     const trimmedAddress = form.address.trim();
     const trimmedAddressDetail = form.addressDetail.trim();
@@ -223,6 +252,11 @@ function BusinessInquiryPage() {
 
     if (!trimmedTitle || !trimmedContent) {
       setSubmitError('상담 제목과 내용을 모두 입력해주세요.');
+      return;
+    }
+
+    if (!/^01\d-\d{3,4}-\d{4}$/.test(trimmedPhone)) {
+      setSubmitError('휴대폰번호를 정확히 입력해주세요.');
       return;
     }
 
@@ -245,6 +279,7 @@ function BusinessInquiryPage() {
         userId: authUser.userId,
         title: trimmedTitle,
         content: trimmedContent,
+        phone: trimmedPhone,
         zipCode: trimmedZipCode,
         address: trimmedAddress,
         addressDetail: trimmedAddressDetail,
@@ -252,6 +287,10 @@ function BusinessInquiryPage() {
         longitude,
         locationType: 'ROAD_ADDRESS',
       });
+
+      if (typeof window !== 'undefined' && Number(authUser?.userId) > 0) {
+        safeWriteBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY, String(authUser.userId));
+      }
 
       setForm(INITIAL_FORM);
       setSubmitMessage('비즈니스 상담 신청이 등록되었습니다. 관리자가 확인 후 순차적으로 연락드릴 예정입니다.');
@@ -327,6 +366,21 @@ function BusinessInquiryPage() {
             placeholder="매장 소개, 상담 요청 내용, 기대 효과 등을 자세히 작성해주세요."
             value={form.content}
             onChange={handleChange}
+          />
+
+          <label className="business-inquiry-label" htmlFor="business-inquiry-phone">
+            휴대폰번호
+          </label>
+          <input
+            id="business-inquiry-phone"
+            name="phone"
+            type="text"
+            inputMode="tel"
+            className="business-inquiry-input"
+            placeholder="010-1234-5678"
+            value={form.phone}
+            onChange={handleChange}
+            maxLength={13}
           />
 
           <div className="business-inquiry-address-head">

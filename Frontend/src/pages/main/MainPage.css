@@ -1604,6 +1604,15 @@
   box-shadow: 0 20px 36px rgba(15, 18, 29, 0.18);
 }
 
+.partner-cta-btn.is-disabled,
+.partner-cta-btn:disabled {
+  background: rgba(255, 255, 255, 0.72);
+  color: #4a5368;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
