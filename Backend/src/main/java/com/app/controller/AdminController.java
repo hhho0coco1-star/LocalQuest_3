@@ -1186,11 +1186,25 @@ public class AdminController {
                 return "fail:user_id_invalid";
             }
 
+            BusinessInquiryDTO linkedInquiry = null;
+            if (business.getBusinessId() == 0 && inquiryId != null && inquiryId > 0) {
+                linkedInquiry = businessInquiryService.getBusinessInquiryById(inquiryId);
+                if (linkedInquiry == null || linkedInquiry.getUserId() <= 0) {
+                    return "fail:inquiry_not_found";
+                }
+                // 계약 수락 시에는 문의를 신청한 회원 계정으로 비즈니스를 귀속한다.
+                business.setUserId(linkedInquiry.getUserId());
+            }
+
             boolean result;
             if (business.getBusinessId() == 0) {
                 result = businessService.registerBusiness(business);
-                if (result && inquiryId != null && inquiryId > 0) {
-                    businessInquiryService.updateBusinessInquiryStatus(inquiryId, "ANSWERED");
+                if (result && linkedInquiry != null) {
+                    boolean inquiryUpdated = businessInquiryService.updateBusinessInquiryStatus(inquiryId, "ANSWERED");
+                    boolean roleUpdated = userService.changeUserRole(linkedInquiry.getUserId(), "BUSINESS");
+                    if (!inquiryUpdated || !roleUpdated) {
+                        return "fail:inquiry_or_role_update";
+                    }
                 }
             } else {
                 result = businessService.updateBusiness(business);
