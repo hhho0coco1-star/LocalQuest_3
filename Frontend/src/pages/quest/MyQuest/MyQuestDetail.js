@@ -1,6 +1,7 @@
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
+import jsQR from 'jsqr';
 import { questApi } from '../../../api/QuestApi';
 import { hasValidCoordinates, loadKakaoMapSdk } from '../../../utils/kakaoMap';
 import '../QuestDetail/QuestDetail.css';
@@ -13,6 +14,7 @@ const QR_SCANNER_MESSAGES = {
   unsupported: '이 브라우저에서는 자동 QR 인식을 사용할 수 없습니다.',
   noCamera: '이 기기에서는 카메라를 사용할 수 없습니다.',
   denied: '카메라 권한이 없어 QR을 읽을 수 없습니다.',
+  insecure: '모바일 카메라는 HTTPS 또는 localhost 환경에서만 사용할 수 있습니다.',
   error: '카메라를 시작하지 못했습니다.',
   scanned: 'QR을 확인했어요. 바로 인증할게요.',
   verifying: 'QR을 확인했어요. 인증 중이에요.',
@@ -458,6 +460,19 @@ function MyQuestDetail() {
     let isCancelled = false;
 
     const startQrScanner = async () => {
+      const hostname = window.location.hostname;
+      const isLocalhost =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1';
+
+      if (!window.isSecureContext && !isLocalhost) {
+        setScannerStatus('error');
+        setScannerMessage(QR_SCANNER_MESSAGES.insecure);
+        setIsScannerActive(false);
+        return;
+      }
+
       if (!navigator.mediaDevices?.getUserMedia) {
         setScannerStatus('noCamera');
         setScannerMessage(QR_SCANNER_MESSAGES.noCamera);
@@ -500,12 +515,6 @@ function MyQuestDetail() {
           await qrVideoRef.current.play();
         }
 
-        if (!detector) {
-          setScannerStatus('unsupported');
-          setScannerMessage(QR_SCANNER_MESSAGES.unsupported);
-          return;
-        }
-
         setScannerStatus('ready');
         setScannerMessage(QR_SCANNER_MESSAGES.ready);
 
@@ -519,8 +528,23 @@ function MyQuestDetail() {
           }
 
           try {
-            const codes = await detector.detect(video);
-            const detectedValue = codes.find((code) => code.rawValue)?.rawValue?.trim();
+            let detectedValue = '';
+
+            if (detector) {
+              const codes = await detector.detect(video);
+              detectedValue = codes.find((code) => code.rawValue)?.rawValue?.trim() || '';
+            } else {
+              const canvas = qrCanvasRef.current;
+              const context = canvas?.getContext('2d', { willReadFrequently: true });
+
+              if (canvas && context && video.videoWidth > 0 && video.videoHeight > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                detectedValue = jsQR(imageData.data, imageData.width, imageData.height)?.data?.trim() || '';
+              }
+            }
 
             if (detectedValue) {
               setQrAuthKey(detectedValue);
@@ -533,6 +557,11 @@ function MyQuestDetail() {
               return;
             }
           } catch (scanError) {
+            if (!detector) {
+              qrScanFrameRef.current = window.requestAnimationFrame(scanFrame);
+              return;
+            }
+
             const canvas = qrCanvasRef.current;
             const context = canvas?.getContext('2d', { willReadFrequently: true });
 
@@ -880,7 +909,14 @@ function MyQuestDetail() {
               {qrError ? <p className="my-quest-receipt-error">{qrError}</p> : null}
               <div className="my-quest-receipt-actions">
                 <button type="button" className="my-quest-receipt-cancel" onClick={() => closeQrModal()} disabled={isSubmittingQr}>취소</button>
-                <button type="submit" className="my-quest-receipt-submit" disabled={isSubmittingQr}>{isSubmittingQr ? '확인 중...' : 'QR 인증하기'}</button>
+                <button
+                  type="button"
+                  className="my-quest-receipt-submit"
+                  onClick={() => submitQrVerification(qrAuthKey)}
+                  disabled={isSubmittingQr || !qrAuthKey.trim()}
+                >
+                  {isSubmittingQr ? '확인 중...' : 'QR 인증하기'}
+                </button>
               </div>
             </div>
           </div>
