@@ -17,6 +17,7 @@ const HUMAN_CENTER_FALLBACK = {
   lat: 36.81511,
   lng: 127.11389,
 };
+const USE_FIXED_DEV_LOCATION = process.env.NODE_ENV === 'development';
 
 function safeReadBrowserStorage(key) {
   if (typeof window === 'undefined') {
@@ -763,6 +764,14 @@ function MainPage() {
         'fallback'
       );
     };
+
+    if (USE_FIXED_DEV_LOCATION) {
+      applyFallbackCenter();
+
+      return () => {
+        isCancelled = true;
+      };
+    }
 
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(

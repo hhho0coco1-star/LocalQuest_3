@@ -21,9 +21,11 @@ const QR_SCANNER_MESSAGES = {
 };
 const GPS_FALLBACK_LOCATION = {
   name: '대흥로 215',
-  latitude: 36.80740752813,
-  longitude: 127.147164,
+  latitude: 36.81511,
+  longitude: 127.11389,
 };
+
+const USE_FIXED_DEV_LOCATION = process.env.NODE_ENV === 'development';
 
 const getDifficultyText = (rewardExp) => {
   if (rewardExp >= 300) return '어려움';
@@ -87,6 +89,14 @@ const canVerifyLocationInOrder = (locations, targetLocation) => {
 };
 
 const getGpsPositionWithFallback = async () => {
+  if (USE_FIXED_DEV_LOCATION) {
+    return {
+      latitude: GPS_FALLBACK_LOCATION.latitude,
+      longitude: GPS_FALLBACK_LOCATION.longitude,
+      usedFallback: true,
+    };
+  }
+
   if (!navigator.geolocation) {
     return {
       latitude: GPS_FALLBACK_LOCATION.latitude,
