@@ -228,6 +228,31 @@ public class RewardServiceImpl implements RewardService {
 		return result;
 	}
 
+	@Override
+	@Transactional
+	public void useRewardCoupon(int userId, long exchangeId) {
+		if (userId <= 0 || exchangeId <= 0) {
+			throw new IllegalArgumentException("잘못된 쿠폰 사용 요청입니다.");
+		}
+
+		User user = rewardDAO.findActiveUserByUserId(userId);
+		if (user == null) {
+			throw new NoSuchElementException("사용자 정보를 찾을 수 없습니다.");
+		}
+
+		int updatedCount = rewardDAO.markRewardCouponUsed(userId, exchangeId);
+		if (updatedCount == 1) {
+			return;
+		}
+
+		int ownedCouponCount = rewardDAO.countRewardExchangeByUserIdAndExchangeId(userId, exchangeId);
+		if (ownedCouponCount <= 0) {
+			throw new NoSuchElementException("사용 가능한 쿠폰 정보를 찾을 수 없습니다.");
+		}
+
+		throw new IllegalStateException("이미 사용했거나 만료된 쿠폰입니다.");
+	}
+
 	private RewardWeeklyStats createEmptyWeeklyStats() {
 		RewardWeeklyStats stats = new RewardWeeklyStats();
 		stats.setQuestDone(0);

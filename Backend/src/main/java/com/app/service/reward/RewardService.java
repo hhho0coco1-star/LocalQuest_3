@@ -21,5 +21,7 @@ public interface RewardService {
 
 	RewardExchangeResultDTO exchangeReward(int userId, long rewardItemId);
 
+	void useRewardCoupon(int userId, long exchangeId);
+
 	List<RewardBadgeDTO> getRewardBadges(String nickname);
 }

@@ -392,6 +392,24 @@
 		)
 	</insert>
 
+	<select id="countRewardExchangeByUserIdAndExchangeId" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM LQ_REWARD_EXCHANGE
+		WHERE USER_ID = #{userId}
+		  AND EXCHANGE_ID = #{exchangeId}
+	</select>
+
+	<update id="markRewardCouponUsed" parameterType="map">
+		UPDATE LQ_REWARD_EXCHANGE
+		SET STATUS = 'USED',
+			USED_AT = SYSDATE
+		WHERE USER_ID = #{userId}
+		  AND EXCHANGE_ID = #{exchangeId}
+		  AND (STATUS IS NULL OR UPPER(STATUS) = 'EXCHANGED')
+		  AND USED_AT IS NULL
+		  AND (EXPIRED_AT IS NULL OR <![CDATA[ TRUNC(EXPIRED_AT) >= TRUNC(SYSDATE) ]]>)
+	</update>
+
 	<insert id="insertPointHistory" parameterType="map">
 		INSERT INTO LQ_POINT_HISTORY (
 			POINT_HISTORY_ID,
