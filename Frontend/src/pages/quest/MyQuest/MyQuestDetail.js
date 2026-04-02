@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import jsQR from 'jsqr';
 import { questApi } from '../../../api/QuestApi';
-import { hasValidCoordinates, loadKakaoMapSdk } from '../../../utils/kakaoMap';
+import { hasValidCoordinates, loadKakaoMapSdk, resolveKakaoAddress } from '../../../utils/kakaoMap';
 import '../QuestDetail/QuestDetail.css';
 import './MyQuestDetail.css';
 
@@ -20,12 +20,13 @@ const QR_SCANNER_MESSAGES = {
   verifying: 'QR을 확인했어요. 인증 중이에요.',
 };
 const GPS_FALLBACK_LOCATION = {
-  name: '대흥로 215',
-  latitude: 36.81511,
-  longitude: 127.11389,
+  name: '충남 천안시 동남구 대흥로 215, 7층',
+  latitude: 36.8941482,
+  longitude: 127.1392203,
 };
 
-const USE_FIXED_DEV_LOCATION = process.env.NODE_ENV === 'development';
+const FIXED_CURRENT_LOCATION_ADDRESSES = ['충남 천안시 동남구 대흥동 134', '충남 천안시 동남구 대흥로 215'];
+const USE_FIXED_CURRENT_LOCATION = true;
 
 const getDifficultyText = (rewardExp) => {
   if (rewardExp >= 300) return '어려움';
@@ -88,13 +89,32 @@ const canVerifyLocationInOrder = (locations, targetLocation) => {
   });
 };
 
-const getGpsPositionWithFallback = async () => {
-  if (USE_FIXED_DEV_LOCATION) {
-    return {
-      latitude: GPS_FALLBACK_LOCATION.latitude,
-      longitude: GPS_FALLBACK_LOCATION.longitude,
-      usedFallback: true,
-    };
+const getFixedCurrentLocation = async (kakaoMapKey) => {
+  try {
+    const kakao = await loadKakaoMapSdk(kakaoMapKey, { libraries: 'services' });
+    const resolved = await resolveKakaoAddress(kakao, FIXED_CURRENT_LOCATION_ADDRESSES);
+
+    if (resolved) {
+      return {
+        latitude: resolved.latitude,
+        longitude: resolved.longitude,
+        usedFallback: true,
+      };
+    }
+  } catch (error) {
+    // fall back to the configured coordinates below
+  }
+
+  return {
+    latitude: GPS_FALLBACK_LOCATION.latitude,
+    longitude: GPS_FALLBACK_LOCATION.longitude,
+    usedFallback: true,
+  };
+};
+
+const getGpsPositionWithFallback = async (kakaoMapKey) => {
+  if (USE_FIXED_CURRENT_LOCATION) {
+    return getFixedCurrentLocation(kakaoMapKey);
   }
 
   if (!navigator.geolocation) {
@@ -397,7 +417,7 @@ function MyQuestDetail() {
 
     try {
       setIsSubmittingGps(true);
-      const position = await getGpsPositionWithFallback();
+      const position = await getGpsPositionWithFallback(kakaoMapKey);
 
       const response = await questApi.verifyQuestGps(
         userQuestId,

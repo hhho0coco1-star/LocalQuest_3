@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { businessInquiryApi } from '../../api/BusinessInquiryApi';
 import { questApi } from '../../api/QuestApi';
+import { resolveKakaoAddress } from '../../utils/kakaoMap';
 import './MainPage.css';
 
 const LOCATION_CONSENT_KEY = 'localquest_location_consent';
@@ -11,13 +12,14 @@ const MAX_ACCEPTABLE_GEOLOCATION_ACCURACY_METERS = 300;
 const DEFAULT_MAP_LEVEL = 5;
 const CURRENT_LOCATION_MARKER_COLOR = '#5d7cff';
 const QUEST_MARKER_COLOR = '#e25068';
-const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥로 215';
+const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥동 134';
+const HUMAN_CENTER_ROAD_ADDRESS = '충남 천안시 동남구 대흥로 215';
 const BUSINESS_INQUIRY_PENDING_USER_KEY = 'localquest_business_inquiry_pending_user_id';
 const HUMAN_CENTER_FALLBACK = {
-  lat: 36.81511,
-  lng: 127.11389,
+  lat: 36.8941482,
+  lng: 127.1392203,
 };
-const USE_FIXED_DEV_LOCATION = process.env.NODE_ENV === 'development';
+const USE_FIXED_CURRENT_LOCATION = true;
 
 function safeReadBrowserStorage(key) {
   if (typeof window === 'undefined') {
@@ -765,8 +767,37 @@ function MainPage() {
       );
     };
 
-    if (USE_FIXED_DEV_LOCATION) {
-      applyFallbackCenter();
+    if (USE_FIXED_CURRENT_LOCATION) {
+      const resolveFixedCenter = async () => {
+        try {
+          const resolved = await resolveKakaoAddress(window.kakao, [
+            HUMAN_CENTER_ADDRESS,
+            HUMAN_CENTER_ROAD_ADDRESS,
+          ]);
+
+          if (isCancelled) {
+            return;
+          }
+
+          if (resolved) {
+            applyInitialCenter(
+              resolved.latitude,
+              resolved.longitude,
+              HUMAN_CENTER_ADDRESS,
+              'fixed'
+            );
+            return;
+          }
+        } catch (error) {
+          // fall back to the configured coordinates below
+        }
+
+        if (!isCancelled) {
+          applyFallbackCenter();
+        }
+      };
+
+      resolveFixedCenter();
 
       return () => {
         isCancelled = true;
