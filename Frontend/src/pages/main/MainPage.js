@@ -7,6 +7,7 @@ import './MainPage.css';
 
 const LOCATION_CONSENT_KEY = 'localquest_location_consent';
 const QUEST_SEARCH_RADIUS_METERS = 3000;
+const MAX_ACCEPTABLE_GEOLOCATION_ACCURACY_METERS = 300;
 const DEFAULT_MAP_LEVEL = 5;
 const CURRENT_LOCATION_MARKER_COLOR = '#5d7cff';
 const QUEST_MARKER_COLOR = '#e25068';
@@ -732,7 +733,7 @@ function MainPage() {
     let isCancelled = false;
     const map = mapInstanceRef.current;
 
-    const applyInitialCenter = (lat, lng, label = '현재 위치') => {
+    const applyInitialCenter = (lat, lng, label = '현재 위치', mode = 'current') => {
       if (isCancelled || !window.kakao?.maps?.LatLng) {
         return;
       }
@@ -750,12 +751,17 @@ function MainPage() {
       setCurrentLocation(nextCurrentLocation);
       setSearchCenter({
         ...nextCurrentLocation,
-        mode: 'current',
+        mode,
       });
     };
 
     const applyFallbackCenter = () => {
-      applyInitialCenter(HUMAN_CENTER_FALLBACK.lat, HUMAN_CENTER_FALLBACK.lng, HUMAN_CENTER_ADDRESS);
+      applyInitialCenter(
+        HUMAN_CENTER_FALLBACK.lat,
+        HUMAN_CENTER_FALLBACK.lng,
+        HUMAN_CENTER_ADDRESS,
+        'fallback'
+      );
     };
 
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -765,7 +771,18 @@ function MainPage() {
             return;
           }
 
-          applyInitialCenter(position.coords.latitude, position.coords.longitude);
+          const accuracy = Number(position?.coords?.accuracy);
+          const hasAcceptableAccuracy =
+            Number.isFinite(accuracy) &&
+            accuracy > 0 &&
+            accuracy <= MAX_ACCEPTABLE_GEOLOCATION_ACCURACY_METERS;
+
+          if (!hasAcceptableAccuracy) {
+            applyFallbackCenter();
+            return;
+          }
+
+          applyInitialCenter(position.coords.latitude, position.coords.longitude, '현재 위치', 'current');
         },
         () => {
           if (!isCancelled) {
