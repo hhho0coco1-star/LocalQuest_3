@@ -27,6 +27,10 @@ function BusinessPage() {
     addressDetail: '',
     description: ''
   });
+  const [couponSummary, setCouponSummary] = useState({
+    requestedCount: 0,
+    runningCount: 0
+  });
   const { toastMessage, showToast } = useBusinessToast();
   const {
     loading,
@@ -48,13 +52,21 @@ function BusinessPage() {
   const {
     proposedCoupons,
     activeCoupons,
-    proposedCouponCount,
-    runningCouponCount,
     acceptCoupon,
     holdCoupon,
     pauseCoupon,
     resumeCoupon
   } = useBusinessCoupons(showToast);
+
+  const proposedCouponCount = couponSummary.requestedCount;
+  const runningCouponCount = couponSummary.runningCount;
+
+  const handleCouponSummaryChange = useCallback((summary) => {
+    setCouponSummary({
+      requestedCount: Math.max(0, Number(summary?.requestedCount || 0)),
+      runningCount: Math.max(0, Number(summary?.runningCount || 0))
+    });
+  }, []);
 
   const handleDownloadQr = useCallback(() => {
     if (!qrImageSrc) {
@@ -221,7 +233,7 @@ function BusinessPage() {
               onPauseCoupon={pauseCoupon}
               onResumeCoupon={resumeCoupon}
             />
-            <BusinessCouponRequestPanel />
+            <BusinessCouponRequestPanel onSummaryChange={handleCouponSummaryChange} />
           </>
         )}
       </section>
