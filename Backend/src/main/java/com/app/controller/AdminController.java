@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.app.auth.SessionAuthKeys;
 import com.app.dto.business.BusinessDTO;
+import com.app.dto.businesscouponrequest.BusinessCouponRequestDTO;
 import com.app.dto.businessinquiry.BusinessInquiryDTO;
 import com.app.dto.faq.FaqDTO;
 import com.app.dto.inquiry.InquiryDTO;
@@ -31,6 +35,7 @@ import com.app.dto.quest.QuestLocationInfoDTO;
 import com.app.dto.reward.RewardItemDTO;
 import com.app.dto.user.User;
 import com.app.service.business.BusinessService;
+import com.app.service.businesscouponrequest.BusinessCouponRequestService;
 import com.app.service.businessinquiry.BusinessInquiryService;
 import com.app.service.faq.FaqService;
 import com.app.service.inquiry.InquiryService;
@@ -46,6 +51,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+    private static final int ADMIN_USER_PAGE_SIZE = 30;
+    private static final int ADMIN_USER_PAGE_BUTTON_COUNT = 5;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 	
@@ -63,6 +70,9 @@ public class AdminController {
 	
 	@Autowired
 	private BusinessService businessService;
+
+	@Autowired
+	private BusinessCouponRequestService businessCouponRequestService;
 
 	@Autowired
 	private BusinessInquiryService businessInquiryService;
@@ -90,11 +100,14 @@ public class AdminController {
 	public String noticeAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "pinned", required = false) Integer pinned,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    Integer normalizedPinned = (pinned != null && (pinned == 0 || pinned == 1)) ? pinned : null;
 	    List<NoticeDTO> noticeList = Collections.emptyList();
 	    String noticeLoadError = null;
+	    int normalizedSize = normalizeAdminPageSize(size);
 
 	    try {
 	        List<NoticeDTO> allNoticeList = noticeService.findNoticeList();
@@ -134,10 +147,23 @@ public class AdminController {
 	        e.printStackTrace();
 	    }
 
-	    model.addAttribute("noticeList", noticeList);
+	    int totalCount = noticeList.size();
+	    int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+	    int currentPage = Math.min(Math.max(page, 1), totalPages);
+	    int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+	    int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+	    List<NoticeDTO> pagedNoticeList = paginateAdminList(noticeList, currentPage, normalizedSize);
+
+	    model.addAttribute("noticeList", pagedNoticeList);
 	    model.addAttribute("noticeLoadError", noticeLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentPinned", normalizedPinned);
+	    model.addAttribute("currentPage", currentPage);
+	    model.addAttribute("pageSize", normalizedSize);
+	    model.addAttribute("totalCount", totalCount);
+	    model.addAttribute("totalPages", totalPages);
+	    model.addAttribute("startPage", startPage);
+	    model.addAttribute("endPage", endPage);
 	    return "admin/admin-notice";
 	}
 
@@ -164,12 +190,15 @@ public class AdminController {
 	public String faqAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "category", required = false) String category,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    String normalizedCategory = (category != null && !category.trim().isEmpty()) ? category.trim() : null;
 	    List<FaqDTO> faqList = Collections.emptyList();
 	    List<String> faqCategoryOptions = new ArrayList<>();
 	    String faqLoadError = null;
+	    int normalizedSize = normalizeAdminPageSize(size);
 
 	    try {
 	        List<FaqDTO> allFaqList = faqService.findAllFaq();
@@ -215,11 +244,24 @@ public class AdminController {
 	        e.printStackTrace();
 	    }
 
-	    model.addAttribute("faqList", faqList);
+	    int totalCount = faqList.size();
+	    int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+	    int currentPage = Math.min(Math.max(page, 1), totalPages);
+	    int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+	    int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+	    List<FaqDTO> pagedFaqList = paginateAdminList(faqList, currentPage, normalizedSize);
+
+	    model.addAttribute("faqList", pagedFaqList);
 	    model.addAttribute("faqCategoryOptions", faqCategoryOptions);
 	    model.addAttribute("faqLoadError", faqLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentCategory", normalizedCategory);
+	    model.addAttribute("currentPage", currentPage);
+	    model.addAttribute("pageSize", normalizedSize);
+	    model.addAttribute("totalCount", totalCount);
+	    model.addAttribute("totalPages", totalPages);
+	    model.addAttribute("startPage", startPage);
+	    model.addAttribute("endPage", endPage);
 	    return "admin/admin-faq";
 	}
 
@@ -247,7 +289,8 @@ public class AdminController {
 	public String inquiryAdmin(
 	        @RequestParam(value = "keyword", required = false) String keyword,
 	        @RequestParam(value = "status", required = false) String status,
-	        @RequestParam(value = "userId", required = false) Integer userId,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    String normalizedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 	    String normalizedStatusCandidate = (status != null) ? status.trim() : null;
@@ -255,14 +298,13 @@ public class AdminController {
 	            && InquiryStatus.ADMIN_SEARCH_STATUSES.contains(normalizedStatusCandidate))
 	            ? normalizedStatusCandidate
 	            : null;
-	    Integer normalizedUserId = (userId != null && userId > 0) ? userId : null;
 	    List<InquiryDTO> inquiryList = Collections.emptyList();
 	    String inquiryLoadError = null;
 	    Map<String, Object> inquiryParams = new HashMap<>();
+	    int normalizedSize = normalizeAdminPageSize(size);
 
 	    inquiryParams.put("keyword", normalizedKeyword);
 	    inquiryParams.put("status", normalizedStatus);
-	    inquiryParams.put("userId", normalizedUserId);
 
 	    try {
 	        inquiryList = inquiryService.findAdminInquiryList(inquiryParams);
@@ -271,12 +313,24 @@ public class AdminController {
 	        e.printStackTrace();
 	    }
 
+	    int totalCount = inquiryList.size();
+	    int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+	    int currentPage = Math.min(Math.max(page, 1), totalPages);
+	    int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+	    int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+	    List<InquiryDTO> pagedInquiryList = paginateAdminList(inquiryList, currentPage, normalizedSize);
+
 	    model.addAttribute("statusOptions", InquiryStatus.ADMIN_SEARCH_STATUSES);
-	    model.addAttribute("inquiryList", inquiryList);
+	    model.addAttribute("inquiryList", pagedInquiryList);
 	    model.addAttribute("inquiryLoadError", inquiryLoadError);
 	    model.addAttribute("currentKeyword", normalizedKeyword);
 	    model.addAttribute("currentStatus", normalizedStatus);
-	    model.addAttribute("currentUserId", normalizedUserId);
+	    model.addAttribute("currentPage", currentPage);
+	    model.addAttribute("pageSize", normalizedSize);
+	    model.addAttribute("totalCount", totalCount);
+	    model.addAttribute("totalPages", totalPages);
+	    model.addAttribute("startPage", startPage);
+	    model.addAttribute("endPage", endPage);
 	    return "admin/admin-qna-manage-v3";
 	}
 
@@ -340,13 +394,12 @@ public class AdminController {
 	        @RequestParam(value="sort", defaultValue="DESC") String sort,
 	        @RequestParam(value="type", required=false) String type,
 	        @RequestParam(value="keyword", required=false) String keyword,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
 	    
 	    // Service에서 정렬과 검색을 함께 처리합니다.
-	    List<User> userList = userService.searchUsers(type, keyword, sort);
-	    model.addAttribute("userList", userList);
-	    
-	    return "admin/admin-user"; 
+	    return renderAdminUserList(sort, type, keyword, page, size, model); 
 	}
 
 	// 2. 회원 검색
@@ -354,21 +407,81 @@ public class AdminController {
 	public String searchUsers(
 	        @RequestParam("type") String type, 
 	        @RequestParam("keyword") String keyword, 
-	        @RequestParam(value="sort", defaultValue="DESC") String sort, // 정렬 파라미터
+	        @RequestParam(value="sort", defaultValue="DESC") String sort,
+	        @RequestParam(value="page", defaultValue="1") int page,
+	        @RequestParam(value="size", defaultValue="30") int size,
 	        Model model) {
-	    
-	    // 검색 메서드는 type, keyword, sort 세 가지 값을 받습니다.
-	    List<User> searchList = userService.searchUsers(type, keyword, sort);
-	    
-	    model.addAttribute("userList", searchList);
-	    model.addAttribute("searchType", type);
-	    model.addAttribute("keyword", keyword);
-	    model.addAttribute("sort", sort);
-	    
-	    return "admin/admin-user";
+
+	    return renderAdminUserList(sort, type, keyword, page, size, model);
 	}
     
     // 회원 정보 권한 변경
+    private String renderAdminUserList(
+        String sort,
+        String type,
+        String keyword,
+        int page,
+        int size,
+        Model model
+    ) {
+        String normalizedSort = "ASC".equalsIgnoreCase(sort) ? "ASC" : "DESC";
+        String normalizedType = normalizeAdminUserSearchType(type);
+        String normalizedKeyword = normalizeAdminKeyword(keyword);
+        int normalizedSize = size > 0 ? size : ADMIN_USER_PAGE_SIZE;
+        int totalCount = userService.countUsers(normalizedType, normalizedKeyword);
+        int totalPages = totalCount <= 0 ? 1 : (int) Math.ceil((double) totalCount / normalizedSize);
+        int currentPage = Math.min(Math.max(page, 1), totalPages);
+        int startPage = ((currentPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+        int endPage = Math.min(startPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalPages);
+        List<User> userList = totalCount <= 0
+            ? Collections.emptyList()
+            : userService.searchUsersPaged(normalizedType, normalizedKeyword, normalizedSort, currentPage, normalizedSize);
+
+        model.addAttribute("userList", userList);
+        model.addAttribute("searchType", normalizedType);
+        model.addAttribute("keyword", normalizedKeyword);
+        model.addAttribute("sort", normalizedSort);
+        model.addAttribute("currentPage", currentPage);
+        model.addAttribute("pageSize", normalizedSize);
+        model.addAttribute("totalCount", totalCount);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("startPage", startPage);
+        model.addAttribute("endPage", endPage);
+        return "admin/admin-user";
+    }
+
+    private String normalizeAdminUserSearchType(String type) {
+        if ("userLoginId".equals(type) || "name".equals(type) || "nickname".equals(type)) {
+            return type;
+        }
+        return "userLoginId";
+    }
+
+    private String normalizeAdminKeyword(String keyword) {
+        if (keyword == null) {
+            return "";
+        }
+        return keyword.trim();
+    }
+
+    private int normalizeAdminPageSize(int size) {
+        return size > 0 ? size : ADMIN_USER_PAGE_SIZE;
+    }
+
+    private <T> List<T> paginateAdminList(List<T> sourceList, int currentPage, int pageSize) {
+        if (sourceList == null || sourceList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        int fromIndex = Math.max((currentPage - 1) * pageSize, 0);
+        if (fromIndex >= sourceList.size()) {
+            return Collections.emptyList();
+        }
+
+        int toIndex = Math.min(fromIndex + pageSize, sourceList.size());
+        return sourceList.subList(fromIndex, toIndex);
+    }
+
     @PostMapping("/users/updateRole")
     @ResponseBody
     public String updateRole(@RequestParam int userId, @RequestParam String role) {
@@ -579,19 +692,26 @@ public class AdminController {
     @GetMapping("/locations/search")
     @ResponseBody
     public List<Map<String, Object>> searchLocations(
-        @RequestParam(value = "keyword", required = false) String keyword) {
+        @RequestParam(value = "keyword", required = false) String keyword,
+        @RequestParam(value = "businessOnly", defaultValue = "false") boolean businessOnly) {
         try {
             List<LocationDTO> locations = locationService.searchLocations(keyword);
             List<Map<String, Object>> response = new java.util.ArrayList<>();
+            Map<Integer, String> businessNameCache = new HashMap<>();
 
             for (LocationDTO location : locations) {
                 if (location == null) {
                     continue;
                 }
 
+                Integer businessId = location.getBusinessId();
+                if (businessOnly && (businessId == null || businessId.intValue() <= 0)) {
+                    continue;
+                }
+
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("locationId", location.getLocationId());
-                item.put("businessId", location.getBusinessId());
+                item.put("businessId", businessId);
                 item.put("name", location.getName());
                 item.put("zipCode", location.getZipCode());
                 item.put("address", location.getAddress());
@@ -600,6 +720,7 @@ public class AdminController {
                 item.put("longitude", location.getLongitude());
                 item.put("locationType", location.getLocationType());
                 item.put("description", location.getDescription());
+                item.put("businessName", resolveBusinessNameForLocation(businessId, businessNameCache));
                 response.add(item);
             }
 
@@ -865,23 +986,48 @@ public class AdminController {
      */
     @GetMapping("/shop")
     public String itemList(
+            @RequestParam(value = "tab", required = false) String tab,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "requestStatus", required = false) String requestStatus,
+            @RequestParam(value = "requestKeyword", required = false) String requestKeyword,
             Model model) {
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("status", (status != null && !status.isEmpty()) ? status : null);
-        params.put("keyword", (keyword != null && !keyword.isEmpty()) ? keyword : null);
+        String currentTab = normalizeRewardAdminTab(tab);
+        String normalizedStatus = normalizeNullable(status);
+        String normalizedKeyword = normalizeNullable(keyword);
+        String normalizedRequestStatus = normalizeNullable(requestStatus);
+        String normalizedRequestKeyword = normalizeNullable(requestKeyword);
 
-        // 서비스 조회
-        List<RewardItemDTO> itemList = rewardItemService.getSearchItems(params);
+        Map<String, Object> itemParams = new HashMap<>();
+        itemParams.put("status", normalizedStatus);
+        itemParams.put("keyword", normalizedKeyword);
+
+        Map<String, Object> requestParams = new HashMap<>();
+        requestParams.put("requestStatus", normalizedRequestStatus);
+        requestParams.put("keyword", normalizedRequestKeyword);
+
+        List<RewardItemDTO> itemList = rewardItemService.getSearchItems(itemParams);
+        List<BusinessCouponRequestDTO> requestList = businessCouponRequestService.getBusinessCouponRequestList(requestParams);
+
+        if (itemList == null) {
+            itemList = Collections.emptyList();
+        }
+        if (requestList == null) {
+            requestList = Collections.emptyList();
+        }
+
         model.addAttribute("itemList", itemList);
-        
-        // 필터 상태 유지
-        model.addAttribute("currentStatus", status);
-        model.addAttribute("currentKeyword", keyword);
+        model.addAttribute("requestList", requestList);
+        model.addAttribute("currentTab", currentTab);
+        model.addAttribute("currentStatus", normalizedStatus);
+        model.addAttribute("currentKeyword", normalizedKeyword);
+        model.addAttribute("currentRequestStatus", normalizedRequestStatus);
+        model.addAttribute("currentRequestKeyword", normalizedRequestKeyword);
+        model.addAttribute("itemCount", itemList.size());
+        model.addAttribute("requestCount", requestList.size());
 
-        return "admin/admin-reward-item"; // admin-shop.jsp로 이동
+        return "admin/admin-reward-item";
     }
 
     /**
@@ -890,20 +1036,76 @@ public class AdminController {
      */
     @PostMapping("/shop/save")
     @ResponseBody
-    public String saveItem(RewardItemDTO item) {
+    public Map<String, Object> saveItem(
+        RewardItemDTO item,
+        @RequestParam(value = "requestId", required = false) Long requestId,
+        @RequestParam(value = "requestAction", required = false) String requestAction,
+        @RequestParam(value = "businessLocationId", required = false) Integer businessLocationId,
+        HttpSession session) {
         try {
-            boolean result;
-            // rewardItemId가 0이면 등록, 아니면 수정
-            if (item.getRewardItemId() == 0) {
-                result = rewardItemService.registerItem(item);
-            } else {
-                result = rewardItemService.modifyItem(item);
+            if ((businessLocationId != null && businessLocationId.intValue() > 0)
+                || (requestId != null && requestId.longValue() > 0L)) {
+                return saveBusinessCouponRequest(item, requestId, requestAction, businessLocationId, session);
             }
-            return result ? "success" : "fail";
+
+            item.setStatus(normalizeRewardItemStatus(item.getStatus()));
+            boolean result = item.getRewardItemId() == 0
+                ? rewardItemService.saveRewardItem(item) > 0
+                : rewardItemService.modifyItem(item);
+
+            return buildShopSaveResponse(
+                result,
+                "item",
+                "items",
+                item.getRewardItemId() == 0 ? "created" : "updated",
+                item.getRewardItemId() == 0 ? "일반 쿠폰을 생성했습니다." : "일반 쿠폰을 수정했습니다.",
+                "일반 쿠폰 저장에 실패했습니다."
+            );
         } catch (Exception e) {
             System.err.println("!!! 상점 아이템 저장 중 서버 에러 발생 !!!");
             e.printStackTrace();
-            return "error";
+            return buildShopSaveResponse(false, "item", "items", "error", "저장에 실패했습니다.", "저장 중 서버 오류가 발생했습니다.");
+        }
+    }
+
+    @GetMapping("/shop/request/detail")
+    @ResponseBody
+    public Map<String, Object> getBusinessCouponRequestDetail(@RequestParam long requestId) {
+        BusinessCouponRequestDTO request = businessCouponRequestService.getBusinessCouponRequestById(requestId);
+        if (request == null) {
+            return null;
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("request", request);
+        response.put("history", businessCouponRequestService.getBusinessCouponRequestHistoryList(requestId));
+        return response;
+    }
+
+    @PostMapping("/shop/request/cancel")
+    @ResponseBody
+    public Map<String, Object> cancelBusinessCouponRequest(
+        @RequestParam("requestId") long requestId,
+        @RequestParam(value = "comment", required = false) String comment,
+        HttpSession session) {
+        Integer adminUserId = resolveAdminUserId(session);
+        if (adminUserId == null) {
+            return buildShopSaveResponse(false, "request", "requests", "cancel", "관리자 인증 정보를 확인해 주세요.", "관리자 인증 정보를 확인해 주세요.");
+        }
+
+        try {
+            boolean cancelled = businessCouponRequestService.cancelBusinessCouponRequest(requestId, adminUserId, normalizeNullable(comment));
+            return buildShopSaveResponse(
+                cancelled,
+                "request",
+                "requests",
+                "cancel",
+                "비즈니스 쿠폰 요청을 취소했습니다.",
+                "비즈니스 쿠폰 요청 취소에 실패했습니다."
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildShopSaveResponse(false, "request", "requests", "cancel", "비즈니스 쿠폰 요청 취소에 실패했습니다.", "요청 취소 중 서버 오류가 발생했습니다.");
         }
     }
 
@@ -922,6 +1124,183 @@ public class AdminController {
             return "error";
         }
     }
+
+    private Map<String, Object> saveBusinessCouponRequest(
+        RewardItemDTO item,
+        Long requestId,
+        String requestAction,
+        Integer businessLocationId,
+        HttpSession session) {
+        if (item != null && item.getRewardItemId() > 0) {
+            return buildShopSaveResponse(
+                false,
+                "request",
+                "items",
+                "blocked",
+                "이미 생성된 일반 쿠폰은 비즈니스 요청으로 전환할 수 없습니다. 새 쿠폰으로 등록해 주세요.",
+                "이미 생성된 일반 쿠폰은 비즈니스 요청으로 전환할 수 없습니다. 새 쿠폰으로 등록해 주세요."
+            );
+        }
+
+        Integer adminUserId = resolveAdminUserId(session);
+        if (adminUserId == null) {
+            return buildShopSaveResponse(false, "request", "requests", "auth", "관리자 인증 정보를 확인해 주세요.", "관리자 인증 정보를 확인해 주세요.");
+        }
+
+        BusinessCouponRequestDTO currentRequest = null;
+        if (requestId != null && requestId.longValue() > 0L) {
+            currentRequest = businessCouponRequestService.getBusinessCouponRequestById(requestId.longValue());
+            if (currentRequest == null) {
+                return buildShopSaveResponse(false, "request", "requests", "missing", "비즈니스 쿠폰 요청을 찾을 수 없습니다.", "비즈니스 쿠폰 요청을 찾을 수 없습니다.");
+            }
+        }
+
+        Integer resolvedLocationId = businessLocationId;
+        if ((resolvedLocationId == null || resolvedLocationId.intValue() <= 0) && currentRequest != null) {
+            resolvedLocationId = currentRequest.getLocationId();
+        }
+        if (resolvedLocationId == null || resolvedLocationId.intValue() <= 0) {
+            return buildShopSaveResponse(false, "request", "requests", "invalid", "비즈니스 매장을 선택해 주세요.", "비즈니스 매장을 선택해 주세요.");
+        }
+
+        LocationDTO selectedLocation = locationService.findLocationById(resolvedLocationId.intValue());
+        if (selectedLocation == null) {
+            return buildShopSaveResponse(false, "request", "requests", "missing", "선택한 매장 정보를 찾을 수 없습니다.", "선택한 매장 정보를 찾을 수 없습니다.");
+        }
+        if (selectedLocation.getBusinessId() == null || selectedLocation.getBusinessId().intValue() <= 0) {
+            return buildShopSaveResponse(false, "request", "requests", "invalid", "비즈니스와 연결된 매장만 선택할 수 있습니다.", "비즈니스와 연결된 매장만 선택할 수 있습니다.");
+        }
+
+        BusinessCouponRequestDTO request = new BusinessCouponRequestDTO();
+        request.setRequestId(requestId);
+        request.setBusinessId(selectedLocation.getBusinessId());
+        request.setLocationId(Integer.valueOf(selectedLocation.getLocationId()));
+        request.setAdminUserId(adminUserId);
+        request.setCouponName(item == null ? null : item.getName());
+        request.setCouponDescription(item == null ? null : item.getDescription());
+        request.setPricePoint(item == null ? null : Integer.valueOf(item.getPricePoint()));
+        request.setStock(item == null ? null : Integer.valueOf(item.getStock()));
+        request.setTargetStatus(normalizeRewardItemStatus(item == null ? null : item.getStatus()));
+
+        String normalizedAction = normalizeRewardRequestAction(requestAction, currentRequest);
+        boolean result;
+        String action;
+        String successMessage;
+
+        if (currentRequest == null) {
+            result = businessCouponRequestService.createBusinessCouponRequest(request);
+            action = "created";
+            successMessage = "비즈니스 매장 쿠폰 제안을 등록했습니다.";
+        } else if ("resubmit".equals(normalizedAction)) {
+            result = businessCouponRequestService.resubmitBusinessCouponRequest(request, adminUserId);
+            action = "resubmitted";
+            successMessage = "비즈니스 매장 쿠폰 제안을 다시 요청했습니다.";
+        } else {
+            result = businessCouponRequestService.updateBusinessCouponRequest(request, adminUserId);
+            action = "updated";
+            successMessage = "비즈니스 매장 쿠폰 제안을 수정했습니다.";
+        }
+
+        return buildShopSaveResponse(
+            result,
+            "request",
+            "requests",
+            action,
+            successMessage,
+            "비즈니스 쿠폰 요청 저장에 실패했습니다."
+        );
+    }
+
+    private Map<String, Object> buildShopSaveResponse(
+        boolean success,
+        String mode,
+        String nextTab,
+        String action,
+        String successMessage,
+        String failMessage
+    ) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("result", success ? "success" : "fail");
+        response.put("mode", mode);
+        response.put("nextTab", nextTab);
+        response.put("action", action);
+        response.put("message", success ? successMessage : failMessage);
+        return response;
+    }
+
+    private String normalizeRewardAdminTab(String tab) {
+        return "requests".equalsIgnoreCase(normalizeNullable(tab)) ? "requests" : "items";
+    }
+
+    private String normalizeRewardRequestAction(String requestAction, BusinessCouponRequestDTO currentRequest) {
+        String normalizedAction = normalizeNullable(requestAction);
+        if ("resubmit".equalsIgnoreCase(normalizedAction)) {
+            return "resubmit";
+        }
+        if ("update".equalsIgnoreCase(normalizedAction)) {
+            return "update";
+        }
+        if (currentRequest != null && "HOLD".equalsIgnoreCase(currentRequest.getRequestStatus())) {
+            return "resubmit";
+        }
+        return "update";
+    }
+
+    private String normalizeRewardItemStatus(String status) {
+        String normalized = normalizeNullable(status);
+        if ("SOLD_OUT".equalsIgnoreCase(normalized)) {
+            return "SOLD_OUT";
+        }
+        if ("HIDDEN".equalsIgnoreCase(normalized)) {
+            return "HIDDEN";
+        }
+        return "ON_SALE";
+    }
+
+    private Integer resolveAdminUserId(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+        Object role = session.getAttribute(SessionAuthKeys.USER_ROLE);
+        if (role == null || !"ADMIN".equalsIgnoreCase(String.valueOf(role).trim())) {
+            return null;
+        }
+
+        Object userId = session.getAttribute(SessionAuthKeys.USER_ID);
+        if (userId instanceof Number) {
+            return Integer.valueOf(((Number) userId).intValue());
+        }
+        if (userId != null) {
+            try {
+                return Integer.valueOf(String.valueOf(userId).trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private String resolveBusinessNameForLocation(Integer businessId, Map<Integer, String> businessNameCache) {
+        if (businessId == null || businessId.intValue() <= 0) {
+            return null;
+        }
+        if (businessNameCache.containsKey(businessId)) {
+            return businessNameCache.get(businessId);
+        }
+
+        BusinessDTO business = businessService.getBusinessById(businessId.intValue());
+        String businessName = business == null ? null : business.getBusinessName();
+        businessNameCache.put(businessId, businessName);
+        return businessName;
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
     
     // ================ Business ================
     
@@ -935,6 +1314,9 @@ public class AdminController {
             @RequestParam(value = "inquiryKeyword", required = false) String inquiryKeyword,
             @RequestParam(value = "inquiryStatus", required = false) String inquiryStatus,
             @RequestParam(value = "userId", required = false) Integer userId,
+            @RequestParam(value = "businessPage", defaultValue = "1") int businessPage,
+            @RequestParam(value = "inquiryPage", defaultValue = "1") int inquiryPage,
+            @RequestParam(value = "size", defaultValue = "30") int size,
             Model model) {
 
         Map<String, Object> businessParams = new HashMap<>();
@@ -950,6 +1332,7 @@ public class AdminController {
         List<BusinessInquiryDTO> businessInquiryList = null;
         String businessError = null;
         String businessInquiryError = null;
+        int normalizedSize = normalizeAdminPageSize(size);
 
         try {
             businessList = businessService.getBusinessList(businessParams);
@@ -966,13 +1349,39 @@ public class AdminController {
             e.printStackTrace();
         }
 
+        List<BusinessDTO> normalizedBusinessList = businessList == null ? Collections.emptyList() : businessList;
+        List<BusinessInquiryDTO> normalizedBusinessInquiryList = businessInquiryList == null ? Collections.emptyList() : businessInquiryList;
+
+        int totalBusinessCount = normalizedBusinessList.size();
+        int totalBusinessPages = totalBusinessCount <= 0 ? 1 : (int) Math.ceil((double) totalBusinessCount / normalizedSize);
+        int currentBusinessPage = Math.min(Math.max(businessPage, 1), totalBusinessPages);
+        int businessStartPage = ((currentBusinessPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+        int businessEndPage = Math.min(businessStartPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalBusinessPages);
+
+        int totalInquiryCount = normalizedBusinessInquiryList.size();
+        int totalInquiryPages = totalInquiryCount <= 0 ? 1 : (int) Math.ceil((double) totalInquiryCount / normalizedSize);
+        int currentInquiryPage = Math.min(Math.max(inquiryPage, 1), totalInquiryPages);
+        int inquiryStartPage = ((currentInquiryPage - 1) / ADMIN_USER_PAGE_BUTTON_COUNT) * ADMIN_USER_PAGE_BUTTON_COUNT + 1;
+        int inquiryEndPage = Math.min(inquiryStartPage + ADMIN_USER_PAGE_BUTTON_COUNT - 1, totalInquiryPages);
+
         model.addAttribute("currentTab", tab);
-        model.addAttribute("businessList", businessList);
-        model.addAttribute("businessInquiryList", businessInquiryList);
+        model.addAttribute("businessList", paginateAdminList(normalizedBusinessList, currentBusinessPage, normalizedSize));
+        model.addAttribute("businessInquiryList", paginateAdminList(normalizedBusinessInquiryList, currentInquiryPage, normalizedSize));
         model.addAttribute("currentBusinessKeyword", businessKeyword);
         model.addAttribute("currentInquiryKeyword", inquiryKeyword);
         model.addAttribute("currentInquiryStatus", inquiryStatus);
         model.addAttribute("currentUserId", userId);
+        model.addAttribute("pageSize", normalizedSize);
+        model.addAttribute("businessCurrentPage", currentBusinessPage);
+        model.addAttribute("businessTotalCount", totalBusinessCount);
+        model.addAttribute("businessTotalPages", totalBusinessPages);
+        model.addAttribute("businessStartPage", businessStartPage);
+        model.addAttribute("businessEndPage", businessEndPage);
+        model.addAttribute("inquiryCurrentPage", currentInquiryPage);
+        model.addAttribute("inquiryTotalCount", totalInquiryCount);
+        model.addAttribute("inquiryTotalPages", totalInquiryPages);
+        model.addAttribute("inquiryStartPage", inquiryStartPage);
+        model.addAttribute("inquiryEndPage", inquiryEndPage);
 
         return "admin/admin-business";
     }

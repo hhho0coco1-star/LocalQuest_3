@@ -1,84 +1,49 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import api from '../../api/AxiosInstance';
 import { inquiryApi } from '../../api/InquiryApi';
 import '../../styles/CustomerService.css';
-
-const faqData = [
-  {
-    id: 1,
-    question: 'Local Quest는 어떤 서비스인가요?',
-    answer:
-      'Local Quest는 지역 기반 미션을 수행하고 보상을 받을 수 있는 플랫폼입니다. 사용자는 다양한 장소를 탐험하면서 새로운 경험을 할 수 있습니다.'
-  },
-  {
-    id: 2,
-    question: '회원가입은 어떻게 진행하나요?',
-    answer:
-      '회원가입 페이지에서 이메일과 비밀번호 등 기본 정보를 입력한 뒤 가입을 완료하면 바로 서비스를 이용할 수 있습니다.'
-  },
-  {
-    id: 3,
-    question: '미션 완료 여부는 어떻게 확인되나요?',
-    answer:
-      '미션별 인증 조건을 충족하면 시스템에서 완료 여부를 확인합니다. 일부 미션은 위치 정보나 사진 인증을 기반으로 검토될 수 있습니다.'
-  },
-  {
-    id: 4,
-    question: '문의 답변은 얼마나 걸리나요?',
-    answer:
-      '1:1 문의 접수 후 영업일 기준 순차적으로 확인하며, 일반적으로 1일에서 3일 이내 답변을 드리고 있습니다.'
-  }
-];
-
-const noticeData = [
-  {
-    id: 1,
-    title: '[중요] 4월 정기 점검 안내',
-    author: '관리자',
-    date: '2026-04-02',
-    content:
-      '보다 안정적인 서비스 제공을 위해 4월 정기 시스템 점검이 진행됩니다. 점검 시간 동안 일부 기능 이용이 제한될 수 있습니다.'
-  },
-  {
-    id: 2,
-    title: 'Local Quest 신규 미션 오픈 안내',
-    author: '관리자',
-    date: '2026-03-28',
-    content:
-      '이번 달부터 새로운 지역 탐험형 미션이 추가되었습니다. 앱 내 미션 목록에서 새롭게 추가된 콘텐츠를 확인해보세요.'
-  },
-  {
-    id: 3,
-    title: '이벤트 보상 지급 일정 안내',
-    author: '관리자',
-    date: '2026-03-20',
-    content:
-      '이벤트 참여 보상은 종료 후 영업일 기준 3일 이내 순차 지급됩니다. 지급 일정은 내부 사정에 따라 소폭 변동될 수 있습니다.'
-  }
-];
 
 const TAB_BY_PATH = {
   '/support': 'notice',
   '/support/notice': 'notice',
   '/support/faq': 'faq',
-  '/support/contact': 'contact'
+  '/support/contact': 'contact',
 };
 
 const PATH_BY_TAB = {
   notice: '/support/notice',
   faq: '/support/faq',
-  contact: '/support/contact'
+  contact: '/support/contact',
 };
 
 const resolveTab = (location) => {
   if (location.state?.tab) {
     return location.state.tab;
   }
+
   return TAB_BY_PATH[location.pathname] || 'notice';
 };
 
-const CustomerService = () => {
+const formatSupportDate = (value) => {
+  if (!value) {
+    return '-';
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return String(value).slice(0, 10);
+  }
+
+  return parsedDate.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
+function CustomerService() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -86,14 +51,23 @@ const CustomerService = () => {
 
   const isInquiryUserReady = isAuthenticated && Number(authUser?.userId) > 0;
   const inquiryMemberName = authUser?.name || authUser?.nickname || '회원';
-  const inquiryMemberId = authUser?.userLoginId || authUser?.email || (authUser?.userId ? `USER-${authUser.userId}` : '-');
+  const inquiryMemberId =
+    authUser?.userLoginId ||
+    authUser?.email ||
+    (authUser?.userId ? `USER-${authUser.userId}` : '-');
 
   const [activeTab, setActiveTab] = useState(resolveTab(location));
   const [openNoticeId, setOpenNoticeId] = useState(null);
   const [openFaqId, setOpenFaqId] = useState(null);
+  const [noticeItems, setNoticeItems] = useState([]);
+  const [faqItems, setFaqItems] = useState([]);
+  const [isNoticeLoading, setIsNoticeLoading] = useState(true);
+  const [isFaqLoading, setIsFaqLoading] = useState(true);
+  const [noticeLoadError, setNoticeLoadError] = useState('');
+  const [faqLoadError, setFaqLoadError] = useState('');
   const [inquiryForm, setInquiryForm] = useState({
     title: '',
-    content: ''
+    content: '',
   });
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const [inquirySubmitError, setInquirySubmitError] = useState('');
@@ -102,6 +76,49 @@ const CustomerService = () => {
   useEffect(() => {
     setActiveTab(resolveTab(location));
   }, [location]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadSupportData = async () => {
+      setIsNoticeLoading(true);
+      setIsFaqLoading(true);
+      setNoticeLoadError('');
+      setFaqLoadError('');
+
+      try {
+        const [noticeResponse, faqResponse] = await Promise.all([
+          api.get('/api/notices'),
+          api.get('/api/faqs'),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setNoticeItems(Array.isArray(noticeResponse.data) ? noticeResponse.data : []);
+        setFaqItems(Array.isArray(faqResponse.data) ? faqResponse.data : []);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setNoticeLoadError('공지사항을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        setFaqLoadError('FAQ를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      } finally {
+        if (!isCancelled) {
+          setIsNoticeLoading(false);
+          setIsFaqLoading(false);
+        }
+      }
+    };
+
+    loadSupportData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const handleTabClick = (tab) => {
     const nextPath = PATH_BY_TAB[tab] || '/support';
@@ -112,16 +129,16 @@ const CustomerService = () => {
     }
   };
 
-  const handleInquiryChange = (e) => {
-    const { name, value } = e.target;
+  const handleInquiryChange = (event) => {
+    const { name, value } = event.target;
     setInquiryForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleInquirySubmit = async (e) => {
-    e.preventDefault();
+  const handleInquirySubmit = async (event) => {
+    event.preventDefault();
 
     if (isSubmittingInquiry) {
       return;
@@ -147,16 +164,16 @@ const CustomerService = () => {
       setIsSubmittingInquiry(true);
       await inquiryApi.createInquiry({
         title: trimmedTitle,
-        content: trimmedContent
+        content: trimmedContent,
       });
       setInquiryForm({
         title: '',
-        content: ''
+        content: '',
       });
       setInquirySubmitMessage('문의가 등록되었습니다. 마이페이지에서 답변 상태를 확인할 수 있습니다.');
     } catch (error) {
       const message =
-        error.response?.data?.message ??
+        error.response?.data?.message ||
         '문의 등록에 실패했습니다. 잠시 후 다시 시도해주세요.';
       setInquirySubmitError(message);
     } finally {
@@ -168,23 +185,26 @@ const CustomerService = () => {
     <div className="cs-main-container">
       <div className="cs-header">
         <h1>고객센터</h1>
-        <p>Local Quest 이용 중 궁금한 내용을 안내해드립니다.</p>
+        <p>Local Quest 이용 중 궁금한 점과 안내를 확인해보세요.</p>
       </div>
 
       <div className="cs-tab-menu">
         <button
+          type="button"
           className={activeTab === 'notice' ? 'active' : ''}
           onClick={() => handleTabClick('notice')}
         >
           공지사항
         </button>
         <button
+          type="button"
           className={activeTab === 'faq' ? 'active' : ''}
           onClick={() => handleTabClick('faq')}
         >
           자주 묻는 질문
         </button>
         <button
+          type="button"
           className={activeTab === 'contact' ? 'active' : ''}
           onClick={() => handleTabClick('contact')}
         >
@@ -193,77 +213,87 @@ const CustomerService = () => {
       </div>
 
       <div className="cs-content-body">
-        {activeTab === 'notice' && (
+        {activeTab === 'notice' ? (
           <div className="tab-panel">
             <h3>공지사항</h3>
-            <p>관리자가 등록한 최신 공지사항을 확인해보세요.</p>
             <div className="notice-accordion">
-              {noticeData.map((item) => (
-                <div
-                  key={item.id}
-                  className={`notice-item ${openNoticeId === item.id ? 'open' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="notice-question"
-                    onClick={() =>
-                      setOpenNoticeId((prev) => (prev === item.id ? null : item.id))
-                    }
-                  >
-                    <div className="notice-question-text">
-                      <strong>{item.title}</strong>
-                      <span>
-                        {item.author} | {item.date}
-                      </span>
+              {isNoticeLoading ? <p>공지사항을 불러오는 중입니다.</p> : null}
+              {!isNoticeLoading && noticeLoadError ? <p>{noticeLoadError}</p> : null}
+              {!isNoticeLoading && !noticeLoadError && !noticeItems.length ? (
+                <p>등록된 공지사항이 없습니다.</p>
+              ) : null}
+              {!isNoticeLoading && !noticeLoadError
+                ? noticeItems.map((item) => (
+                    <div
+                      key={item.noticeId}
+                      className={`notice-item ${openNoticeId === item.noticeId ? 'open' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        className="notice-question"
+                        onClick={() =>
+                          setOpenNoticeId((prev) => (prev === item.noticeId ? null : item.noticeId))
+                        }
+                      >
+                        <div className="notice-question-text">
+                          <strong>{item.title}</strong>
+                          <span>{`관리자 | ${formatSupportDate(item.createdAt)}`}</span>
+                        </div>
+                        <span className="notice-icon">
+                          {openNoticeId === item.noticeId ? '-' : '+'}
+                        </span>
+                      </button>
+                      {openNoticeId === item.noticeId ? (
+                        <div className="notice-answer">
+                          <p>{item.content}</p>
+                        </div>
+                      ) : null}
                     </div>
-                    <span className="notice-icon">
-                      {openNoticeId === item.id ? '-' : '+'}
-                    </span>
-                  </button>
-                  {openNoticeId === item.id && (
-                    <div className="notice-answer">
-                      <p>{item.content}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                  ))
+                : null}
             </div>
           </div>
-        )}
-        {activeTab === 'faq' && (
+        ) : null}
+
+        {activeTab === 'faq' ? (
           <div className="tab-panel">
             <h3>자주 묻는 질문</h3>
-            <p>자주 문의되는 내용을 먼저 확인해보세요.</p>
             <div className="faq-accordion">
-              {faqData.map((item) => (
-                <div
-                  key={item.id}
-                  className={`faq-item ${openFaqId === item.id ? 'open' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="faq-question"
-                    onClick={() =>
-                      setOpenFaqId((prev) => (prev === item.id ? null : item.id))
-                    }
-                  >
-                    <span>{item.question}</span>
-                    <span className="faq-icon">{openFaqId === item.id ? '-' : '+'}</span>
-                  </button>
-                  {openFaqId === item.id && (
-                    <div className="faq-answer">
-                      <p>{item.answer}</p>
+              {isFaqLoading ? <p>FAQ를 불러오는 중입니다.</p> : null}
+              {!isFaqLoading && faqLoadError ? <p>{faqLoadError}</p> : null}
+              {!isFaqLoading && !faqLoadError && !faqItems.length ? (
+                <p>등록된 FAQ가 없습니다.</p>
+              ) : null}
+              {!isFaqLoading && !faqLoadError
+                ? faqItems.map((item) => (
+                    <div
+                      key={item.faqId}
+                      className={`faq-item ${openFaqId === item.faqId ? 'open' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        className="faq-question"
+                        onClick={() => setOpenFaqId((prev) => (prev === item.faqId ? null : item.faqId))}
+                      >
+                        <span>{item.question}</span>
+                        <span className="faq-icon">{openFaqId === item.faqId ? '-' : '+'}</span>
+                      </button>
+                      {openFaqId === item.faqId ? (
+                        <div className="faq-answer">
+                          <p>{item.answer}</p>
+                        </div>
+                      ) : null}
                     </div>
-                  )}
-                </div>
-              ))}
+                  ))
+                : null}
             </div>
           </div>
-        )}
-        {activeTab === 'contact' && (
+        ) : null}
+
+        {activeTab === 'contact' ? (
           <div className="tab-panel">
             <h3>1:1 문의</h3>
-            <p>문의 내용을 남겨주시면 관리자가 확인 후 답변할 수 있도록 전달됩니다.</p>
+            <p>문의 내용을 남겨주시면 관리자가 확인 후 답변드릴 수 있도록 전달됩니다.</p>
 
             {isInquiryUserReady ? (
               <div className="inquiry-section">
@@ -302,8 +332,12 @@ const CustomerService = () => {
                     {isSubmittingInquiry ? '등록 중...' : '문의 등록'}
                   </button>
                 </form>
-                {inquirySubmitError ? <p className="inquiry-status-message is-error">{inquirySubmitError}</p> : null}
-                {inquirySubmitMessage ? <p className="inquiry-status-message is-success">{inquirySubmitMessage}</p> : null}
+                {inquirySubmitError ? (
+                  <p className="inquiry-status-message is-error">{inquirySubmitError}</p>
+                ) : null}
+                {inquirySubmitMessage ? (
+                  <p className="inquiry-status-message is-success">{inquirySubmitMessage}</p>
+                ) : null}
               </div>
             ) : (
               <div className="inquiry-login-guide">
@@ -313,15 +347,15 @@ const CustomerService = () => {
                   className="inquiry-login-btn"
                   onClick={() => navigate(`/login?redirect=${encodeURIComponent('/support/contact')}`)}
                 >
-                  로그인 하러 가기
+                  로그인하러 가기
                 </button>
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
-};
+}
 
 export default CustomerService;

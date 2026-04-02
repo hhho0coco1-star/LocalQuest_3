@@ -43,39 +43,5 @@
             </div>
         </div>
     </div>
-
-    <nav class="header-nav-bar">
-        <div class="header-inner">
-            <ul class="header-nav-list">
-                <li class="header-nav-item">
-                    <a href="${pageContext.request.contextPath}/explore" class="header-nav-link">퀘스트 목록</a>
-                </li>
-                <li class="header-nav-item">
-                    <a href="${pageContext.request.contextPath}/quest" class="header-nav-link">내 퀘스트</a>
-                </li>
-                <li class="header-nav-item">
-                    <a href="${pageContext.request.contextPath}/reward" class="header-nav-link">성장 및 보상</a>
-                </li>
-
-                <c:if test="${userRole eq 'BUSINESS'}">
-                    <li class="header-nav-item">
-                        <a href="${pageContext.request.contextPath}/business" class="header-nav-link">비즈니스</a>
-                    </li>
-                </c:if>
-
-                <c:if test="${userRole eq 'ADMIN'}">
-                    <li class="header-nav-item">
-                        <a href="${pageContext.request.contextPath}/admin" class="header-nav-link">관리자 페이지</a>
-                    </li>
-                </c:if>
-
-                <c:if test="${userRole ne 'GUEST'}">
-                    <li class="header-nav-item">
-                        <a href="${pageContext.request.contextPath}/mypage" class="header-nav-link">마이페이지</a>
-                    </li>
-                </c:if>
-            </ul>
-        </div>
-    </nav>
 </header>
 <!-- <div class="header-relative-space"></div>	 -->

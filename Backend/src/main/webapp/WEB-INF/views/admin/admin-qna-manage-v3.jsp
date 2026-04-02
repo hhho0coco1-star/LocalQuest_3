@@ -7,7 +7,7 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="${path}/css/admin-qna-manage-v2.css">
 
-<div class="adm-i-container">
+<div class="adm-i-container" data-current-page="${currentPage}" data-page-size="${pageSize}">
     <div class="adm-i-header">
         <div class="adm-i-title-wrap">
             <h2 class="adm-i-title">
@@ -38,16 +38,6 @@
                 onkeypress="if(event.keyCode==13) searchAdminInquiry()">
         </div>
 
-        <div class="adm-i-search-box adm-i-user-box">
-            <input
-                type="number"
-                id="adminInquiryUserId"
-                min="1"
-                placeholder="&#54924;&#50896;&#48264;&#54840;"
-                value="${currentUserId}"
-                onkeypress="if(event.keyCode==13) searchAdminInquiry()">
-        </div>
-
         <button type="button" class="adm-i-btn-search" onclick="searchAdminInquiry()">
             &#44160;&#49353;
         </button>
@@ -62,7 +52,7 @@
 
     <div class="adm-i-meta">
         <span class="adm-i-meta-badge">&#49345;&#53468;&#44050; &#44592;&#51456;: PENDING / ANSWERED</span>
-        <span class="adm-i-meta-text">&#51204;&#52404; ${fn:length(inquiryList)}&#44148;</span>
+        <span class="adm-i-meta-text">&#51204;&#52404; ${totalCount}&#44148;</span>
     </div>
 
     <div class="adm-i-table-wrap">
@@ -140,6 +130,22 @@
             </tbody>
         </table>
     </div>
+
+    <c:if test="${totalPages > 1}">
+        <div class="adm-i-pagination">
+            <button type="button" class="adm-i-page-btn"
+                onclick="goAdminInquiryPage(${currentPage - 1})"
+                ${currentPage <= 1 ? 'disabled' : ''}>&#51060;&#51204;</button>
+            <c:forEach var="pageNumber" begin="${startPage}" end="${endPage}">
+                <button type="button"
+                    class="adm-i-page-btn ${pageNumber == currentPage ? 'is-active' : ''}"
+                    onclick="goAdminInquiryPage(${pageNumber})">${pageNumber}</button>
+            </c:forEach>
+            <button type="button" class="adm-i-page-btn"
+                onclick="goAdminInquiryPage(${currentPage + 1})"
+                ${currentPage >= totalPages ? 'disabled' : ''}>&#45796;&#51020;</button>
+        </div>
+    </c:if>
 </div>
 
 <div id="adminInquiryModal" class="adm-i-modal">
@@ -198,15 +204,6 @@
                     id="adminInquiryAnswerContent"
                     rows="6"
                     placeholder="&#44288;&#47532;&#51088; &#45813;&#48320;&#51012; &#51077;&#47141;&#54616;&#49464;&#50836;."></textarea>
-                <div class="adm-i-answer-actions">
-                    <button
-                        type="button"
-                        class="adm-i-btn-answer-submit"
-                        id="adminInquiryAnswerSubmitButton"
-                        onclick="submitAdminInquiryAnswer()">
-                        &#45813;&#48320; &#46321;&#47197;
-                    </button>
-                </div>
             </div>
         </div>
         <div class="adm-i-modal-footer">
@@ -225,33 +222,42 @@
                     onclick="openAdminInquiryAnswerModal(Number($('#adminInquiryDetailId').val()) || 0)">
                     &#45813;&#48320; &#46321;&#47197;
                 </button>
+                <button
+                    type="button"
+                    class="adm-i-btn-answer adm-i-btn-answer-ghost"
+                    id="adminInquiryAnswerSubmitButton"
+                    onclick="submitAdminInquiryAnswer()"
+                    style="display:none;">
+                    &#45813;&#48320; &#46321;&#47197;
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    function searchAdminInquiry() {
+    function buildAdminInquiryListUrl(page) {
         const keyword = ($('#adminInquiryKeyword').val() || '').trim();
         const status = ($('#adminInquiryStatus').val() || '').trim();
-        const userId = ($('#adminInquiryUserId').val() || '').trim();
-        let url = ctx + "/admin/qna";
-        const params = [];
+        const params = new URLSearchParams();
 
+        params.set("page", String(page > 0 ? page : 1));
+        params.set("size", "30");
         if (keyword) {
-            params.push("keyword=" + encodeURIComponent(keyword));
+            params.set("keyword", keyword);
         }
         if (status) {
-            params.push("status=" + encodeURIComponent(status));
+            params.set("status", status);
         }
-        if (userId) {
-            params.push("userId=" + encodeURIComponent(userId));
-        }
-        if (params.length > 0) {
-            url += "?" + params.join("&");
-        }
+        return ctx + "/admin/qna?" + params.toString();
+    }
 
-        loadAdminContent(url);
+    function searchAdminInquiry() {
+        loadAdminContent(buildAdminInquiryListUrl(1));
+    }
+
+    function goAdminInquiryPage(page) {
+        loadAdminContent(buildAdminInquiryListUrl(page));
     }
 
     function loadAdminInquiryDetail(inquiryId, onSuccess) {
@@ -292,6 +298,7 @@
         $('#adminInquiryModalTitle').text('\uBB38\uC758 \uC0C1\uC138');
         $('#adminInquiryAnswerLabel').text('\uB2F5\uBCC0 \uC791\uC131');
         $('#adminInquiryAnswerSubmitButton').text('\uB2F5\uBCC0 \uB4F1\uB85D');
+        $('#adminInquiryAnswerSubmitButton').hide();
         $('#adminInquiryOpenAnswerButton').text('\uB2F5\uBCC0 \uB4F1\uB85D').show();
         $('#adminInquiryDeleteButton').show();
     }
@@ -343,6 +350,7 @@
             );
             $('#adminInquiryAnswerEditor').show();
             $('#adminInquiryOpenAnswerButton').hide();
+            $('#adminInquiryAnswerSubmitButton').show();
             setTimeout(function() {
                 $('#adminInquiryAnswerContent').trigger('focus');
             }, 0);

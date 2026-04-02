@@ -2,18 +2,19 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 260px;
-  padding: 24px;
-  border-radius: 24px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 280px;
+  padding: 22px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border: 1px solid #e6e9f2;
+  box-shadow: 0 14px 28px rgba(19, 28, 44, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .quest-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+  border-color: #ffd1db;
+  box-shadow: 0 18px 32px rgba(19, 28, 44, 0.08);
 }
 
 .quest-card-top {
@@ -37,48 +38,52 @@
 
 .quest-card-badge {
   padding: 8px 12px;
-  color: #ffffff;
 }
 
 .quest-card-badge-easy {
-  background: #14b8a6;
+  background-color: #eef8f1;
+  color: #229261;
 }
 
 .quest-card-badge-normal {
-  background: #f97316;
+  background-color: #fff6e8;
+  color: #d88400;
 }
 
 .quest-card-badge-hard {
-  background: #e11d48;
+  background-color: #fff2f5;
+  color: #d93958;
 }
 
 .quest-card-category {
   padding: 8px 14px;
-  background: #f8fafc;
-  color: #475569;
+  background-color: #f7f9fc;
+  color: #5d6678;
 }
 
 .quest-card-content h3 {
   margin: 0 0 12px;
+  color: #1f2940;
   font-size: 22px;
-  color: #0f172a;
+  line-height: 1.3;
 }
 
 .quest-card-content p {
   margin: 0;
-  color: #475569;
-  line-height: 1.6;
+  color: #5d6678;
+  line-height: 1.65;
+  font-size: 14px;
 }
 
 .quest-card-meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
   align-items: center;
-  gap: 14px;
-  margin: 24px 0;
-  color: #64748b;
-  font-size: 14px;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: #6b7488;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .quest-card-meta span {
@@ -91,14 +96,30 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 14px;
   margin-left: auto;
+}
+
+.quest-card-reward {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.quest-card-reward strong {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background-color: #f8faff;
+  color: #1f2940;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .quest-card-bottom {
   display: flex;
   justify-content: flex-end;
-  gap: 16px;
 }
 
 .quest-card-actions {
@@ -108,45 +129,46 @@
   gap: 10px;
 }
 
-.quest-card-reward {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.quest-card-reward strong {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-
 .quest-card-button {
   border: none;
   border-radius: 999px;
-  background: #0f172a;
-  color: #ffffff;
   padding: 12px 18px;
+  background-color: #eef2f8;
+  color: #4d566c;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .quest-card-button:hover {
-  background: #d93d5e;
+  background-color: #e4e9f2;
 }
 
 .quest-card-button-accept {
-  background: #ff385d;
+  background-color: #101626;
+  color: #ffffff;
 }
 
 .quest-card-button-accept:hover:not(:disabled) {
-  background: #e72f52;
+  background-color: #d93958;
 }
 
 .quest-card-button:disabled {
-  background: #cbd5e1;
+  background-color: #d9deea;
   color: #ffffff;
   cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .quest-card {
+    min-height: auto;
+  }
+
+  .quest-card-actions {
+    width: 100%;
+  }
+
+  .quest-card-button {
+    flex: 1 1 auto;
+  }
 }

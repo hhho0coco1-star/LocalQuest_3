@@ -1,14 +1,21 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>LOCALQUEST ADMIN</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-theme.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-components.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-pages.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-secondary-pages.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/admin-darkmode.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // 전역 경로 변수 (JSP 어디서든 사용 가능)
+        // ?꾩뿭 寃쎈줈 蹂??(JSP ?대뵒?쒕뱺 ?ъ슜 媛??
         const ctx = "${pageContext.request.contextPath}";
+        const ADMIN_THEME_STORAGE_KEY = "localquest-admin-theme";
+        const ADMIN_DEFAULT_VIEW = "users";
         let questCountdownTimer = null;
         let adminQuestSelectedLocations = [];
         let adminQuestSearchResults = [];
@@ -22,11 +29,188 @@
         };
         let businessDetailAuthLoadedFor = 0;
         let businessDetailAuthLoading = false;
+        let adminRewardLocationSearchResults = [];
+        let adminRewardSelectedLocation = null;
+        let adminRewardRequestDetail = null;
+
+        function normalizeAdminTheme(theme) {
+            return theme === 'dark' ? 'dark' : 'light';
+        }
+
+        function getStoredAdminTheme() {
+            try {
+                return normalizeAdminTheme(window.localStorage.getItem(ADMIN_THEME_STORAGE_KEY));
+            } catch (error) {
+                return 'light';
+            }
+        }
+
+        function getCurrentAdminTheme() {
+            const body = document.body;
+            return normalizeAdminTheme(body ? body.getAttribute('data-admin-theme') : null);
+        }
+
+        function updateAdminThemeToggle(theme) {
+            const resolvedTheme = normalizeAdminTheme(theme);
+            const toggleButton = document.getElementById('adminThemeToggle');
+            if (!toggleButton) {
+                return;
+            }
+
+            const isDark = resolvedTheme === 'dark';
+            const icon = toggleButton.querySelector('[data-theme-icon]');
+            const label = toggleButton.querySelector('[data-theme-label]');
+
+            toggleButton.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            toggleButton.classList.toggle('is-dark', isDark);
+
+            if (icon) {
+                icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            }
+
+            if (label) {
+                label.textContent = isDark ? '\uB77C\uC774\uD2B8 \uBAA8\uB4DC' : '\uB2E4\uD06C \uBAA8\uB4DC';
+            }
+        }
+
+        function applyAdminTheme(theme) {
+            const resolvedTheme = normalizeAdminTheme(theme);
+            const body = document.body;
+            if (!body) {
+                return resolvedTheme;
+            }
+
+            body.setAttribute('data-admin-theme', resolvedTheme);
+            const root = document.getElementById('admin-root');
+            if (root) {
+                root.setAttribute('data-admin-theme', resolvedTheme);
+            }
+            updateAdminThemeToggle(resolvedTheme);
+            return resolvedTheme;
+        }
+
+        function initializeAdminTheme() {
+            applyAdminTheme(getStoredAdminTheme());
+        }
+
+        function toggleAdminTheme() {
+            const nextTheme = getCurrentAdminTheme() === 'dark' ? 'light' : 'dark';
+            try {
+                window.localStorage.setItem(ADMIN_THEME_STORAGE_KEY, nextTheme);
+            } catch (error) {
+                // ignore storage failures and apply theme for the current session
+            }
+            applyAdminTheme(nextTheme);
+        }
+
+        function normalizeAdminView(view) {
+            const allowedViews = ['users', 'shop', 'quests', 'locations', 'store-info', 'qna', 'notice', 'faq'];
+            return allowedViews.indexOf(view) >= 0 ? view : ADMIN_DEFAULT_VIEW;
+        }
+
+        function stripAdminContext(pathname) {
+            if (ctx && pathname.indexOf(ctx) === 0) {
+                const strippedPath = pathname.substring(ctx.length);
+                return strippedPath || '/';
+            }
+            return pathname || '/';
+        }
+
+        function getAdminAjaxPathByView(view) {
+            switch (normalizeAdminView(view)) {
+                case 'shop':
+                    return '/admin/shop';
+                case 'quests':
+                    return '/admin/quests';
+                case 'locations':
+                    return '/admin/locations';
+                case 'store-info':
+                    return '/admin/store-info';
+                case 'qna':
+                    return '/admin/qna';
+                case 'notice':
+                    return '/admin/notice';
+                case 'faq':
+                    return '/admin/faq';
+                case 'users':
+                default:
+                    return '/admin/users';
+            }
+        }
+
+        function resolveAdminViewFromAjaxUrl(url) {
+            const parsedUrl = new URL(url, window.location.origin);
+            const path = stripAdminContext(parsedUrl.pathname);
+
+            if (path.indexOf('/admin/search') === 0 || path.indexOf('/admin/users') === 0) {
+                return 'users';
+            }
+            if (path.indexOf('/admin/shop') === 0) {
+                return 'shop';
+            }
+            if (path.indexOf('/admin/quests') === 0) {
+                return 'quests';
+            }
+            if (path.indexOf('/admin/locations') === 0) {
+                return 'locations';
+            }
+            if (path.indexOf('/admin/store-info') === 0) {
+                return 'store-info';
+            }
+            if (path.indexOf('/admin/qna') === 0) {
+                return 'qna';
+            }
+            if (path.indexOf('/admin/notice') === 0) {
+                return 'notice';
+            }
+            if (path.indexOf('/admin/faq') === 0) {
+                return 'faq';
+            }
+
+            return ADMIN_DEFAULT_VIEW;
+        }
+
+        function buildAdminShellUrlFromAjaxUrl(url) {
+            const parsedUrl = new URL(url, window.location.origin);
+            const params = new URLSearchParams(parsedUrl.search);
+            params.set('view', resolveAdminViewFromAjaxUrl(url));
+            const queryString = params.toString();
+            return ctx + '/admin' + (queryString ? '?' + queryString : '');
+        }
+
+        function buildAdminAjaxUrlFromLocation(locationLike) {
+            const path = stripAdminContext(locationLike.pathname || window.location.pathname);
+            if (path.indexOf('/admin') !== 0) {
+                return ctx + getAdminAjaxPathByView(ADMIN_DEFAULT_VIEW);
+            }
+
+            const params = new URLSearchParams(locationLike.search || window.location.search);
+            const view = normalizeAdminView(params.get('view'));
+            params.delete('view');
+
+            const queryString = params.toString();
+            return ctx + getAdminAjaxPathByView(view) + (queryString ? '?' + queryString : '');
+        }
+
+        function findAdminNavLinkByView(view) {
+            return document.querySelector('.admin-nav-item a[data-admin-view="' + normalizeAdminView(view) + '"]');
+        }
+
+        function syncAdminActiveNav(view, element) {
+            const targetElement = element || findAdminNavLinkByView(view);
+            $('.admin-nav-item a').removeClass('active');
+            if (targetElement) {
+                $(targetElement).addClass('active');
+            }
+        }
 
         /**
-         * 콘텐츠 로더
+         * 肄섑뀗痢?濡쒕뜑
          */
-        function loadAdminContent(url, element) {
+        function loadAdminContent(url, element, options) {
+            const loadOptions = options || {};
+            const shouldPushHistory = loadOptions.pushHistory !== false;
+            const resolvedView = resolveAdminViewFromAjaxUrl(url);
             $('.admin-content-area').empty(); 
             $.ajax({
                 url: url,
@@ -35,9 +219,14 @@
                 success: function(response) {
                     $('.admin-content-area').html(response);
                     initializeAdminView(url);
-                    if (element) {
-                        $('.admin-nav-item a').removeClass('active');
-                        $(element).addClass('active');
+                    syncAdminActiveNav(resolvedView, element);
+
+                    if (shouldPushHistory && window.history && window.history.pushState) {
+                        const nextShellUrl = buildAdminShellUrlFromAjaxUrl(url);
+                        const currentShellUrl = buildAdminShellUrlFromAjaxUrl(buildAdminAjaxUrlFromLocation(window.location));
+                        if (nextShellUrl !== currentShellUrl) {
+                            window.history.pushState({ view: resolvedView }, '', nextShellUrl);
+                        }
                     }
                 },
                 error: function(xhr) {
@@ -65,7 +254,68 @@
                 adminQuestEditingReviewId = 0;
                 adminQuestReviewDraft = { rating: 5, content: '' };
             }
+            if ($('.adm-r-shell').length === 0) {
+                adminRewardLocationSearchResults = [];
+                adminRewardSelectedLocation = null;
+                adminRewardRequestDetail = null;
+            } else {
+                initializeRewardAdminView();
+            }
+            harmonizeAdminSearchControls();
             initializeQuestCountdowns();
+        }
+
+        function harmonizeAdminSearchControls() {
+            $('.admin-content-area .adm-u-search-group').each(function() {
+                const $group = $(this);
+                const $input = $group.children('.adm-u-input').first();
+                const $trigger = $group.children('.adm-u-btn-search, .adm-u-search-trigger').first();
+
+                if ($input.length === 0 || $trigger.length === 0) {
+                    return;
+                }
+
+                let $searchBox = $group.children('.adm-u-search-box').first();
+                if ($searchBox.length === 0) {
+                    $searchBox = $('<div class="adm-u-search-box"></div>');
+                    $input.before($searchBox);
+                }
+
+                $searchBox.append($input);
+                $searchBox.append(
+                    $trigger
+                        .attr({
+                            type: 'button',
+                            'aria-label': 'Search users'
+                        })
+                        .removeClass('adm-u-btn-search')
+                        .addClass('adm-u-search-trigger')
+                        .html('<i class="fas fa-search"></i>')
+                );
+            });
+
+            $('.admin-content-area .adm-i-controls').each(function() {
+                const $controls = $(this);
+                const $trigger = $controls.children('.adm-i-btn-search, .adm-i-search-trigger').first();
+                const $targetBox = $controls.children('.adm-i-user-box').first().length
+                    ? $controls.children('.adm-i-user-box').first()
+                    : $controls.children('.adm-i-search-box').first();
+
+                if ($targetBox.length === 0 || $trigger.length === 0) {
+                    return;
+                }
+
+                $targetBox.append(
+                    $trigger
+                        .attr({
+                            type: 'button',
+                            'aria-label': 'Search inquiries'
+                        })
+                        .removeClass('adm-i-btn-search')
+                        .addClass('adm-i-search-trigger')
+                        .html('<i class="fas fa-search"></i>')
+                );
+            });
         }
 
         function initializeQuestCountdowns() {
@@ -203,9 +453,9 @@
                     + '    <span>' + escapeAdminHtml(location.address) + '</span>'
                     + '  </div>'
                     + '  <div class="adm-q-place-chip-actions">'
-                    + '    <button type="button" onclick="moveQuestLocation(' + index + ', -1)" ' + (index === 0 ? 'disabled' : '') + '>위</button>'
+                    + '    <button type="button" onclick="moveQuestLocation(' + index + ', -1)" ' + (index === 0 ? 'disabled' : '') + '>위로</button>'
                     + '    <button type="button" onclick="moveQuestLocation(' + index + ', 1)" ' + (index === adminQuestSelectedLocations.length - 1 ? 'disabled' : '') + '>아래</button>'
-                    + '    <button type="button" class="is-danger" onclick="removeQuestLocation(' + index + ')">삭제</button>'
+                    + '    <button type="button" class="is-danger" onclick="removeQuestLocation(' + index + ')">제거</button>'
                     + '  </div>'
                     + '</div>';
             }).join('');
@@ -217,8 +467,8 @@
             const keyword = ($('#questLocationKeyword').val() || '').trim();
             showQuestLocationStatus(
                 keyword
-                    ? '등록된 장소 목록을 검색 중입니다.'
-                    : '최근 등록된 장소 목록을 불러오는 중입니다.',
+                    ? '등록 장소 목록을 검색 중입니다.'
+                    : '최근 등록 장소 목록을 불러오는 중입니다.',
                 false
             );
 
@@ -343,7 +593,7 @@
                 return;
             }
 
-            showQuestLocationStatus('저장된 장소 정보를 불러오는 중입니다.', false);
+            showQuestLocationStatus('등록된 장소 정보를 불러오는 중입니다.', false);
 
             $.ajax({
                 url: ctx + '/api/quests/' + questId,
@@ -372,8 +622,8 @@
                     renderQuestSelectedLocations();
                     showQuestLocationStatus(
                         adminQuestSelectedLocations.length > 0
-                            ? '저장된 장소 정보를 불러왔습니다.'
-                            : '저장된 장소가 없습니다. 새 장소를 선택할 수 있습니다.',
+                            ? '등록된 장소 정보를 불러왔습니다.'
+                            : '등록된 장소가 없습니다. 새 장소를 선택할 수 있습니다.',
                         false
                     );
                 },
@@ -431,7 +681,7 @@
 
         function renderQuestReviewRating(rating) {
             const normalized = Math.max(1, Math.min(5, Number(rating) || 0));
-            return '★'.repeat(normalized) + '☆'.repeat(5 - normalized);
+            return '\u2605'.repeat(normalized) + '\u2606'.repeat(5 - normalized);
         }
 
         function renderQuestReviewList(questId) {
@@ -460,7 +710,7 @@
                     const options = [1, 2, 3, 4, 5].map(function(score) {
                         return '<option value="' + score + '"'
                             + (Number(adminQuestReviewDraft.rating) === score ? ' selected' : '')
-                            + '>' + score + '점</option>';
+                            + '>' + score + '??/option>';
                     }).join('');
 
                     return ''
@@ -482,7 +732,7 @@
                         + '</textarea>'
                         + '  <div class="adm-q-review-actions">'
                         + '    <button type="button" onclick="submitAdminQuestReviewEdit()">저장</button>'
-                        + '    <button type="button" class="is-secondary" onclick="cancelAdminQuestReviewEdit()">취소</button>'
+                        + '    <button type="button" class="is-secondary" onclick="cancelAdminQuestReviewEdit()">痍⑥냼</button>'
                         + '  </div>'
                         + '</div>';
                 }
@@ -566,7 +816,7 @@
             adminQuestEditingReviewId = 0;
             adminQuestReviewDraft = { rating: 5, content: '' };
             renderQuestReviewList(Number($('#modalQuestId').val()) || 0);
-            showQuestReviewStatus('리뷰 수정이 취소되었습니다.', false);
+            showQuestReviewStatus('리뷰 수정을 취소했습니다.', false);
         }
 
         function setAdminQuestReviewRating(value) {
@@ -657,7 +907,7 @@
         }
 
         /**
-         * [통합] 회원 권한 변경 함수
+         * [?듯빀] ?뚯썝 沅뚰븳 蹂寃??⑥닔
          */
         function updateRole(userId, newRole) {
             if (userId === 1) {
@@ -666,7 +916,7 @@
             }
 
             if (!confirm("권한을 변경하시겠습니까?")) {
-                loadAdminContent(ctx + '/admin/users');
+                loadAdminContent(buildAdminUserListUrl(getCurrentUserListPage(), getCurrentUserSortOrder()));
                 return;
             }
 
@@ -678,8 +928,8 @@
                     if (res.trim() === "success") {
                         alert("권한이 변경되었습니다.");
                     } else {
-                        alert("변경 실패");
-                        loadAdminContent(ctx + '/admin/users');
+                        alert("변경에 실패했습니다.");
+                        loadAdminContent(buildAdminUserListUrl(getCurrentUserListPage(), getCurrentUserSortOrder()));
                     }
                 },
                 error: function(xhr) {
@@ -688,45 +938,159 @@
             });
         }
         
-        let currentSortOrder = 'DESC'; // 기본 정렬 상태 (최신순)
+        let currentSortOrder = 'DESC'; // 湲곕낯 ?뺣젹 ?곹깭 (理쒖떊??
 
-        /**
-         * 회원 검색 함수
-         */
-        function searchUser() {
-            const type = $('#searchType').val();
-            const keyword = $('#keyword').val();
-            
-            // 검색 시에도 contextPath(ctx)를 사용합니다.
-            const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword);
-            loadAdminContent(url);
+        function getCurrentUserListPage() {
+            const currentPage = Number($('.adm-u-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentUserPageSize() {
+            const pageSize = Number($('.adm-u-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function getCurrentUserSortOrder() {
+            if ($('#sortIcon').hasClass('fa-sort-up')) {
+                return 'ASC';
+            }
+            if ($('#sortIcon').hasClass('fa-sort-down')) {
+                return 'DESC';
+            }
+            return currentSortOrder || 'DESC';
+        }
+
+        function buildAdminUserListUrl(page, sortOverride) {
+            const type = ($('#searchType').val() || 'userLoginId').trim();
+            const keyword = ($('#keyword').val() || '').trim();
+            const sort = (sortOverride || getCurrentUserSortOrder() || 'DESC').trim();
+            const params = new URLSearchParams();
+
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentUserPageSize()));
+            params.set('sort', sort);
+            params.set('type', type);
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+
+            return ctx + "/admin/users?" + params.toString();
+        }
+
+        function goUserPage(page) {
+            loadAdminContent(buildAdminUserListUrl(page, getCurrentUserSortOrder()));
         }
 
         /**
-         * 회원번호 정렬 함수 (서버 정렬 기준 유지)
-         * 현재는 서버 요청 방식으로 처리합니다.
+         * ?뚯썝 寃???⑥닔
          */
-        function searchAdminInquiry() {
+        function searchUser() {
+            loadAdminContent(buildAdminUserListUrl(1, getCurrentUserSortOrder()));
+        }
+
+        function getCurrentAdminInquiryPage() {
+            const currentPage = Number($('.adm-i-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentAdminInquiryPageSize() {
+            const pageSize = Number($('.adm-i-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function buildAdminInquiryListUrl(page) {
             const keyword = ($('#adminInquiryKeyword').val() || '').trim();
             const status = ($('#adminInquiryStatus').val() || '').trim();
-            const userId = ($('#adminInquiryUserId').val() || '').trim();
-            let url = ctx + "/admin/qna";
-            const params = [];
+            const params = new URLSearchParams();
 
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentAdminInquiryPageSize()));
             if (keyword) {
-                params.push("keyword=" + encodeURIComponent(keyword));
+                params.set('keyword', keyword);
             }
             if (status) {
-                params.push("status=" + encodeURIComponent(status));
-            }
-            if (userId) {
-                params.push("userId=" + encodeURIComponent(userId));
-            }
-            if (params.length > 0) {
-                url += "?" + params.join("&");
+                params.set('status', status);
             }
 
-            loadAdminContent(url);
+            return ctx + "/admin/qna?" + params.toString();
+        }
+
+        function searchAdminInquiry() {
+            loadAdminContent(buildAdminInquiryListUrl(1));
+        }
+
+        function goAdminInquiryPage(page) {
+            loadAdminContent(buildAdminInquiryListUrl(page > 0 ? page : getCurrentAdminInquiryPage()));
+        }
+
+        function getCurrentAdminNoticePage() {
+            const currentPage = Number($('.adm-n-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentAdminNoticePageSize() {
+            const pageSize = Number($('.adm-n-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function buildAdminNoticeListUrl(page) {
+            const keyword = ($('#adminNoticeKeyword').val() || '').trim();
+            const pinned = ($('#adminNoticePinned').val() || '').trim();
+            const params = new URLSearchParams();
+
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentAdminNoticePageSize()));
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+            if (pinned !== '') {
+                params.set('pinned', pinned);
+            }
+
+            return ctx + "/admin/notice?" + params.toString();
+        }
+
+        function searchAdminNotice() {
+            loadAdminContent(buildAdminNoticeListUrl(1));
+        }
+
+        function goAdminNoticePage(page) {
+            loadAdminContent(buildAdminNoticeListUrl(page > 0 ? page : getCurrentAdminNoticePage()));
+        }
+
+        function getCurrentAdminFaqPage() {
+            const currentPage = Number($('.adm-f-container').data('current-page'));
+            return currentPage > 0 ? currentPage : 1;
+        }
+
+        function getCurrentAdminFaqPageSize() {
+            const pageSize = Number($('.adm-f-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
+
+        function buildAdminFaqListUrl(page) {
+            const keyword = ($('#adminFaqKeyword').val() || '').trim();
+            const category = ($('#adminFaqCategoryFilter').val() || '').trim();
+            const params = new URLSearchParams();
+
+            params.set('page', String(page > 0 ? page : 1));
+            params.set('size', String(getCurrentAdminFaqPageSize()));
+            if (category) {
+                params.set('category', category);
+            }
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+
+            return ctx + "/admin/faq?" + params.toString();
+        }
+
+        function searchAdminFaq() {
+            loadAdminContent(buildAdminFaqListUrl(1));
+        }
+
+        function goAdminFaqPage(page) {
+            loadAdminContent(buildAdminFaqListUrl(page > 0 ? page : getCurrentAdminFaqPage()));
         }
 
         function loadAdminInquiryDetail(inquiryId, onSuccess) {
@@ -808,11 +1172,11 @@
             const answerContent = ($('#adminInquiryAnswerContent').val() || '').trim();
 
             if (!inquiryId) {
-                alert("문의 정보를 다시 불러와주세요.");
+                alert("문의 정보를 다시 불러와 주세요.");
                 return;
             }
             if (!answerContent) {
-                alert("답변 내용을 입력해주세요.");
+                alert("답변 내용을 입력해 주세요.");
                 return;
             }
 
@@ -832,7 +1196,7 @@
                         return;
                     }
                     if (normalized === "fail:empty_answer") {
-                        alert("답변 내용을 입력해주세요.");
+                        alert("답변 내용을 입력해 주세요.");
                         return;
                     }
                     alert("답변 등록에 실패했습니다.");
@@ -844,27 +1208,22 @@
         }
 
         function sortUserList() {
-            currentSortOrder = (currentSortOrder === 'DESC') ? 'ASC' : 'DESC';
-            const type = $('#searchType').val();
-            const keyword = $('#keyword').val();
-            
-            // 기존 검색 조건을 유지한 채 정렬만 변경합니다.
-            const url = ctx + "/admin/users?sort=" + currentSortOrder + "&type=" + type + "&keyword=" + keyword;
-            loadAdminContent(url);
+            currentSortOrder = (getCurrentUserSortOrder() === 'DESC') ? 'ASC' : 'DESC';
+            loadAdminContent(buildAdminUserListUrl(1, currentSortOrder));
         }
         
         /**
-         * 회원 상태 변경 함수
+         * ?뚯썝 ?곹깭 蹂寃??⑥닔
          */
         function updateStatus(userId, newStatus) {
             if (userId === 1) {
-                alert("마스터 관리자는 상태를 변경할 수 없습니다.");
+                alert("마스터 관리자의 상태는 변경할 수 없습니다.");
                 return;
             }
 
-            // 확인 문구 설정
-            const actionText = (newStatus === 'WITHDRAWN') ? "삭제" : "변경";
-            if (!confirm("해당 회원을 정말로 " + actionText + "하시겠습니까?")) {
+            // ?뺤씤 臾멸뎄 ?ㅼ젙
+            const actionText = (newStatus === 'WITHDRAWN') ? '\uC815\uC9C0' : '\uBCC0\uACBD';
+            if (!confirm("\uD574\uB2F9 \uD68C\uC6D0\uC744 \uC815\uB9D0\uB85C " + actionText + "\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?")) {
                 return;
             }
 
@@ -879,14 +1238,8 @@
                     if (res.trim() === "success") {
                         alert("상태가 정상적으로 변경되었습니다.");
                         
-                        // 현재 검색어/정렬 조건을 유지한 채 다시 로드합니다.
-                        const type = $('#searchType').val();
-                        const keyword = $('#keyword').val();
-                        // 정렬 아이콘 상태로 현재 정렬을 확인합니다.
-                        const sort = $('#sortIcon').hasClass('fa-sort-up') ? 'ASC' : 'DESC';
-                        
-                        const url = ctx + "/admin/search?type=" + type + "&keyword=" + encodeURIComponent(keyword) + "&sort=" + sort;
-                        loadAdminContent(url);
+                        // ?꾩옱 寃?됱뼱/?뺣젹 議곌굔???좎???梨??ㅼ떆 濡쒕뱶?⑸땲??
+                        loadAdminContent(buildAdminUserListUrl(getCurrentUserListPage(), getCurrentUserSortOrder()));
                     } else {
                         alert("변경에 실패했습니다.");
                     }
@@ -924,7 +1277,7 @@
         
 
         /**
-         * [기존 함수 보완] 등록/수정 통합 제출
+         * [湲곗〈 ?⑥닔 蹂댁셿] ?깅줉/?섏젙 ?듯빀 ?쒖텧
          */
         function updateQuestStatus(questId, status, actionType) {
             const normalizedStatus = String(status || '').toUpperCase();
@@ -1000,7 +1353,7 @@
             
             if (timeLimitEnabled) {
                 if (!timeLimitValue) {
-                    alert("제한기간을 사용하려면 제한 시간을 입력해 주세요.");
+                    alert("제한시간을 사용하려면 제한 시간을 입력해 주세요.");
                     $('#m_time_limit').focus();
                     return;
                 }
@@ -1060,11 +1413,11 @@
             });
         }
 
-        /* --- admin.jsp 스크립트 영역 수정 --- */
+        /* --- admin.jsp ?ㅽ겕由쏀듃 ?곸뿭 ?섏젙 --- */
 
         /**
-         * [추가/수정] 퀘스트 모달 열기
-         * 수정 모드와 등록 모드를 모두 초기화합니다.
+         * [異붽?/?섏젙] ?섏뒪??紐⑤떖 ?닿린
+         * ?섏젙 紐⑤뱶? ?깅줉 紐⑤뱶瑜?紐⑤몢 珥덇린?뷀빀?덈떎.
          */
         function openQuestModal() {
             $('#questForm')[0].reset();
@@ -1077,14 +1430,14 @@
             $('#modalSubmitBtn').text('등록하기');
             resetQuestLocationState();
             resetQuestReviewState();
-            showQuestLocationStatus('등록된 장소 목록을 불러올 준비가 되었습니다.', false);
+            showQuestLocationStatus('등록 장소 목록을 불러올 준비가 되었습니다.', false);
             $('#questModal').fadeIn(200, function() {
                 searchQuestLocations();
             });
         }
 
         /**
-         * 수정 모달 열기 (기존 값 채우기)
+         * ?섏젙 紐⑤떖 ?닿린 (湲곗〈 媛?梨꾩슦湲?
          */
         function editQuestModal(data) {
             $('#modalTitleText').html('<i class="fas fa-edit"></i> 퀘스트 수정');
@@ -1137,7 +1490,7 @@
         }
 
         /**
-         * 모달을 닫을 때 초기화
+         * 紐⑤떖???レ쓣 ??珥덇린??
          */
         function closeQuestModal() {
             $('#questModal').fadeOut(200);
@@ -1158,96 +1511,612 @@
         }
         
         /**
-         * 퀘스트 검색 및 필터
+         * ?섏뒪??寃??諛??꾪꽣
          */
         function searchQuest() {
-            const status = $('#filterStatus').val(); // 상태 선택값
-            const keyword = $('#searchQuestName').val(); // 검색어
+            const status = $('#filterStatus').val(); // ?곹깭 ?좏깮媛?
+            const keyword = $('#searchQuestName').val(); // 寃?됱뼱
             
-            // URL 파라미터 조합
+            // URL ?뚮씪誘명꽣 議고빀
             const url = ctx + "/admin/quests?status=" + status + "&keyword=" + encodeURIComponent(keyword);
             
-            // 공통 콘텐츠 로더 호출
+            // 怨듯넻 肄섑뀗痢?濡쒕뜑 ?몄텧
             loadAdminContent(url);
         }
         
-        /* --- Reward Item 관련 JS --- */
+        /* --- Reward Item JS --- */
+
+        function initializeRewardAdminView() {
+            if (getRewardAdminRoot().length === 0) {
+                return;
+            }
+            adminRewardLocationSearchResults = [];
+            adminRewardSelectedLocation = null;
+            adminRewardRequestDetail = null;
+        }
+
+        function getRewardAdminRoot() {
+            return $('.admin-content-area .adm-r-shell').first();
+        }
+
+        function getRewardCurrentTab() {
+            const $root = getRewardAdminRoot();
+            const tab = String($root.data('currentTab') || 'items').toLowerCase();
+            return tab === 'requests' ? 'requests' : 'items';
+        }
+
+        function buildRewardAdminUrl(overrides) {
+            const options = overrides || {};
+            const params = new URLSearchParams();
+            const tab = options.tab || getRewardCurrentTab();
+            const status = options.itemStatus !== undefined ? options.itemStatus : ($('#filterItemStatus').val() || '');
+            const keyword = options.itemKeyword !== undefined ? options.itemKeyword : ($('#searchItemName').val() || '');
+            const requestStatus = options.requestStatus !== undefined ? options.requestStatus : ($('#filterRequestStatus').val() || '');
+            const requestKeyword = options.requestKeyword !== undefined ? options.requestKeyword : ($('#searchRequestKeyword').val() || '');
+
+            params.set('tab', tab === 'requests' ? 'requests' : 'items');
+
+            if (status) {
+                params.set('status', status);
+            }
+            if (keyword) {
+                params.set('keyword', keyword);
+            }
+            if (requestStatus) {
+                params.set('requestStatus', requestStatus);
+            }
+            if (requestKeyword) {
+                params.set('requestKeyword', requestKeyword);
+            }
+
+            return ctx + '/admin/shop?' + params.toString();
+        }
+
+        function showRewardAdminTab(tab) {
+            loadAdminContent(buildRewardAdminUrl({ tab: tab }));
+        }
 
         function searchItem() {
-            const status = $('#filterItemStatus').val();
-            const keyword = $('#searchItemName').val();
-            loadAdminContent(ctx + "/admin/shop?status=" + status + "&keyword=" + encodeURIComponent(keyword));
+            loadAdminContent(buildRewardAdminUrl({ tab: 'items' }));
+        }
+
+        function searchRewardRequests() {
+            loadAdminContent(buildRewardAdminUrl({ tab: 'requests' }));
+        }
+
+        function getRewardModalMode() {
+            return String($('#modalFormMode').val() || 'direct-create');
+        }
+
+        function setRewardLocationStatus(message, tone) {
+            const $status = $('#rewardLocationStatus');
+            if ($status.length === 0) {
+                return;
+            }
+
+            $status
+                .removeClass('is-error is-success is-muted')
+                .addClass(tone || 'is-muted')
+                .text(message || '');
+        }
+
+        function renderRewardLocationSearchResults() {
+            const $list = $('#rewardLocationSearchResults');
+            if ($list.length === 0) {
+                return;
+            }
+
+            if (!Array.isArray(adminRewardLocationSearchResults) || adminRewardLocationSearchResults.length === 0) {
+                $list.empty();
+                return;
+            }
+
+            const html = adminRewardLocationSearchResults.map(function(location, index) {
+                const businessName = location.businessName || ('BUSINESS #' + (location.businessId || '-'));
+                return ''
+                    + '<div class="adm-r-location-result">'
+                    + '  <div>'
+                    + '    <strong>' + escapeAdminHtml(location.name || '') + '</strong>'
+                    + '    <span>' + escapeAdminHtml(businessName) + '</span>'
+                    + '    <small>' + escapeAdminHtml(location.address || '') + '</small>'
+                    + '  </div>'
+                    + '  <button type="button" class="adm-r-btn adm-r-btn-primary" onclick="selectRewardBusinessLocation(' + index + ')">선택</button>'
+                    + '</div>';
+            }).join('');
+
+            $list.html(html);
+        }
+
+        function renderRewardSelectedLocation() {
+            const $selected = $('#rewardSelectedLocation');
+            if ($selected.length === 0) {
+                return;
+            }
+
+            if (!adminRewardSelectedLocation || !(Number(adminRewardSelectedLocation.locationId) > 0)) {
+                $('#modalBusinessLocationId').val('');
+                $selected
+                    .addClass('is-empty')
+                    .html('선택된 비즈니스 매장이 없습니다.');
+                return;
+            }
+
+            $('#modalBusinessLocationId').val(adminRewardSelectedLocation.locationId);
+            $selected
+                .removeClass('is-empty')
+                .html(
+                    '<strong>' + escapeAdminHtml(adminRewardSelectedLocation.name || '') + '</strong>'
+                    + '<span>' + escapeAdminHtml(adminRewardSelectedLocation.businessName || ('BUSINESS #' + adminRewardSelectedLocation.businessId)) + '</span>'
+                    + '<small>' + escapeAdminHtml(adminRewardSelectedLocation.address || '') + '</small>'
+                );
+        }
+
+        function setRewardLocationInteractionDisabled(disabled) {
+            $('#rewardLocationKeyword').prop('disabled', disabled);
+            $('#rewardLocationClearBtn').prop('disabled', disabled);
+            $('#itemModal .adm-r-location-search button').prop('disabled', disabled);
+        }
+
+        function applyRewardModalMode(mode, requestStatus) {
+            const normalizedMode = mode === 'request-edit' || mode === 'direct-edit' ? mode : 'direct-create';
+            const normalizedRequestStatus = String(requestStatus || '').toUpperCase();
+            $('#modalFormMode').val(normalizedMode);
+
+            if (normalizedMode === 'direct-edit') {
+                $('#modalRequestAction').val('update');
+                setRewardLocationInteractionDisabled(true);
+                adminRewardLocationSearchResults = [];
+                renderRewardLocationSearchResults();
+                setRewardLocationStatus('일반 쿠폰 수정 모드입니다. 비즈니스 매장 연결은 새 쿠폰 등록에서만 설정할 수 있습니다.', 'is-muted');
+                $('#rewardLocationModeHint').text('이미 생성된 일반 쿠폰은 비즈니스 요청으로 전환할 수 없습니다. 새 쿠폰 등록에서만 비즈니스 매장을 선택할 수 있습니다.');
+                return;
+            }
+
+            setRewardLocationInteractionDisabled(false);
+
+            if (normalizedMode === 'request-edit') {
+                $('#modalRequestAction').val(normalizedRequestStatus === 'HOLD' ? 'resubmit' : 'update');
+                $('#rewardLocationModeHint').text(
+                    normalizedRequestStatus === 'HOLD'
+                        ? '보류된 요청을 수정한 뒤 다시 비즈니스 매장에 요청합니다.'
+                        : '비즈니스 매장에 전달된 쿠폰 제안 내용을 수정합니다.'
+                );
+                setRewardLocationStatus(
+                    adminRewardSelectedLocation
+                        ? '선택한 매장 기준으로 비즈니스 쿠폰 요청을 저장합니다.'
+                        : '비즈니스 쿠폰 요청은 매장 선택이 필요합니다.',
+                    adminRewardSelectedLocation ? 'is-success' : 'is-error'
+                );
+                return;
+            }
+
+            $('#modalRequestAction').val('create');
+            $('#rewardLocationModeHint').text('비즈니스 매장을 선택하면 관리자 저장 후 바로 생성되지 않고, 비즈니스 매장에 제안 요청이 전달됩니다.');
+            setRewardLocationStatus(
+                adminRewardSelectedLocation
+                    ? '선택한 매장 기준으로 비즈니스 쿠폰 요청이 저장됩니다.'
+                    : '선택된 매장이 없으면 일반 쿠폰으로 저장됩니다.',
+                adminRewardSelectedLocation ? 'is-success' : 'is-muted'
+            );
+        }
+
+        function resetRewardItemForm() {
+            const form = $('#itemForm')[0];
+            if (!form) {
+                return;
+            }
+
+            form.reset();
+            $('#modalItemId').val('0');
+            $('#modalRequestId').val('');
+            $('#modalRequestAction').val('create');
+            $('#modalBusinessLocationId').val('');
+            $('#modalFormMode').val('direct-create');
+            $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 쿠폰 등록');
+            $('#itemSubmitBtn').text('등록하기');
+            $('#rewardLocationKeyword').val('');
+
+            adminRewardLocationSearchResults = [];
+            adminRewardSelectedLocation = null;
+            renderRewardLocationSearchResults();
+            renderRewardSelectedLocation();
+            applyRewardModalMode('direct-create');
         }
 
         function openItemModal() {
-            $('#modalItemId').val("0");
-            $('#itemForm')[0].reset();
-            $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 리워드 등록');
-            $('#itemSubmitBtn').text('등록하기');
+            resetRewardItemForm();
             $('#itemModal').fadeIn(200);
         }
 
-        function editItemModal(data) {
-            $('#itemModalTitleText').html('<i class="fas fa-edit"></i> 리워드 정보 수정');
+        function openRewardItemEdit(element) {
+            resetRewardItemForm();
+            $('#itemModalTitleText').html('<i class="fas fa-edit"></i> 일반 쿠폰 수정');
             $('#itemSubmitBtn').text('수정하기');
-            
-            $('#modalItemId').val(data.id);
-            $('#i_name').val(data.name);
-            $('#i_price').val(data.price);
-            $('#i_stock').val(data.stock);
-            $('#i_status').val(data.status);
-            $('#i_desc').val(data.desc);
-            
+            $('#modalItemId').val($(element).attr('data-item-id') || '0');
+            $('#i_name').val($(element).attr('data-item-name') || '');
+            $('#i_price').val($(element).attr('data-item-price') || '0');
+            $('#i_stock').val($(element).attr('data-item-stock') || '0');
+            $('#i_status').val($(element).attr('data-item-status') || 'ON_SALE');
+            $('#i_desc').val($(element).attr('data-item-desc') || '');
+            applyRewardModalMode('direct-edit');
             $('#itemModal').fadeIn(200);
+        }
+
+        function searchRewardBusinessLocations() {
+            if (getRewardModalMode() === 'direct-edit') {
+                return;
+            }
+
+            const keyword = ($('#rewardLocationKeyword').val() || '').trim();
+            setRewardLocationStatus(
+                keyword ? '비즈니스 매장을 검색 중입니다.' : '등록된 비즈니스 매장 목록을 불러오는 중입니다.',
+                'is-muted'
+            );
+
+            $.ajax({
+                url: ctx + '/admin/locations/search',
+                type: 'GET',
+                dataType: 'json',
+                data: {
+                    keyword: keyword,
+                    businessOnly: true
+                },
+                success: function(res) {
+                    adminRewardLocationSearchResults = Array.isArray(res)
+                        ? res.map(function(item) {
+                            return {
+                                locationId: Number(item.locationId) || 0,
+                                businessId: Number(item.businessId) || 0,
+                                businessName: item.businessName || '',
+                                name: item.name || '',
+                                address: item.address || '',
+                                addressDetail: item.addressDetail || ''
+                            };
+                        }).filter(function(item) {
+                            return item.locationId > 0 && item.businessId > 0 && item.name && item.address;
+                        })
+                        : [];
+
+                    renderRewardLocationSearchResults();
+
+                    if (adminRewardLocationSearchResults.length === 0) {
+                        setRewardLocationStatus('조건에 맞는 비즈니스 매장이 없습니다.', 'is-error');
+                        return;
+                    }
+
+                    setRewardLocationStatus('선택 가능한 비즈니스 매장 목록입니다. 연결할 매장을 선택해 주세요.', 'is-success');
+                },
+                error: function() {
+                    adminRewardLocationSearchResults = [];
+                    renderRewardLocationSearchResults();
+                    setRewardLocationStatus('비즈니스 매장 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'is-error');
+                }
+            });
+        }
+
+        function selectRewardBusinessLocation(index) {
+            const location = adminRewardLocationSearchResults[index];
+            if (!location) {
+                return;
+            }
+            adminRewardSelectedLocation = location;
+            renderRewardSelectedLocation();
+            applyRewardModalMode(getRewardModalMode(), $('#modalRequestAction').val() === 'resubmit' ? 'HOLD' : 'REQUESTED');
+        }
+
+        function clearRewardBusinessLocation() {
+            if (getRewardModalMode() === 'direct-edit') {
+                return;
+            }
+            adminRewardSelectedLocation = null;
+            renderRewardSelectedLocation();
+
+            if (getRewardModalMode() === 'request-edit') {
+                setRewardLocationStatus('비즈니스 쿠폰 요청은 매장 선택이 필요합니다. 다시 매장을 선택해 주세요.', 'is-error');
+            } else {
+                setRewardLocationStatus('선택된 매장이 없으면 일반 쿠폰으로 저장됩니다.', 'is-muted');
+            }
+        }
+
+        function validateRewardItemForm() {
+            const name = ($('#i_name').val() || '').trim();
+            if (!name) {
+                alert('쿠폰 명칭을 입력해 주세요.');
+                $('#i_name').focus();
+                return false;
+            }
+
+            if (getRewardModalMode() === 'request-edit' && !adminRewardSelectedLocation) {
+                alert('비즈니스 쿠폰 요청은 비즈니스 매장 선택이 필요합니다.');
+                return false;
+            }
+
+            return true;
         }
 
         function submitItem() {
-            const formData = $('#itemForm').serialize();
+            if (!validateRewardItemForm()) {
+                return;
+            }
+
             $.ajax({
-                url: ctx + "/admin/shop/save",
-                type: "POST",
-                data: formData,
+                url: ctx + '/admin/shop/save',
+                type: 'POST',
+                dataType: 'json',
+                data: $('#itemForm').serialize(),
                 success: function(res) {
-                    if (res.trim() === "success") {
-                        alert("저장되었습니다.");
+                    const result = res && res.result ? String(res.result).toLowerCase() : 'fail';
+                    if (result === 'success') {
+                        alert(res.message || '저장되었습니다.');
+                        const nextTab = res.nextTab || 'items';
                         closeItemModal();
-                        loadAdminContent(ctx + "/admin/shop");
-                    } else { alert("실패했습니다."); }
+                        loadAdminContent(buildRewardAdminUrl({ tab: nextTab }));
+                        return;
+                    }
+
+                    alert(res && res.message ? res.message : '저장에 실패했습니다.');
+                },
+                error: function(xhr) {
+                    alert('서버 통신 오류 (' + xhr.status + ')');
                 }
             });
         }
 
         function updateItemStatus(itemId, status) {
-            if(!confirm("아이템 상태를 변경하시겠습니까?")) return;
+            if (!confirm('쿠폰 상태를 변경하시겠습니까?')) {
+                return;
+            }
             $.ajax({
-                url: ctx + "/admin/shop/updateStatus",
-                type: "POST",
+                url: ctx + '/admin/shop/updateStatus',
+                type: 'POST',
                 data: { itemId: itemId, status: status },
                 success: function(res) {
-                    if(res.trim() === "success") {
-                        loadAdminContent(ctx + "/admin/shop");
+                    if (res.trim() === 'success') {
+                        loadAdminContent(buildRewardAdminUrl({ tab: 'items' }));
+                    } else {
+                        alert('상태 변경에 실패했습니다.');
                     }
+                },
+                error: function(xhr) {
+                    alert('서버 통신 오류 (' + xhr.status + ')');
                 }
             });
         }
 
         function closeItemModal() {
             $('#itemModal').fadeOut(200);
-            // 애니메이션이 끝난 뒤 데이터를 초기화합니다.
             setTimeout(function() {
-                $('#itemForm')[0].reset();
-                $('#modalItemId').val("0");
-                $('#itemModalTitleText').html('<i class="fas fa-plus-circle"></i> 새 리워드 등록');
-                $('#itemSubmitBtn').text('등록하기');
+                resetRewardItemForm();
             }, 200);
         }
-        
-        /* --- Business 관련 JS --- */
 
-        function searchBusiness() {
-            const keyword = $('#searchBusinessKeyword').val() || '';
-            loadAdminContent(ctx + "/admin/store-info?keyword=" + encodeURIComponent(keyword));
+        function loadRewardRequestDetail(requestId, onSuccess) {
+            $.ajax({
+                url: ctx + '/admin/shop/request/detail',
+                type: 'GET',
+                dataType: 'json',
+                data: { requestId: requestId },
+                success: function(res) {
+                    if (res && res.request) {
+                        adminRewardRequestDetail = res;
+                        onSuccess(res);
+                        return;
+                    }
+                    alert('비즈니스 쿠폰 요청 정보를 찾을 수 없습니다.');
+                },
+                error: function(xhr) {
+                    alert('서버 통신 오류 (' + xhr.status + ')');
+                }
+            });
         }
+
+        function openRewardRequestEdit(requestId) {
+            loadRewardRequestDetail(requestId, function(res) {
+                const request = res.request || {};
+                resetRewardItemForm();
+
+                adminRewardSelectedLocation = {
+                    locationId: Number(request.locationId) || 0,
+                    businessId: Number(request.businessId) || 0,
+                    businessName: request.businessName || '',
+                    name: request.locationName || '',
+                    address: request.locationAddress || ''
+                };
+
+                renderRewardSelectedLocation();
+                $('#modalRequestId').val(request.requestId || '');
+                $('#i_name').val(request.couponName || '');
+                $('#i_price').val(request.pricePoint || 0);
+                $('#i_stock').val(request.stock || 0);
+                $('#i_status').val(request.targetStatus || 'ON_SALE');
+                $('#i_desc').val(request.couponDescription || '');
+
+                if (String(request.requestStatus || '').toUpperCase() === 'HOLD') {
+                    $('#itemModalTitleText').html('<i class="fas fa-rotate-right"></i> 비즈니스 쿠폰 요청 보완');
+                    $('#itemSubmitBtn').text('수정 후 재요청');
+                } else {
+                    $('#itemModalTitleText').html('<i class="fas fa-edit"></i> 비즈니스 쿠폰 요청 수정');
+                    $('#itemSubmitBtn').text('수정하기');
+                }
+
+                applyRewardModalMode('request-edit', request.requestStatus);
+                closeRewardRequestDetailModal();
+                $('#itemModal').fadeIn(200);
+            });
+        }
+
+        function openRewardRequestDetail(requestId) {
+            $('#rewardRequestDetailBody').html('<div class="adm-r-empty">비즈니스 쿠폰 요청 정보를 불러오는 중입니다.</div>');
+            $('#rewardRequestDetailFooter').html('<button type="button" class="adm-r-btn adm-r-btn-secondary" onclick="closeRewardRequestDetailModal()">닫기</button>');
+            $('#rewardRequestDetailModal').fadeIn(200);
+
+            loadRewardRequestDetail(requestId, function(res) {
+                renderRewardRequestDetail(res.request || {}, res.history || []);
+            });
+        }
+
+        function buildRewardStatusText(status) {
+            const normalized = String(status || '').toUpperCase();
+            if (normalized === 'ON_SALE') {
+                return '판매중';
+            }
+            if (normalized === 'SOLD_OUT') {
+                return '품절';
+            }
+            if (normalized === 'HIDDEN') {
+                return '숨김';
+            }
+            if (normalized === 'REQUESTED') {
+                return '요청중';
+            }
+            if (normalized === 'HOLD') {
+                return '보류';
+            }
+            if (normalized === 'ACCEPTED') {
+                return '수락';
+            }
+            if (normalized === 'CANCELLED') {
+                return '취소';
+            }
+            return normalized || '-';
+        }
+
+        function buildRewardStatusBadge(status, extraClass) {
+            const normalized = String(status || '').toUpperCase();
+            const classes = ['adm-r-status'];
+            if (extraClass) {
+                classes.push(extraClass);
+            }
+            if (normalized) {
+                classes.push(normalized);
+            }
+
+            return '<span class="' + classes.join(' ') + '">' + escapeAdminHtml(buildRewardStatusText(normalized)) + '</span>';
+        }
+
+        function formatRewardDateTime(value) {
+            if (!value) {
+                return '-';
+            }
+            if (Array.isArray(value)) {
+                const year = value[0] || 0;
+                const month = value[1] || 1;
+                const day = value[2] || 1;
+                const hour = value[3] || 0;
+                const minute = value[4] || 0;
+                const second = value[5] || 0;
+                return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0')
+                    + ' ' + String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0')
+                    + ':' + String(second).padStart(2, '0');
+            }
+
+            return String(value).replace('T', ' ').replace(/\.\d+$/, '');
+        }
+
+        function buildRewardDetailItem(label, valueHtml, isWide) {
+            return ''
+                + '<div class="adm-r-detail-item' + (isWide ? ' is-wide' : '') + '">'
+                + '  <div class="adm-r-detail-label">' + escapeAdminHtml(label) + '</div>'
+                + '  <div class="adm-r-detail-value">' + valueHtml + '</div>'
+                + '</div>';
+        }
+
+        function renderRewardRequestHistory(historyList) {
+            if (!Array.isArray(historyList) || historyList.length === 0) {
+                return '<div class="adm-r-empty">등록된 요청 이력이 없습니다.</div>';
+            }
+
+            return '<div class="adm-r-history-list">'
+                + historyList.map(function(history) {
+                    const actor = history.actionByNickname || (history.actionByUserId ? 'USER #' + history.actionByUserId : 'SYSTEM');
+                    return ''
+                        + '<div class="adm-r-history-item">'
+                        + '  <div class="adm-r-history-top">'
+                        + '    <strong class="adm-r-history-title">' + escapeAdminHtml(history.actionType || '-') + '</strong>'
+                        + '    <span class="adm-r-history-meta">v' + escapeAdminHtml(history.requestVersion || '-') + ' · ' + escapeAdminHtml(actor) + '</span>'
+                        + '  </div>'
+                        + '  <div class="adm-r-history-meta">' + escapeAdminHtml(formatRewardDateTime(history.createdAt)) + '</div>'
+                        + (history.commentText
+                            ? '<div class="adm-r-history-comment">' + escapeAdminHtml(history.commentText) + '</div>'
+                            : '')
+                        + '</div>';
+                }).join('')
+                + '</div>';
+        }
+
+        function renderRewardRequestDetail(request, historyList) {
+            const requestStatus = String(request.requestStatus || '').toUpperCase();
+            const detailHtml = ''
+                + '<section class="adm-r-detail-section">'
+                + '  <div class="adm-r-detail-grid">'
+                + buildRewardDetailItem('쿠폰명', escapeAdminHtml(request.couponName || '-'))
+                + buildRewardDetailItem('요청 상태', buildRewardStatusBadge(request.requestStatus, 'adm-r-request-status'))
+                + buildRewardDetailItem('목표 상태', buildRewardStatusBadge(request.targetStatus))
+                + buildRewardDetailItem('버전', 'v' + escapeAdminHtml(request.requestVersion || '-'))
+                + buildRewardDetailItem('비즈니스', escapeAdminHtml(request.businessName || '-'))
+                + buildRewardDetailItem('매장명', escapeAdminHtml(request.locationName || '-'))
+                + buildRewardDetailItem('요청일시', escapeAdminHtml(formatRewardDateTime(request.requestedAt)))
+                + buildRewardDetailItem('응답일시', escapeAdminHtml(formatRewardDateTime(request.respondedAt)))
+                + buildRewardDetailItem('포인트', escapeAdminHtml((request.pricePoint || 0) + ' PT'))
+                + buildRewardDetailItem('재고', escapeAdminHtml(String(request.stock || 0)))
+                + buildRewardDetailItem('매장 주소', escapeAdminHtml(request.locationAddress || '-'), true)
+                + buildRewardDetailItem('설명', escapeAdminHtml(request.couponDescription || '-'), true)
+                + buildRewardDetailItem('최근 보류사유', escapeAdminHtml(request.lastHoldReason || '-'), true)
+                + '  </div>'
+                + '</section>'
+                + '<section class="adm-r-detail-section">'
+                + '  <div class="adm-r-detail-label">요청 이력</div>'
+                + renderRewardRequestHistory(historyList)
+                + '</section>';
+
+            $('#rewardRequestDetailBody').html(detailHtml);
+
+            const actionButtons = ['<button type="button" class="adm-r-btn adm-r-btn-secondary" onclick="closeRewardRequestDetailModal()">닫기</button>'];
+            if (requestStatus !== 'ACCEPTED' && requestStatus !== 'CANCELLED') {
+                actionButtons.unshift(
+                    '<button type="button" class="adm-r-btn adm-r-btn-danger" onclick="cancelRewardRequest(' + Number(request.requestId || 0) + ')">취소</button>'
+                );
+                actionButtons.unshift(
+                    '<button type="button" class="adm-r-btn adm-r-btn-primary" onclick="openRewardRequestEdit(' + Number(request.requestId || 0) + ')">'
+                    + (requestStatus === 'HOLD' ? '보완 후 재요청' : '수정')
+                    + '</button>'
+                );
+            }
+            $('#rewardRequestDetailFooter').html(actionButtons.join(''));
+        }
+
+        function cancelRewardRequest(requestId) {
+            if (!confirm('비즈니스 쿠폰 요청을 취소하시겠습니까?')) {
+                return;
+            }
+
+            $.ajax({
+                url: ctx + '/admin/shop/request/cancel',
+                type: 'POST',
+                dataType: 'json',
+                data: { requestId: requestId },
+                success: function(res) {
+                    const result = res && res.result ? String(res.result).toLowerCase() : 'fail';
+                    if (result === 'success') {
+                        alert(res.message || '요청을 취소했습니다.');
+                        closeRewardRequestDetailModal();
+                        loadAdminContent(buildRewardAdminUrl({ tab: 'requests' }));
+                        return;
+                    }
+
+                    alert(res && res.message ? res.message : '요청 취소에 실패했습니다.');
+                },
+                error: function(xhr) {
+                    alert('서버 통신 오류 (' + xhr.status + ')');
+                }
+            });
+        }
+
+        function closeRewardRequestDetailModal() {
+            $('#rewardRequestDetailModal').fadeOut(200);
+        }
+        
+        /* --- Business 愿??JS --- */
 
         function loadBusinessDetail(businessId, onSuccess) {
             $.ajax({
@@ -1473,7 +2342,7 @@
 
         function formatBusinessAuthAmount(value) {
             const numericValue = Number(value || 0);
-            return numericValue.toLocaleString('ko-KR') + '원';
+            return numericValue.toLocaleString('ko-KR') + '\uC6D0';
         }
 
         function formatBusinessAuthDate(value) {
@@ -1500,12 +2369,12 @@
 
             $('#businessAuthStatus')
                 .removeClass('is-error')
-                .text('비지니스 정보를 확인하려면 탭을 선택해 주세요.');
+                .text('비즈니스 정보를 확인하려면 탭을 선택해 주세요.');
             $('#detailAuthTotalCount').text('0');
             $('#detailAuthQrCount').text('0');
             $('#detailAuthReceiptCount').text('0');
-            $('#detailAuthPaymentAmount').text('0원');
-            $('#detailAuthSettlementAmount').text('0원');
+            $('#detailAuthPaymentAmount').text('0\uC6D0');
+            $('#detailAuthSettlementAmount').text('0\uC6D0');
             $('#detailAuthLastAt').text('-');
             $('#detailAuthUserCount').text('0');
             $('#detailAuthLocationCount').text('0');
@@ -1541,7 +2410,7 @@
             businessDetailAuthLoading = true;
             $('#businessAuthStatus')
                 .removeClass('is-error')
-                .text('비지니스 정보를 불러오는 중입니다.');
+                .text('비즈니스 정보를 불러오는 중입니다.');
 
             $.ajax({
                 url: ctx + "/admin/store-info/auth-detail",
@@ -1553,7 +2422,7 @@
                     applyBusinessAuthSummary(res ? res.summary : null);
                 },
                 error: function(xhr) {
-                    let message = '비지니스 정보를 불러오지 못했습니다.';
+                    let message = '비즈니스 정보를 불러오지 못했습니다.';
                     if (xhr && xhr.status === 404) {
                         message = '해당 매장 정보를 찾을 수 없습니다.';
                     }
@@ -1613,29 +2482,58 @@
             });
         }
 
-        function loadBusinessAdmin(tab) {
-            const activeTab = tab || 'inquiry';
-            const businessKeyword = $('#searchBusinessKeyword').val() || '';
-            const inquiryKeyword = $('#searchInquiryKeyword').val() || '';
-            const inquiryStatus = $('#filterInquiryStatus').val() || '';
+        function getBusinessAdminPageSize() {
+            const pageSize = Number($('.adm-b-container').data('page-size'));
+            return pageSize > 0 ? pageSize : 30;
+        }
 
-            const url = ctx + "/admin/store-info?tab=" + encodeURIComponent(activeTab)
-                + "&businessKeyword=" + encodeURIComponent(businessKeyword)
-                + "&inquiryKeyword=" + encodeURIComponent(inquiryKeyword)
-                + "&inquiryStatus=" + encodeURIComponent(inquiryStatus);
+        function buildBusinessAdminUrl(tab, options) {
+            const $container = $('.adm-b-container');
+            const activeTab = tab || $container.data('current-tab') || 'inquiry';
+            const businessKeyword = ($('#searchBusinessKeyword').val() || '').trim();
+            const inquiryKeyword = ($('#searchInquiryKeyword').val() || '').trim();
+            const inquiryStatus = ($('#filterInquiryStatus').val() || '').trim();
+            const userId = ($container.data('user-id') || '').toString().trim();
+            const currentBusinessPage = Number($container.data('business-page')) || 1;
+            const currentInquiryPage = Number($container.data('inquiry-page')) || 1;
+            const nextOptions = options || {};
+            const nextBusinessPage = Number(nextOptions.businessPage || currentBusinessPage);
+            const nextInquiryPage = Number(nextOptions.inquiryPage || currentInquiryPage);
+            const params = new URLSearchParams();
 
-            loadAdminContent(url);
+            params.set('tab', activeTab);
+            params.set('businessPage', String(nextBusinessPage > 0 ? nextBusinessPage : 1));
+            params.set('inquiryPage', String(nextInquiryPage > 0 ? nextInquiryPage : 1));
+            params.set('size', String(getBusinessAdminPageSize()));
+
+            if (businessKeyword) {
+                params.set('businessKeyword', businessKeyword);
+            }
+            if (inquiryKeyword) {
+                params.set('inquiryKeyword', inquiryKeyword);
+            }
+            if (inquiryStatus) {
+                params.set('inquiryStatus', inquiryStatus);
+            }
+            if (userId) {
+                params.set('userId', userId);
+            }
+
+            return ctx + "/admin/store-info?" + params.toString();
+        }
+
+        function loadBusinessAdmin(tab, options) {
+            loadAdminContent(buildBusinessAdminUrl(tab, options));
         }
 
         function showBusinessTab(tabName) {
-            $('.adm-b-tab').removeClass('active');
-            $('.adm-b-panel').removeClass('active');
-            $('.adm-b-tab[data-tab="' + tabName + '"]').addClass('active');
-            $('.adm-b-panel[data-panel="' + tabName + '"]').addClass('active');
+            loadBusinessAdmin(tabName);
         }
 
-        function searchBusiness() { loadBusinessAdmin('business'); }
-        function searchBusinessInquiry() { loadBusinessAdmin('inquiry'); }
+        function searchBusiness() { loadBusinessAdmin('business', { businessPage: 1 }); }
+        function searchBusinessInquiry() { loadBusinessAdmin('inquiry', { inquiryPage: 1 }); }
+        function goBusinessPage(page) { loadBusinessAdmin('business', { businessPage: page }); }
+        function goBusinessInquiryPage(page) { loadBusinessAdmin('inquiry', { inquiryPage: page }); }
 
 
 function loadBusinessInquiryDetail(inquiryId, onSuccess) {
@@ -1707,8 +2605,8 @@ function closeBusinessModal() {
         if ($('#businessForm').length > 0) $('#businessForm')[0].reset();
         $('#businessId').val("0");
         $('#businessInquiryId').val("");
-        $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 매장 등록');
-        $("#businessSubmitBtn").text('등록');
+    $('#businessModalTitleText').html('<i class="fas fa-plus-circle"></i> 매장 등록');
+    $("#businessSubmitBtn").text('등록');
     }, 200);
 }
 
@@ -2225,32 +3123,21 @@ function deleteBusiness(businessId) {
         }
     </script>
 </head>
-<body>
-    <c:set var="frontendBaseUrl" value="${initParam['lq.frontend.base-url']}" />
-    <c:if test="${empty frontendBaseUrl}">
-        <c:set var="frontendPortSuffix" value=":${pageContext.request.serverPort}" />
-        <c:if test="${pageContext.request.serverPort == 80 or pageContext.request.serverPort == 443}">
-            <c:set var="frontendPortSuffix" value="" />
-        </c:if>
-        <c:if test="${pageContext.request.serverPort == 8080}">
-            <c:set var="frontendPortSuffix" value=":3000" />
-        </c:if>
-        <c:set var="frontendBaseUrl" value="${pageContext.request.scheme}://${pageContext.request.serverName}${frontendPortSuffix}" />
-    </c:if>
-    <c:set var="logoHref" value="${frontendBaseUrl}/main" scope="request" />
+<body class="admin-page" data-admin-theme="light">
     <div id="admin-root">
-        <jsp:include page="../common/header.jsp" />
-        <div class="header-relative-space"></div>
         <div class="admin-main-wrapper">
             <jsp:include page="./admin-navbar.jsp" />
             <main class="admin-content-area"></main>
         </div>
     </div>
     <script>
+        window.addEventListener('popstate', function() {
+            loadAdminContent(buildAdminAjaxUrlFromLocation(window.location), null, { pushHistory: false });
+        });
+
         $(document).ready(function() {
-            loadAdminContent(ctx + "/admin/users");
-            $('.admin-nav-item a').removeClass('active');
-            $('.admin-nav-item a').first().addClass('active');
+            initializeAdminTheme();
+            loadAdminContent(buildAdminAjaxUrlFromLocation(window.location), null, { pushHistory: false });
         });
     </script>
 </body>

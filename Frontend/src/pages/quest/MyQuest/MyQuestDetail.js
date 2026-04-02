@@ -1,12 +1,24 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
+import jsQR from 'jsqr';
 import { questApi } from '../../../api/QuestApi';
 import { hasValidCoordinates, loadKakaoMapSdk } from '../../../utils/kakaoMap';
 import '../QuestDetail/QuestDetail.css';
 import './MyQuestDetail.css';
 
 const STAR_OPTIONS = [1, 2, 3, 4, 5];
+const QR_SCANNER_MESSAGES = {
+  starting: '카메라를 준비하는 중입니다.',
+  ready: 'QR 코드를 화면 가운데에 맞춰주세요.',
+  unsupported: '이 브라우저에서는 자동 QR 인식을 사용할 수 없습니다.',
+  noCamera: '이 기기에서는 카메라를 사용할 수 없습니다.',
+  denied: '카메라 권한이 없어 QR을 읽을 수 없습니다.',
+  insecure: '모바일 카메라는 HTTPS 또는 localhost 환경에서만 사용할 수 있습니다.',
+  error: '카메라를 시작하지 못했습니다.',
+  scanned: 'QR을 확인했어요. 바로 인증할게요.',
+  verifying: 'QR을 확인했어요. 인증 중이에요.',
+};
 const GPS_FALLBACK_LOCATION = {
   name: '대흥로 215',
   latitude: 36.80740752813,
@@ -114,6 +126,10 @@ function MyQuestDetail() {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const mapMarkerRef = useRef(null);
+  const qrVideoRef = useRef(null);
+  const qrCanvasRef = useRef(null);
+  const qrStreamRef = useRef(null);
+  const qrScanFrameRef = useRef(0);
 
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -128,6 +144,9 @@ function MyQuestDetail() {
   const [qrAuthKey, setQrAuthKey] = useState('');
   const [qrError, setQrError] = useState('');
   const [isSubmittingQr, setIsSubmittingQr] = useState(false);
+  const [isScannerActive, setIsScannerActive] = useState(false);
+  const [scannerStatus, setScannerStatus] = useState('idle');
+  const [scannerMessage, setScannerMessage] = useState('');
   const [isSubmittingGps, setIsSubmittingGps] = useState(false);
   const [receiptFailure, setReceiptFailure] = useState(null);
   const [isCompletingQuest, setIsCompletingQuest] = useState(false);
@@ -149,7 +168,7 @@ function MyQuestDetail() {
         const response = await questApi.getMyQuestDetail(userQuestId);
         if (!isCancelled) setDetail(response.data);
       } catch (fetchError) {
-        if (!isCancelled) setError('내 퀘스트 상세 정보를 불러오지 못했습니다.');
+        if (!isCancelled) setError('내 퀘스트 상세를 불러오지 못했습니다.');
       } finally {
         if (!isCancelled) setLoading(false);
       }
@@ -163,6 +182,16 @@ function MyQuestDetail() {
   useEffect(() => () => {
     if (receiptPreviewUrl) URL.revokeObjectURL(receiptPreviewUrl);
   }, [receiptPreviewUrl]);
+
+  useEffect(() => () => {
+    if (qrScanFrameRef.current) {
+      window.cancelAnimationFrame(qrScanFrameRef.current);
+    }
+    if (qrStreamRef.current) {
+      qrStreamRef.current.getTracks().forEach((track) => track.stop());
+      qrStreamRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -242,18 +271,40 @@ function MyQuestDetail() {
     setSelectedLocation(location);
   };
 
+  const stopQrScanner = () => {
+    if (qrScanFrameRef.current) {
+      window.cancelAnimationFrame(qrScanFrameRef.current);
+      qrScanFrameRef.current = 0;
+    }
+    if (qrStreamRef.current) {
+      qrStreamRef.current.getTracks().forEach((track) => track.stop());
+      qrStreamRef.current = null;
+    }
+    if (qrVideoRef.current) {
+      qrVideoRef.current.pause();
+      qrVideoRef.current.srcObject = null;
+    }
+  };
+
   const closeQrModal = (options = {}) => {
     const { force = false } = options;
     if (isSubmittingQr && !force) return;
+    stopQrScanner();
     setSelectedQrLocation(null);
     setQrAuthKey('');
     setQrError('');
+    setIsScannerActive(false);
+    setScannerStatus('idle');
+    setScannerMessage('');
   };
 
   const openQrModal = (location) => {
     closeQrModal({ force: true });
     setReceiptFailure(null);
     setSelectedQrLocation(location);
+    setIsScannerActive(true);
+    setScannerStatus('starting');
+    setScannerMessage(QR_SCANNER_MESSAGES.starting);
   };
 
   const closeReceiptFailureModal = () => setReceiptFailure(null);
@@ -322,9 +373,9 @@ function MyQuestDetail() {
       }
       const failureLocationName = selectedLocation.name;
       closeReceiptModal({ force: true });
-      setReceiptFailure({ locationName: failureLocationName, message: result.message || '영수증 인증에 실패했습니다.', reason: result.reason || '' });
+      setReceiptFailure({ locationName: failureLocationName, message: result.message || '영수증 확인에 실패했습니다.', reason: result.reason || '' });
     } catch (submitError) {
-      const message = submitError.response?.data?.message || (typeof submitError.response?.data === 'string' ? submitError.response.data : '') || '영수증 인증 중 오류가 발생했습니다.';
+      const message = submitError.response?.data?.message || (typeof submitError.response?.data === 'string' ? submitError.response.data : '') || '영수증 확인 중 문제가 발생했습니다.';
       setReceiptError(message);
     } finally {
       setIsSubmittingReceipt(false);
@@ -349,37 +400,46 @@ function MyQuestDetail() {
         if (result.detail) setDetail(result.detail);
         alert(
           position.usedFallback
-            ? `${result.message || 'GPS 인증이 완료되었습니다.'} 현재 위치를 확인하지 못해 기본 위치(${GPS_FALLBACK_LOCATION.name})로 인증했습니다.`
-            : (result.message || 'GPS 인증이 완료되었습니다.')
+            ? `${result.message || '위치 인증이 완료되었습니다.'} 현재 위치를 찾지 못해 기본 위치(${GPS_FALLBACK_LOCATION.name})로 인증했습니다.`
+            : (result.message || '위치 인증이 완료되었습니다.')
         );
         return;
       }
       openVerificationFailure(location.name, result.message || 'GPS 인증에 실패했습니다.', result.reason || '');
     } catch (gpsError) {
-      const message = gpsError.response?.data?.message || '현재 위치를 확인하는 중 오류가 발생했습니다.';
+      const message = gpsError.response?.data?.message || '위치를 확인하는 중 문제가 발생했습니다.';
       openVerificationFailure(location.name, message);
     } finally {
       setIsSubmittingGps(false);
     }
   };
 
-  const handleQrSubmit = async (event) => {
-    event.preventDefault();
+  const submitQrVerification = useEffectEvent(async (authKey) => {
     if (!selectedQrLocation || isSubmittingQr) return;
-    if (!qrAuthKey.trim()) {
-      setQrError('QR 인증값을 입력해 주세요.');
+    if (!authKey.trim()) {
+      setQrError('먼저 QR을 촬영해주세요.');
       return;
     }
 
     try {
       setIsSubmittingQr(true);
       setQrError('');
+      setScannerStatus('verifying');
+      setScannerMessage(QR_SCANNER_MESSAGES.verifying);
+      console.debug('[LocalQuest][QR] submitting scanned key', {
+        userQuestId,
+        questLocationId: selectedQrLocation.questLocationId,
+        locationId: selectedQrLocation.locationId,
+        locationName: selectedQrLocation.name,
+        qrAuthKey: authKey.trim(),
+      });
       const response = await questApi.verifyQuestQr(
         userQuestId,
         selectedQrLocation.questLocationId,
-        qrAuthKey.trim()
+        authKey.trim()
       );
       const result = response.data || {};
+      console.debug('[LocalQuest][QR] verification response', result);
       if (result.verified) {
         if (result.detail) setDetail(result.detail);
         closeQrModal({ force: true });
@@ -391,11 +451,204 @@ function MyQuestDetail() {
       closeQrModal({ force: true });
       openVerificationFailure(failureLocationName, result.message || 'QR 인증에 실패했습니다.', result.reason || '');
     } catch (qrSubmitError) {
-      const message = qrSubmitError.response?.data?.message || 'QR 인증 중 오류가 발생했습니다.';
+      console.debug('[LocalQuest][QR] verification error', {
+        message: qrSubmitError.response?.data?.message || qrSubmitError.message,
+        payload: qrSubmitError.response?.data,
+      });
+      const message = qrSubmitError.response?.data?.message || 'QR 인증 중 문제가 발생했습니다.';
       setQrError(message);
     } finally {
       setIsSubmittingQr(false);
     }
+  });
+
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    if (!selectedQrLocation || !isScannerActive) {
+      stopQrScanner();
+      return undefined;
+    }
+
+    let isCancelled = false;
+
+    const startQrScanner = async () => {
+      const hostname = window.location.hostname;
+      const isLocalhost =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1';
+
+      if (!window.isSecureContext && !isLocalhost) {
+        setScannerStatus('error');
+        setScannerMessage(QR_SCANNER_MESSAGES.insecure);
+        setIsScannerActive(false);
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setScannerStatus('noCamera');
+        setScannerMessage(QR_SCANNER_MESSAGES.noCamera);
+        setIsScannerActive(false);
+        return;
+      }
+
+      const BarcodeDetectorApi = window.BarcodeDetector;
+      let detector = null;
+
+      if (typeof BarcodeDetectorApi === 'function') {
+        try {
+          detector = new BarcodeDetectorApi({ formats: ['qr_code'] });
+        } catch (detectorError) {
+          detector = null;
+        }
+      }
+
+      try {
+        stopQrScanner();
+        setScannerStatus('starting');
+        setScannerMessage(QR_SCANNER_MESSAGES.starting);
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+          },
+          audio: false,
+        });
+
+        if (isCancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        qrStreamRef.current = stream;
+
+        if (qrVideoRef.current) {
+          qrVideoRef.current.srcObject = stream;
+          await qrVideoRef.current.play();
+        }
+
+        setScannerStatus('ready');
+        setScannerMessage(QR_SCANNER_MESSAGES.ready);
+
+        const scanFrame = async () => {
+          if (isCancelled || !qrVideoRef.current) return;
+
+          const video = qrVideoRef.current;
+          if (video.readyState < 2) {
+            qrScanFrameRef.current = window.requestAnimationFrame(scanFrame);
+            return;
+          }
+
+          try {
+            let detectedValue = '';
+
+            if (detector) {
+              const codes = await detector.detect(video);
+              detectedValue = codes.find((code) => code.rawValue)?.rawValue?.trim() || '';
+            } else {
+              const canvas = qrCanvasRef.current;
+              const context = canvas?.getContext('2d', { willReadFrequently: true });
+
+              if (canvas && context && video.videoWidth > 0 && video.videoHeight > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                detectedValue = jsQR(imageData.data, imageData.width, imageData.height)?.data?.trim() || '';
+              }
+            }
+
+            if (detectedValue) {
+              console.debug('[LocalQuest][QR] detected value from scanner', {
+                questLocationId: selectedQrLocation?.questLocationId,
+                locationId: selectedQrLocation?.locationId,
+                locationName: selectedQrLocation?.name,
+                qrAuthKey: detectedValue,
+              });
+              setQrAuthKey(detectedValue);
+              setQrError('');
+              setScannerStatus('scanned');
+              setScannerMessage(QR_SCANNER_MESSAGES.scanned);
+              setIsScannerActive(false);
+              stopQrScanner();
+              submitQrVerification(detectedValue);
+              return;
+            }
+          } catch (scanError) {
+            if (!detector) {
+              qrScanFrameRef.current = window.requestAnimationFrame(scanFrame);
+              return;
+            }
+
+            const canvas = qrCanvasRef.current;
+            const context = canvas?.getContext('2d', { willReadFrequently: true });
+
+            if (canvas && context && video.videoWidth > 0 && video.videoHeight > 0) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+              try {
+                const bitmap = await createImageBitmap(canvas);
+                const codes = await detector.detect(bitmap);
+                bitmap.close();
+                const detectedValue = codes.find((code) => code.rawValue)?.rawValue?.trim();
+
+                if (detectedValue) {
+                  console.debug('[LocalQuest][QR] detected value from bitmap fallback', {
+                    questLocationId: selectedQrLocation?.questLocationId,
+                    locationId: selectedQrLocation?.locationId,
+                    locationName: selectedQrLocation?.name,
+                    qrAuthKey: detectedValue,
+                  });
+                  setQrAuthKey(detectedValue);
+                  setQrError('');
+                  setScannerStatus('scanned');
+                  setScannerMessage(QR_SCANNER_MESSAGES.scanned);
+                  setIsScannerActive(false);
+                  stopQrScanner();
+                  submitQrVerification(detectedValue);
+                  return;
+                }
+              } catch (bitmapError) {
+                // Ignore one frame and keep scanning.
+              }
+            }
+          }
+
+          qrScanFrameRef.current = window.requestAnimationFrame(scanFrame);
+        };
+
+        qrScanFrameRef.current = window.requestAnimationFrame(scanFrame);
+      } catch (cameraError) {
+        if (isCancelled) return;
+
+        const denied =
+          cameraError?.name === 'NotAllowedError' ||
+          cameraError?.name === 'SecurityError' ||
+          cameraError?.name === 'PermissionDeniedError';
+
+        setScannerStatus(denied ? 'denied' : 'error');
+        setScannerMessage(denied ? QR_SCANNER_MESSAGES.denied : QR_SCANNER_MESSAGES.error);
+        setIsScannerActive(false);
+        stopQrScanner();
+      }
+    };
+
+    startQrScanner();
+
+    return () => {
+      isCancelled = true;
+      stopQrScanner();
+    };
+  }, [isScannerActive, selectedQrLocation]);
+  /* eslint-enable react-hooks/exhaustive-deps */
+
+  const handleStartQrScanner = () => {
+    setQrError('');
+    setIsScannerActive(true);
+    setScannerStatus('starting');
+    setScannerMessage(QR_SCANNER_MESSAGES.starting);
   };
 
   const handleVerifyClick = (location) => {
@@ -417,7 +670,7 @@ function MyQuestDetail() {
       setIsCompletingQuest(true);
       const response = await questApi.completeMyQuest(userQuestId);
       if (response.data?.detail) setDetail(response.data.detail);
-      alert(response.data?.alreadyCompleted ? '이미 완료된 퀘스트입니다.' : '퀘스트를 완료했습니다.');
+      alert(response.data?.alreadyCompleted ? '이미 완료한 퀘스트입니다.' : '퀘스트를 완료했습니다.');
     } catch (completeError) {
       alert(completeError.response?.data?.message || '퀘스트 완료 처리에 실패했습니다.');
     } finally {
@@ -491,7 +744,7 @@ function MyQuestDetail() {
       setReviewForm({ rating: 5, content: '' });
       alert(myReview?.reviewId ? '리뷰가 수정되었습니다.' : '리뷰가 등록되었습니다.');
     } catch (submitError) {
-      setReviewError(submitError.response?.data?.message || '리뷰 처리 중 문제가 발생했습니다.');
+      setReviewError(submitError.response?.data?.message || '후기 등록 중 문제가 발생했어요.');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -524,7 +777,7 @@ function MyQuestDetail() {
         </button>
 
         {loading ? (
-          <section className="quest-detail-empty"><h1>내 퀘스트 상세를 불러오는 중입니다.</h1></section>
+          <section className="quest-detail-empty"><h1>내 퀘스트를 불러오는 중입니다.</h1></section>
         ) : detail ? (
           <section className="quest-detail-card">
             <div className="quest-detail-head">
@@ -532,7 +785,7 @@ function MyQuestDetail() {
                 <h1>{detail.title}</h1>
                 <p>{detail.description}</p>
               </div>
-              <div className="quest-detail-summary"><strong>{detail.rewardPoint}P</strong><span>보상</span></div>
+              <div className="quest-detail-summary"><strong>{detail.rewardPoint}P</strong><strong>{detail.rewardExp}EXP</strong><span>보상</span></div>
             </div>
 
             <div className="quest-detail-meta">
@@ -543,7 +796,7 @@ function MyQuestDetail() {
 
             <div className="my-quest-detail-progress-panel">
               <div className="my-quest-detail-progress-head">
-                <h2>진행 상태</h2>
+                <h2>진행 현황</h2>
                 <span className={`my-quest-detail-status is-${String(detail.questStatus || '').toLowerCase()}`}>{getQuestStatusLabel(detail.questStatus)}</span>
               </div>
               <div className="my-quest-detail-progress-grid">
@@ -556,9 +809,9 @@ function MyQuestDetail() {
               <div className="my-quest-detail-progress-bar"><span style={{ width: `${detail.progressPercent}%` }} /></div>
               {detail.questStatus !== 'COMPLETED' ? (
                 <div className="my-quest-detail-action-row">
-                  <button type="button" className="my-quest-detail-cancel-button" onClick={handleCancelQuest} disabled={isCancelingQuest}>{isCancelingQuest ? '취소 처리 중...' : '퀘스트 취소하기'}</button>
+                  <button type="button" className="my-quest-detail-cancel-button" onClick={handleCancelQuest} disabled={isCancelingQuest}>{isCancelingQuest ? '취소 처리 중...' : '퀘스트 취소'}</button>
                   {Number(detail.totalLocationCount) > 0 && Number(detail.completedLocationCount) >= Number(detail.totalLocationCount) ? (
-                    <button type="button" className="my-quest-detail-complete-button" onClick={handleCompleteQuest} disabled={isCompletingQuest}>{isCompletingQuest ? '완료 처리 중...' : '퀘스트 완료하기'}</button>
+                    <button type="button" className="my-quest-detail-complete-button" onClick={handleCompleteQuest} disabled={isCompletingQuest}>{isCompletingQuest ? '완료 처리 중...' : '퀘스트 완료'}</button>
                   ) : null}
                 </div>
               ) : null}
@@ -570,7 +823,7 @@ function MyQuestDetail() {
             </div>
 
             <div className="quest-detail-steps">
-              <h2>방문 순서</h2>
+              <h2>방문 장소</h2>
               {Array.isArray(detail.locations) && detail.locations.length > 0 ? (
                 <div className="quest-detail-location-list">
                   {detail.locations.map((location) => {
@@ -600,8 +853,8 @@ function MyQuestDetail() {
                             <span className="my-quest-detail-completed-at">완료일 {formatDateTime(location.completedAt)}</span>
                           ) : (
                             <div className="my-quest-detail-verification">
-                              {isOrderReady ? <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 올리기' : `${getVerificationLabel(location.locationCategory)} 하기`}</button> : null}
-                              {!isOrderReady ? <span className="my-quest-detail-order-note">이전 순서를 먼저 인증해야 합니다.</span> : null}
+                              {isOrderReady ? <button type="button" className="my-quest-detail-verify-btn" onClick={(event) => { event.stopPropagation(); handleVerifyClick(location); }} disabled={isSubmittingGps}>{normalizeLocationCategory(location.locationCategory) === 'PURCHASE' && uploadedReceipt ? '영수증 다시 업로드' : `${getVerificationLabel(location.locationCategory)} 하기`}</button> : null}
+                              {!isOrderReady ? <span className="my-quest-detail-order-note">이전 장소부터 인증해주세요.</span> : null}
                               {uploadedReceipt ? <span className="my-quest-detail-uploaded-note">영수증 업로드됨: {uploadedReceipt.fileName}</span> : null}
                             </div>
                           )}
@@ -622,16 +875,14 @@ function MyQuestDetail() {
         <div className="my-quest-receipt-modal-overlay" onClick={closeReceiptModal}>
           <div className="my-quest-receipt-modal" onClick={(event) => event.stopPropagation()}>
             <div className="my-quest-receipt-modal-head"><div><span className="my-quest-receipt-chip">영수증 인증</span><h2>{selectedLocation.name}</h2></div><button type="button" className="my-quest-receipt-close" onClick={closeReceiptModal}>x</button></div>
-            <p className="my-quest-receipt-copy">영수증 사진을 올리면 해당 장소 방문 인증 자료로 사용됩니다.</p>
             <form className="my-quest-receipt-form" onSubmit={handleReceiptSubmit}>
               <label className="my-quest-receipt-upload-box" htmlFor="receipt-upload"><input id="receipt-upload" type="file" accept="image/*" onChange={handleReceiptFileChange} /><strong>영수증 사진 선택</strong><span>JPG, PNG 등 이미지 파일을 올려주세요.</span></label>
               {selectedReceiptFile ? <div className="my-quest-receipt-file-meta"><strong>{selectedReceiptFile.name}</strong><span>{Math.round(selectedReceiptFile.size / 1024)}KB</span></div> : null}
               {receiptPreviewUrl ? <div className="my-quest-receipt-preview-wrap"><img className="my-quest-receipt-preview" src={receiptPreviewUrl} alt="영수증 미리보기" /></div> : null}
               {receiptError ? <p className="my-quest-receipt-error">{receiptError}</p> : null}
-              <p className="my-quest-receipt-helper">영수증을 업로드하면 자동으로 매장명과 인증 여부를 확인합니다.</p>
               <div className="my-quest-receipt-actions">
                 <button type="button" className="my-quest-receipt-cancel" onClick={closeReceiptModal} disabled={isSubmittingReceipt}>취소</button>
-                <button type="submit" className="my-quest-receipt-submit" disabled={isSubmittingReceipt}>{isSubmittingReceipt ? '인증 확인 중...' : '영수증 업로드'}</button>
+                <button type="submit" className="my-quest-receipt-submit" disabled={isSubmittingReceipt}>{isSubmittingReceipt ? '확인 중...' : '영수증 업로드'}</button>
               </div>
             </form>
           </div>
@@ -648,22 +899,50 @@ function MyQuestDetail() {
               </div>
               <button type="button" className="my-quest-receipt-close" onClick={() => closeQrModal()}>x</button>
             </div>
-            <p className="my-quest-receipt-copy">현장 QR에 표시된 인증값을 입력하면 체험형 장소 인증이 완료됩니다.</p>
-            <form className="my-quest-review-form" onSubmit={handleQrSubmit}>
-              <input
-                className="my-quest-qr-input"
-                type="text"
-                value={qrAuthKey}
-                onChange={(event) => setQrAuthKey(event.target.value)}
-                placeholder="QR 인증값 입력"
-                autoFocus
-              />
+            <div className="my-quest-review-form">
+              <div className="my-quest-qr-scanner">
+                <div className="my-quest-qr-camera-frame">
+                  <video
+                    ref={qrVideoRef}
+                    className="my-quest-qr-video"
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                  <div className="my-quest-qr-camera-guide" aria-hidden="true" />
+                </div>
+                <canvas ref={qrCanvasRef} className="my-quest-qr-canvas" aria-hidden="true" />
+                <div className="my-quest-qr-scanner-meta">
+                  <p className={`my-quest-qr-scanner-message is-${scannerStatus}`}>
+                    {scannerMessage || QR_SCANNER_MESSAGES.ready}
+                  </p>
+                  {!isScannerActive ? (
+                    <button
+                      type="button"
+                      className="my-quest-qr-scanner-button"
+                      onClick={handleStartQrScanner}
+                    >
+                      카메라 다시 열기
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {qrAuthKey ? (
+                <div className="my-quest-qr-detected">QR 코드가 감지되었습니다.</div>
+              ) : null}
               {qrError ? <p className="my-quest-receipt-error">{qrError}</p> : null}
               <div className="my-quest-receipt-actions">
                 <button type="button" className="my-quest-receipt-cancel" onClick={() => closeQrModal()} disabled={isSubmittingQr}>취소</button>
-                <button type="submit" className="my-quest-receipt-submit" disabled={isSubmittingQr}>{isSubmittingQr ? '확인 중..' : 'QR 인증하기'}</button>
+                <button
+                  type="button"
+                  className="my-quest-receipt-submit"
+                  onClick={() => submitQrVerification(qrAuthKey)}
+                  disabled={isSubmittingQr || !qrAuthKey.trim()}
+                >
+                  {isSubmittingQr ? '확인 중...' : 'QR 인증하기'}
+                </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       ) : null}
@@ -699,7 +978,7 @@ function MyQuestDetail() {
               <div className="my-quest-review-actions">
                 {myReview ? <button type="button" className="my-quest-review-delete" onClick={handleReviewDelete} disabled={isSubmittingReview}>삭제</button> : null}
                 <button type="button" className="my-quest-review-cancel" onClick={closeReviewModal} disabled={isSubmittingReview}>취소</button>
-                <button type="submit" className="my-quest-review-submit" disabled={isSubmittingReview}>{isSubmittingReview ? '처리 중...' : myReview ? '리뷰 수정' : '리뷰 등록'}</button>
+                <button type="submit" className="my-quest-review-submit" disabled={isSubmittingReview}>{isSubmittingReview ? '등록 중...' : myReview ? '후기 수정' : '후기 남기기'}</button>
               </div>
             </form>
           </div>
