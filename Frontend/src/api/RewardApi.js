@@ -43,6 +43,13 @@ export const rewardApi = {
     });
   },
 
+  useRewardCoupon: ({ userId, exchangeId }) => {
+    return api.post("/api/rewards/use", {
+      userId,
+      exchangeId,
+    });
+  },
+
   getRewardBadges: (nickname) => {
     const params = {};
     if (nickname && nickname.trim()) {

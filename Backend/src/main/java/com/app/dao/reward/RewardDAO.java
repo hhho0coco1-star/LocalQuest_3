@@ -52,4 +52,8 @@ public interface RewardDAO {
 	List<RewardBadgeDTO> findUserBadgesByNickname(String nickname);
 
 	RewardWalletCoupon findWalletCouponByExchangeId(long exchangeId);
+
+	int countRewardExchangeByUserIdAndExchangeId(int userId, long exchangeId);
+
+	int markRewardCouponUsed(int userId, long exchangeId);
 }

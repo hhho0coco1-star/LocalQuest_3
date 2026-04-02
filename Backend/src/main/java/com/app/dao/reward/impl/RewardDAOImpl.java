@@ -137,4 +137,23 @@ public class RewardDAOImpl implements RewardDAO {
 	public RewardWalletCoupon findWalletCouponByExchangeId(long exchangeId) {
 		return sqlSessionTemplate.selectOne("reward_mapper.findWalletCouponByExchangeId", exchangeId);
 	}
+
+	@Override
+	public int countRewardExchangeByUserIdAndExchangeId(int userId, long exchangeId) {
+		Map<String, Object> params = Map.of(
+			"userId", userId,
+			"exchangeId", exchangeId
+		);
+		Integer count = sqlSessionTemplate.selectOne("reward_mapper.countRewardExchangeByUserIdAndExchangeId", params);
+		return count == null ? 0 : count.intValue();
+	}
+
+	@Override
+	public int markRewardCouponUsed(int userId, long exchangeId) {
+		Map<String, Object> params = Map.of(
+			"userId", userId,
+			"exchangeId", exchangeId
+		);
+		return sqlSessionTemplate.update("reward_mapper.markRewardCouponUsed", params);
+	}
 }
