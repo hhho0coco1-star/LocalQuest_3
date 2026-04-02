@@ -119,7 +119,7 @@ public class UserQuestServiceImpl implements UserQuestService {
     @Transactional
     public Map<String, Object> acceptQuest(int userId, int questId) {
         UserQuestDTO existingQuest = userQuestDAO.findLatestUserQuestByUserIdAndQuestId(userId, questId);
-        QuestDTO quest = questDAO.selectQuestById(questId);
+        QuestDTO quest = getAcceptableQuestOrThrow(questId);
 
         if (quest == null) {
             throw new IllegalArgumentException("존재하지 않는 퀘스트입니다.");
@@ -374,7 +374,7 @@ public class UserQuestServiceImpl implements UserQuestService {
     private QuestDTO getAcceptableQuestOrThrow(int questId) {
         QuestDTO quest = getQuestOrThrow(questId);
 
-        if (!QUEST_STATUS_ACTIVE.equalsIgnoreCase(quest.getStatus())) {
+        if (!isActiveQuestStatus(quest.getStatus())) {
             throw new IllegalStateException("\uD65C\uC131\uD654\uB41C\u0020\uD018\uC2A4\uD2B8\uB9CC\u0020\uC218\uB77D\uD560\u0020\uC218\u0020\uC788\uC2B5\uB2C8\uB2E4\u002E");
         }
 
@@ -387,6 +387,12 @@ public class UserQuestServiceImpl implements UserQuestService {
             throw new NoSuchElementException("\uD018\uC2A4\uD2B8\uB97C\u0020\uCC3E\uC744\u0020\uC218\u0020\uC5C6\uC2B5\uB2C8\uB2E4\u002E");
         }
         return quest;
+    }
+
+    private boolean isActiveQuestStatus(String status) {
+        return status == null
+            || status.trim().isEmpty()
+            || QUEST_STATUS_ACTIVE.equalsIgnoreCase(status.trim());
     }
 
     private UserQuestDTO findUserQuest(int userId, int questId) {

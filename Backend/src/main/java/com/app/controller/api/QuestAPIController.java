@@ -87,7 +87,7 @@ public class QuestAPIController {
             return ResponseEntity.ok(quest);
         } catch (Exception e) {
             QuestDTO quest = questService.getQuestById(questId);
-            if (quest == null) {
+            if (quest == null || !isUserVisibleQuestStatus(quest.getStatus())) {
                 return ResponseEntity.notFound().build();
             }
 
@@ -156,5 +156,11 @@ public class QuestAPIController {
         Map<String, String> response = new LinkedHashMap<>();
         response.put("message", message);
         return response;
+    }
+
+    private boolean isUserVisibleQuestStatus(String status) {
+        return status == null
+            || status.trim().isEmpty()
+            || "ACTIVE".equalsIgnoreCase(status.trim());
     }
 }

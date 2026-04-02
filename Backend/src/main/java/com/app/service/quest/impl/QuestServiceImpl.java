@@ -24,6 +24,7 @@ import com.app.service.quest.QuestService;
 @Service
 public class QuestServiceImpl implements QuestService {
 
+    private static final String QUEST_STATUS_ACTIVE = "ACTIVE";
     private static final String QUEST_LOCATION_STORAGE_UNAVAILABLE = "QUEST_LOCATION_STORAGE_UNAVAILABLE";
     private static final String LOCATION_CATEGORY_EXPERIENCE = "EXPERIENCE";
     private static final String EXPERIENCE_LOCATION_EXISTING_REQUIRED_MESSAGE =
@@ -68,7 +69,7 @@ public class QuestServiceImpl implements QuestService {
     @Override
     public QuestDetailDTO getQuestDetailById(int questId) {
         QuestDTO quest = questDAO.selectQuestById(questId);
-        if (quest == null) {
+        if (quest == null || !isActiveQuestStatus(quest.getStatus())) {
             return null;
         }
 
@@ -84,6 +85,12 @@ public class QuestServiceImpl implements QuestService {
         questDetail.setLocations(loadQuestLocationsOrEmpty(questId));
 
         return questDetail;
+    }
+
+    private boolean isActiveQuestStatus(String status) {
+        return status == null
+            || status.trim().isEmpty()
+            || QUEST_STATUS_ACTIVE.equalsIgnoreCase(status.trim());
     }
 
     @Override

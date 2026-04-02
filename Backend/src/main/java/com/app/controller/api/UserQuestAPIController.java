@@ -1,5 +1,8 @@
 package com.app.controller.api;
 
+import java.util.Collections;
+import java.util.NoSuchElementException;
+
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +43,18 @@ public class UserQuestAPIController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login required");
         }
 
-        return ResponseEntity.ok(userQuestService.acceptQuest(userId.intValue(), questId));
+        try {
+            return ResponseEntity.ok(userQuestService.acceptQuest(userId.intValue(), questId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("message", "Quest accept failed"));
+        }
     }
 
     @GetMapping("/me")

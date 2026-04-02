@@ -7,6 +7,8 @@ import './QuestList.css';
 
 const formatDuration = (timeLimit) => (timeLimit ? `${timeLimit}분` : '');
 
+const isActiveQuest = (quest) => String(quest?.status || 'ACTIVE').trim().toUpperCase() === 'ACTIVE';
+
 const toQuestCardModel = (quest) => ({
   id: Number(quest.questId),
   title: quest.title,
@@ -40,7 +42,7 @@ function QuestList() {
         setError('');
         const response = await questApi.getQuestList();
         if (!isCancelled) {
-          setQuestList((response.data || []).map(toQuestCardModel));
+          setQuestList((response.data || []).filter(isActiveQuest).map(toQuestCardModel));
         }
       } catch (err) {
         if (!isCancelled) {
