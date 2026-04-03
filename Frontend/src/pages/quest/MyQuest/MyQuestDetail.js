@@ -716,7 +716,7 @@ function MyQuestDetail() {
       setIsCancelingQuest(true);
       await questApi.cancelMyQuest(userQuestId);
       alert('퀘스트를 취소했습니다.');
-      navigate('/mypage');
+      navigate('/quest');
     } catch (cancelError) {
       alert(cancelError.response?.data?.message || '퀘스트 취소 처리에 실패했습니다.');
     } finally {
@@ -802,7 +802,7 @@ function MyQuestDetail() {
   return (
     <div className="quest-detail-page">
       <div className="quest-detail-main">
-        <button type="button" className="quest-detail-back" onClick={() => navigate('/mypage')}>
+        <button type="button" className="quest-detail-back" onClick={() => navigate('/quest')}>
           내 퀘스트로 돌아가기
         </button>
 
