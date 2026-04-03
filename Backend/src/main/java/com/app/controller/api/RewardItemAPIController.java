@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.app.dto.reward.RewardBadgeDTO;
 import com.app.dto.reward.RewardBoxSummary;
+import com.app.dto.reward.RewardCouponUseRequestDTO;
 import com.app.dto.reward.RewardExchangeRequestDTO;
 import com.app.dto.reward.RewardExchangeResultDTO;
 import com.app.dto.reward.RewardShopItem;
@@ -94,6 +95,30 @@ public class RewardItemAPIController {
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body(Collections.singletonMap("message", "리워드 교환 처리 중 오류가 발생했습니다."));
+		}
+	}
+
+	@PostMapping("/use")
+	public ResponseEntity<?> useRewardCoupon(@RequestBody RewardCouponUseRequestDTO request) {
+		if (request == null || request.getUserId() == null || request.getExchangeId() == null) {
+			return ResponseEntity.badRequest().body(Collections.singletonMap("message", "쿠폰 사용 요청 정보가 누락되었습니다."));
+		}
+
+		try {
+			rewardService.useRewardCoupon(
+				request.getUserId().intValue(),
+				request.getExchangeId().longValue()
+			);
+			return ResponseEntity.ok(Collections.singletonMap("exchangeId", request.getExchangeId()));
+		} catch (NoSuchElementException e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonMap("message", e.getMessage()));
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Collections.singletonMap("message", e.getMessage()));
+		} catch (IllegalStateException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(Collections.singletonMap("message", e.getMessage()));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(Collections.singletonMap("message", "리워드 쿠폰 사용 처리 중 오류가 발생했습니다."));
 		}
 	}
 }

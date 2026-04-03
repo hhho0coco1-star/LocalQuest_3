@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import './PartnerGuidePage.css';
 
@@ -48,6 +49,10 @@ const guideFaq = [
 ];
 
 function PartnerGuidePage() {
+  const authUser = useSelector((state) => state.auth.user);
+  const normalizedUserRole = String(authUser?.role || 'GUEST').replace(/^ROLE_/, '');
+  const isBusinessUser = normalizedUserRole === 'BUSINESS' || normalizedUserRole === 'ADMIN';
+  const primaryCtaTo = isBusinessUser ? '/business' : '/inquiry';
   return (
     <main className="partner-guide-page">
       <section className="partner-guide-hero">
@@ -126,9 +131,15 @@ function PartnerGuidePage() {
         </div>
 
         <div className="partner-guide-banner-actions">
-          <Link to="/inquiry" className="partner-guide-primary-btn">
+          {isBusinessUser ? (
+            <Link to={primaryCtaTo} className="partner-guide-primary-btn">
+              비즈니스 관리하기
+            </Link>
+          ) : (
+            <Link to={primaryCtaTo} className="partner-guide-primary-btn">
             상담 신청하기
-          </Link>
+            </Link>
+          )}
           <Link to="/business/partner" className="partner-guide-secondary-btn">
             파트너센터 보기
           </Link>

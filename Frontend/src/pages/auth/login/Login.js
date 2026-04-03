@@ -14,6 +14,7 @@ function Login() {
         setUserId,
         password,
         setPassword,
+        rememberLoginId,
         isSubmitting,
         showFindIdModal,
         findName,
@@ -31,6 +32,7 @@ function Login() {
         findPasswordError,
         isFindingPassword,
         handleLogin,
+        handleRememberLoginIdChange,
         handleMoveToTerms,
         handleOpenFindIdModal,
         handleCloseFindIdModal,
@@ -65,7 +67,11 @@ function Login() {
 
                 <div className="login-options">
                     <label className="remember-login-id">
-                        <input type="checkbox" />
+                        <input
+                            type="checkbox"
+                            checked={rememberLoginId}
+                            onChange={(event) => handleRememberLoginIdChange(event.target.checked)}
+                        />
                         아이디 저장
                     </label>
                 </div>

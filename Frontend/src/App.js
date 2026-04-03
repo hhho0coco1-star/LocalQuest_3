@@ -13,12 +13,12 @@ import QuestDetail from './pages/quest/QuestDetail/QuestDetail';
 import MyQuest from './pages/quest/MyQuest/MyQuest';
 import MyQuestDetail from './pages/quest/MyQuest/MyQuestDetail';
 import RewardPage from './pages/reward/rewardPage';
-import BadgePage from './pages/reward/badge/badgePage';
 import BadgeAchievementToast from './pages/reward/badge/BadgeAchievementToast';
 import BusinessPage from './pages/business/BusinessPage';
 import BusinessInquiryPage from './pages/business/BusinessInquiryPage';
 import PartnerCenterPage from './pages/business/PartnerCenterPage';
 import PartnerGuidePage from './pages/business/PartnerGuidePage';
+import PartnerStoryPage from './pages/business/PartnerStoryPage';
 import CustomerService from './pages/support/CustomerService';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
@@ -83,10 +83,10 @@ function AppRoutes({ isAuthenticated }) {
           element={isAuthenticated ? <MyQuestDetail /> : <Navigate to="/login" replace />}
         />
         <Route path="/reward" element={<RewardPage />} />
-        <Route path="/reward/badges" element={<BadgePage />} />
         <Route path="/business" element={<BusinessPage />} />
         <Route path="/business/partner" element={<PartnerCenterPage />} />
         <Route path="/business/guide" element={<PartnerGuidePage />} />
+        <Route path="/business/story" element={<PartnerStoryPage />} />
         <Route path="/inquiry" element={<BusinessInquiryPage />} />
         <Route path="/support" element={<CustomerService />} />
         <Route path="/support/notice" element={<CustomerService />} />

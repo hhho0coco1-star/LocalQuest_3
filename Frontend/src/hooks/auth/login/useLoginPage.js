@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { userApi } from '../../../api/UserApi';
@@ -12,9 +12,12 @@ import {
     validateFindPasswordInput,
 } from '../../../utils/auth/login/loginUtils';
 
+const REMEMBERED_LOGIN_ID_KEY = 'lq_saved_login_id';
+
 export function useLoginPage() {
     const [userId, setUserId] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberLoginId, setRememberLoginId] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [showFindIdModal, setShowFindIdModal] = useState(false);
@@ -34,6 +37,24 @@ export function useLoginPage() {
     const location = useLocation();
     const dispatch = useDispatch();
 
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        try {
+            const savedUserId = (window.localStorage.getItem(REMEMBERED_LOGIN_ID_KEY) || '').trim();
+            if (!savedUserId) {
+                return;
+            }
+
+            setUserId(savedUserId);
+            setRememberLoginId(true);
+        } catch (error) {
+            // ignore browser storage errors
+        }
+    }, []);
+
     const handleLogin = async (event) => {
         event.preventDefault();
 
@@ -50,12 +71,38 @@ export function useLoginPage() {
                 password,
             });
 
+            if (typeof window !== 'undefined') {
+                try {
+                    if (rememberLoginId) {
+                        window.localStorage.setItem(REMEMBERED_LOGIN_ID_KEY, trimmedUserId);
+                    } else {
+                        window.localStorage.removeItem(REMEMBERED_LOGIN_ID_KEY);
+                    }
+                } catch (error) {
+                    // ignore browser storage errors
+                }
+            }
+
             dispatch(setAuth(toAuthPayload(response.data)));
             navigate(resolveLoginRedirectPath(location.search), { replace: true });
         } catch (error) {
             alert(resolveApiErrorMessage(error, '로그인에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleRememberLoginIdChange = (checked) => {
+        setRememberLoginId(Boolean(checked));
+
+        if (checked || typeof window === 'undefined') {
+            return;
+        }
+
+        try {
+            window.localStorage.removeItem(REMEMBERED_LOGIN_ID_KEY);
+        } catch (error) {
+            // ignore browser storage errors
         }
     };
 
@@ -169,6 +216,7 @@ export function useLoginPage() {
         setUserId,
         password,
         setPassword,
+        rememberLoginId,
         isSubmitting,
         showFindIdModal,
         findName,
@@ -186,6 +234,7 @@ export function useLoginPage() {
         findPasswordError,
         isFindingPassword,
         handleLogin,
+        handleRememberLoginIdChange,
         handleMoveToTerms,
         handleOpenFindIdModal,
         handleCloseFindIdModal,

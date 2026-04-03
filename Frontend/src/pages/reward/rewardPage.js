@@ -300,6 +300,20 @@ function getExchangeErrorMessage(error) {
   return "교환 처리 중 오류가 발생했습니다.";
 }
 
+function getCouponUseErrorMessage(error) {
+  const payload = error?.response?.data;
+  if (typeof payload === "string" && payload.trim()) {
+    return payload.trim();
+  }
+
+  const message = payload?.message;
+  if (typeof message === "string" && message.trim()) {
+    return message.trim();
+  }
+
+  return "쿠폰 사용 처리 중 오류가 발생했습니다.";
+}
+
 function normalizeRoadmapItems(roadmap) {
   if (!Array.isArray(roadmap) || roadmap.length === 0) {
     return DEFAULT_LEVEL_BOX.roadmap;
@@ -415,6 +429,7 @@ function RewardPage() {
   const [pendingItem, setPendingItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExchanging, setIsExchanging] = useState(false);
+  const [usingCouponId, setUsingCouponId] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [xpAnimated, setXpAnimated] = useState(false);
@@ -883,6 +898,42 @@ function RewardPage() {
     }
   };
 
+  const handleWalletCouponUse = async (coupon) => {
+    if (!authUserId) {
+      showToastMessage("로그인한 사용자만 쿠폰을 사용할 수 있어요.");
+      return;
+    }
+
+    const exchangeId = toSafeNumber(coupon?.id, 0);
+    if (exchangeId <= 0) {
+      showToastMessage("사용 가능한 쿠폰 정보가 올바르지 않습니다.");
+      return;
+    }
+
+    if (usingCouponId !== null) {
+      return;
+    }
+
+    try {
+      setUsingCouponId(exchangeId);
+      await rewardApi.useRewardCoupon({
+        userId: authUserId,
+        exchangeId,
+      });
+
+      setWallet((prev) => prev.filter((item) => String(item.id) !== String(exchangeId)));
+      setWeeklyStats((prev) => ({
+        ...prev,
+        usedCoupon: Math.max(0, toSafeNumber(prev?.usedCoupon, 0) + 1),
+      }));
+      showToastMessage(`${coupon?.name ?? "쿠폰"} 사용이 완료됐어요!`);
+    } catch (error) {
+      showToastMessage(getCouponUseErrorMessage(error));
+    } finally {
+      setUsingCouponId(null);
+    }
+  };
+
   return (
     <div className="reward-page">
       <main className="reward-main">
@@ -1006,35 +1057,47 @@ function RewardPage() {
                 </div>
               ) : wallet.length > 0 ? (
                 <div className="reward-wallet-grid">
-                  {wallet.map((coupon) => (
-                    <article key={coupon.id} className="reward-ticket">
-                      <span className="reward-ticket-notch reward-is-top" aria-hidden="true" />
-                      <span className="reward-ticket-notch reward-is-bottom" aria-hidden="true" />
+                  {wallet.map((coupon) => {
+                    const isUsingCurrentCoupon =
+                      usingCouponId !== null && String(usingCouponId) === String(coupon.id);
 
-                      <div className={`reward-ticket-side ${coupon.urgent ? "reward-is-urgent" : ""}`}>쿠폰</div>
+                    return (
+                      <article key={coupon.id} className="reward-ticket">
+                        <span className="reward-ticket-notch reward-is-top" aria-hidden="true" />
+                        <span className="reward-ticket-notch reward-is-bottom" aria-hidden="true" />
 
-                      <div className="reward-ticket-content">
-                        <div className="reward-ticket-title-row">
-                          <h3>{coupon.name}</h3>
-                          <span className={coupon.urgent ? "reward-is-urgent" : ""}>{coupon.expire}</span>
+                        <div className={`reward-ticket-side ${coupon.urgent ? "reward-is-urgent" : ""}`}>쿠폰</div>
+
+                        <div className="reward-ticket-content">
+                          <div className="reward-ticket-title-row">
+                            <h3>{coupon.name}</h3>
+                            <span className={coupon.urgent ? "reward-is-urgent" : ""}>{coupon.expire}</span>
+                          </div>
+                          <span
+                            className={`reward-route-tag ${
+                              coupon.couponScope === "BUSINESS_LOCATION"
+                                ? "reward-is-business"
+                                : "reward-is-general"
+                            }`}
+                          >
+                            {getCouponScopeLabel(coupon.couponScope)}
+                          </span>
+                          <p>{coupon.store}</p>
+                          {coupon.storeAddress ? (
+                            <p className="reward-ticket-address">{coupon.storeAddress}</p>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="reward-ticket-use-button"
+                            onClick={() => handleWalletCouponUse(coupon)}
+                            disabled={isUsingCurrentCoupon}
+                          >
+                            {isUsingCurrentCoupon ? "사용 처리중..." : "바로 사용"}
+                          </button>
                         </div>
-                        <span
-                          className={`reward-route-tag ${
-                            coupon.couponScope === "BUSINESS_LOCATION"
-                              ? "reward-is-business"
-                              : "reward-is-general"
-                          }`}
-                        >
-                          {getCouponScopeLabel(coupon.couponScope)}
-                        </span>
-                        <p>{coupon.store}</p>
-                        {coupon.storeAddress ? (
-                          <p className="reward-ticket-address">{coupon.storeAddress}</p>
-                        ) : null}
-                        <button type="button" className="reward-ticket-use-button">바로 사용</button>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="reward-wallet-empty">

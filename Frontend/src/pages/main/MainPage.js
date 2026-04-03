@@ -1,18 +1,61 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { businessInquiryApi } from '../../api/BusinessInquiryApi';
 import { questApi } from '../../api/QuestApi';
+import { resolveKakaoAddress } from '../../utils/kakaoMap';
 import './MainPage.css';
 
 const LOCATION_CONSENT_KEY = 'localquest_location_consent';
 const QUEST_SEARCH_RADIUS_METERS = 3000;
+const MAX_ACCEPTABLE_GEOLOCATION_ACCURACY_METERS = 300;
 const DEFAULT_MAP_LEVEL = 5;
 const CURRENT_LOCATION_MARKER_COLOR = '#5d7cff';
 const QUEST_MARKER_COLOR = '#e25068';
-const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥로 215';
+const HUMAN_CENTER_ADDRESS = '충남 천안시 동남구 대흥동 134';
+const HUMAN_CENTER_ROAD_ADDRESS = '충남 천안시 동남구 대흥로 215';
+const BUSINESS_INQUIRY_PENDING_USER_KEY = 'localquest_business_inquiry_pending_user_id';
 const HUMAN_CENTER_FALLBACK = {
-  lat: 36.81511,
-  lng: 127.11389,
+  lat: 36.8941482,
+  lng: 127.1392203,
 };
+const USE_FIXED_CURRENT_LOCATION = true;
+
+function safeReadBrowserStorage(key) {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
+}
+
+function safeWriteBrowserStorage(key, value) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (error) {
+    // ignore browser storage errors
+  }
+}
+
+function safeRemoveBrowserStorage(key) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(key);
+  } catch (error) {
+    // ignore browser storage errors
+  }
+}
 
 const questTabItems = [
   { key: 'overview', label: '홈' },
@@ -191,6 +234,40 @@ function buildQuestLocationGroups(questList) {
   });
 }
 
+function resolveBusinessCta({ normalizedRole, latestInquiryStatus, isLoadingInquiryStatus }) {
+  if (normalizedRole === 'BUSINESS' || normalizedRole === 'ADMIN') {
+    return {
+      label: '비즈니스 관리하기',
+      to: '/business',
+      disabled: false,
+    };
+  }
+
+  if (isLoadingInquiryStatus) {
+    return {
+      label: '상태 확인 중...',
+      to: null,
+      disabled: true,
+    };
+  }
+
+  // 관리자 화면에서 실제로 사용하는 진행 상태는 PENDING / IN_PROGRESS / ANSWERED 이다.
+  // 승인 전까지는 사용자가 재신청하지 않도록 모두 "심사 중입니다"로 묶어 처리한다.
+  if (latestInquiryStatus && latestInquiryStatus !== 'REJECTED' && latestInquiryStatus !== 'CLOSED') {
+    return {
+      label: '심사 중입니다',
+      to: null,
+      disabled: true,
+    };
+  }
+
+  return {
+    label: '비즈니스 상담 신청하기',
+    to: '/inquiry',
+    disabled: false,
+  };
+}
+
 function createMarkerImage(color) {
   if (!window.kakao?.maps?.MarkerImage || !window.kakao?.maps?.Size || !window.kakao?.maps?.Point) {
     return null;
@@ -249,6 +326,8 @@ function MainPage() {
     hasDragged: false,
   });
   const topQuestSuppressClickUntilRef = useRef(0);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const authUser = useSelector((state) => state.auth.user);
 
   const [hasLocationConsent, setHasLocationConsent] = useState(() => {
     if (typeof window === 'undefined') {
@@ -280,16 +359,134 @@ function MainPage() {
   const [topRatedQuests, setTopRatedQuests] = useState([]);
   const [topRatedLoading, setTopRatedLoading] = useState(true);
   const [topRatedError, setTopRatedError] = useState('');
+  const [latestBusinessInquiry, setLatestBusinessInquiry] = useState(null);
+  const [isBusinessInquiryLoading, setIsBusinessInquiryLoading] = useState(false);
   const [topQuestScrollValue, setTopQuestScrollValue] = useState(0);
   const [canScrollTopQuestPrev, setCanScrollTopQuestPrev] = useState(false);
   const [canScrollTopQuestNext, setCanScrollTopQuestNext] = useState(false);
   const [isTopQuestDragging, setIsTopQuestDragging] = useState(false);
 
   const kakaoMapKey = process.env.REACT_APP_KAKAO_MAP_KEY;
+  const normalizedUserRole = String(authUser?.role || 'GUEST').replace(/^ROLE_/, '');
+  const pendingInquiryUserId = safeReadBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY);
+  const hasPendingInquiryFallback =
+    String(authUser?.userId || '') !== '' &&
+    String(authUser?.userId || '') === String(pendingInquiryUserId || '');
+  const businessCta = resolveBusinessCta({
+    normalizedRole: normalizedUserRole,
+    latestInquiryStatus: String(
+      latestBusinessInquiry?.status || (hasPendingInquiryFallback ? 'PENDING' : '')
+    )
+      .trim()
+      .toUpperCase(),
+    isLoadingInquiryStatus: isBusinessInquiryLoading,
+  });
 
   useEffect(() => {
     consentRef.current = hasLocationConsent;
   }, [hasLocationConsent]);
+
+  useEffect(() => {
+    if (!isAuthenticated || Number(authUser?.userId) <= 0) {
+      setLatestBusinessInquiry(null);
+      setIsBusinessInquiryLoading(false);
+      return undefined;
+    }
+
+    if (normalizedUserRole === 'BUSINESS' || normalizedUserRole === 'ADMIN') {
+      setLatestBusinessInquiry(null);
+      setIsBusinessInquiryLoading(false);
+      return undefined;
+    }
+
+    let isCancelled = false;
+
+    const fetchLatestBusinessInquiry = async () => {
+      try {
+        setIsBusinessInquiryLoading(true);
+        const response = await businessInquiryApi.getLatestInquiry(authUser.userId);
+
+        if (!isCancelled) {
+          console.debug('[MainPage][businessInquiry] latest inquiry response:', response?.data);
+          setLatestBusinessInquiry(response.data ?? null);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.debug('[MainPage][businessInquiry] latest inquiry request failed:', {
+            status: error?.response?.status,
+            data: error?.response?.data,
+            message: error?.message,
+            userId: authUser?.userId,
+          });
+          setLatestBusinessInquiry(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsBusinessInquiryLoading(false);
+        }
+      }
+    };
+
+    fetchLatestBusinessInquiry();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authUser?.userId, isAuthenticated, normalizedUserRole]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || Number(authUser?.userId) <= 0) {
+      return;
+    }
+
+    const currentUserId = String(authUser?.userId || '');
+    if (!currentUserId) {
+      return;
+    }
+    const latestInquiryStatus = String(latestBusinessInquiry?.status || '')
+      .trim()
+      .toUpperCase();
+
+    if (normalizedUserRole === 'BUSINESS' || normalizedUserRole === 'ADMIN') {
+      if (safeReadBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY) === currentUserId) {
+        safeRemoveBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY);
+      }
+      return;
+    }
+
+    if (!latestInquiryStatus) {
+      return;
+    }
+
+    if (latestInquiryStatus === 'REJECTED' || latestInquiryStatus === 'CLOSED') {
+      if (safeReadBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY) === currentUserId) {
+        safeRemoveBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY);
+      }
+      return;
+    }
+
+    safeWriteBrowserStorage(BUSINESS_INQUIRY_PENDING_USER_KEY, currentUserId);
+  }, [authUser?.userId, latestBusinessInquiry?.status, normalizedUserRole]);
+
+  useEffect(() => {
+    console.debug('[MainPage][businessInquiry] CTA state:', {
+      isAuthenticated,
+      authUser,
+      normalizedUserRole,
+      latestBusinessInquiry,
+      pendingInquiryUserId,
+      hasPendingInquiryFallback,
+      businessCta,
+    });
+  }, [
+    authUser,
+    businessCta,
+    hasPendingInquiryFallback,
+    isAuthenticated,
+    latestBusinessInquiry,
+    normalizedUserRole,
+    pendingInquiryUserId,
+  ]);
 
   // 리뷰 목록은 생성/수정/삭제 이후에도 재사용되므로 별도 함수로 분리해 둔다.
   const fetchQuestReviews = useCallback(async (questId, options = {}) => {
@@ -539,7 +736,7 @@ function MainPage() {
     let isCancelled = false;
     const map = mapInstanceRef.current;
 
-    const applyInitialCenter = (lat, lng, label = '현재 위치') => {
+    const applyInitialCenter = (lat, lng, label = '현재 위치', mode = 'current') => {
       if (isCancelled || !window.kakao?.maps?.LatLng) {
         return;
       }
@@ -557,13 +754,55 @@ function MainPage() {
       setCurrentLocation(nextCurrentLocation);
       setSearchCenter({
         ...nextCurrentLocation,
-        mode: 'current',
+        mode,
       });
     };
 
     const applyFallbackCenter = () => {
-      applyInitialCenter(HUMAN_CENTER_FALLBACK.lat, HUMAN_CENTER_FALLBACK.lng, HUMAN_CENTER_ADDRESS);
+      applyInitialCenter(
+        HUMAN_CENTER_FALLBACK.lat,
+        HUMAN_CENTER_FALLBACK.lng,
+        HUMAN_CENTER_ADDRESS,
+        'fallback'
+      );
     };
+
+    if (USE_FIXED_CURRENT_LOCATION) {
+      const resolveFixedCenter = async () => {
+        try {
+          const resolved = await resolveKakaoAddress(window.kakao, [
+            HUMAN_CENTER_ADDRESS,
+            HUMAN_CENTER_ROAD_ADDRESS,
+          ]);
+
+          if (isCancelled) {
+            return;
+          }
+
+          if (resolved) {
+            applyInitialCenter(
+              resolved.latitude,
+              resolved.longitude,
+              HUMAN_CENTER_ADDRESS,
+              'fixed'
+            );
+            return;
+          }
+        } catch (error) {
+          // fall back to the configured coordinates below
+        }
+
+        if (!isCancelled) {
+          applyFallbackCenter();
+        }
+      };
+
+      resolveFixedCenter();
+
+      return () => {
+        isCancelled = true;
+      };
+    }
 
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -572,7 +811,18 @@ function MainPage() {
             return;
           }
 
-          applyInitialCenter(position.coords.latitude, position.coords.longitude);
+          const accuracy = Number(position?.coords?.accuracy);
+          const hasAcceptableAccuracy =
+            Number.isFinite(accuracy) &&
+            accuracy > 0 &&
+            accuracy <= MAX_ACCEPTABLE_GEOLOCATION_ACCURACY_METERS;
+
+          if (!hasAcceptableAccuracy) {
+            applyFallbackCenter();
+            return;
+          }
+
+          applyInitialCenter(position.coords.latitude, position.coords.longitude, '현재 위치', 'current');
         },
         () => {
           if (!isCancelled) {
@@ -1246,9 +1496,15 @@ function MainPage() {
               Local Quest 파트너가 되어 매장에 활기를 더하세요. 실방문객 중심의 마케팅 효과를 직접
               경험해보세요.
             </p>
-            <Link to="/inquiry" className="partner-cta-btn">
-              비즈니스 상담 신청하기
-            </Link>
+            {businessCta.disabled ? (
+              <button type="button" className="partner-cta-btn is-disabled" disabled>
+                {businessCta.label}
+              </button>
+            ) : (
+              <Link to={businessCta.to || '/inquiry'} className="partner-cta-btn">
+                {businessCta.label}
+              </Link>
+            )}
           </div>
         </section>
       </div>

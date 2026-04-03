@@ -2,6 +2,17 @@ import { formatDateYmd, formatDateYmdHm } from '../dateTime';
 
 export const PASSWORD_MASK = '********';
 export const BADGE_ICON_FALLBACK = '🏅';
+const BADGE_ICON_MAP = {
+    badge_first_step: '\uD83C\uDFAF',
+    badge_quest_runner: '\uD83C\uDFC3',
+    badge_local_regular: '\uD83C\uDFC6',
+    badge_local_explorer: '\uD83E\uDDED',
+    badge_first_reviewer: '\uD83D\uDCDD',
+    badge_trusted_reviewer: '\u2705',
+    badge_first_exchange: '\uD83C\uDF81',
+    badge_exchange_runner: '\uD83D\uDECD\uFE0F',
+    badge_point_master: '\uD83D\uDC8E',
+};
 
 export const MY_PAGE_TABS = [
     { key: 'profile', label: '개인정보 수정' },
@@ -60,6 +71,24 @@ export function resolveGenderLabel(genderValue) {
     return String(genderValue);
 }
 
+export function resolveBadgeIconText(rawIconValue) {
+    const normalized = String(rawIconValue ?? '').trim();
+    if (!normalized) {
+        return BADGE_ICON_FALLBACK;
+    }
+
+    const mappedIcon = BADGE_ICON_MAP[normalized.toLowerCase()];
+    if (mappedIcon) {
+        return mappedIcon;
+    }
+
+    if ([...normalized].length <= 2) {
+        return normalized;
+    }
+
+    return BADGE_ICON_FALLBACK;
+}
+
 export function normalizeProfile(source, fallbackUser = null) {
     const data = source ?? {};
     const user = fallbackUser ?? {};
@@ -113,9 +142,7 @@ export function buildMyBadgeItems(myBadgeCatalog, myEarnedBadges) {
         const badgeCode = `B${String(badgeId).padStart(3, '0')}`;
         const rawIconUrl = String(badge?.iconUrl ?? '').trim();
         const isImageIcon = /^https?:\/\//i.test(rawIconUrl) || rawIconUrl.startsWith('/');
-        const iconText = !isImageIcon && rawIconUrl && [...rawIconUrl].length <= 2
-            ? rawIconUrl
-            : BADGE_ICON_FALLBACK;
+        const iconText = isImageIcon ? BADGE_ICON_FALLBACK : resolveBadgeIconText(rawIconUrl);
         const linkedEarnedBadge =
             earnedBadgeById.get(badgeId) ??
             earnedBadgeByName.get(badgeName) ??

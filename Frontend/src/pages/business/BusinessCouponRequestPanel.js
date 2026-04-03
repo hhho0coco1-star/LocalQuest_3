@@ -103,7 +103,7 @@ const formatHistoryActionType = (actionType) => {
   return normalized || '-';
 };
 
-function BusinessCouponRequestPanel() {
+function BusinessCouponRequestPanel({ onSummaryChange }) {
   const [couponRequests, setCouponRequests] = useState([]);
   const [couponRequestsLoading, setCouponRequestsLoading] = useState(true);
   const [couponRequestError, setCouponRequestError] = useState('');
@@ -290,19 +290,43 @@ function BusinessCouponRequestPanel() {
     }
   };
 
-  const couponRequestStats = useMemo(() => {
+  const couponRequestSummary = useMemo(() => {
     const totalCount = couponRequests.length;
     const requestedCount = couponRequests.filter((item) => String(item?.requestStatus || '').toUpperCase() === 'REQUESTED').length;
     const holdCount = couponRequests.filter((item) => String(item?.requestStatus || '').toUpperCase() === 'HOLD').length;
     const acceptedCount = couponRequests.filter((item) => String(item?.requestStatus || '').toUpperCase() === 'ACCEPTED').length;
+    const runningCount = couponRequests.filter((item) => {
+      const normalizedTargetStatus = String(item?.targetStatus || '').toUpperCase();
+      if (normalizedTargetStatus) {
+        return normalizedTargetStatus === 'ON_SALE';
+      }
+      return String(item?.requestStatus || '').toUpperCase() === 'ACCEPTED';
+    }).length;
 
-    return [
-      { label: '전체 제안', value: formatNumber(totalCount) },
-      { label: '응답 대기', value: formatNumber(requestedCount) },
-      { label: '보류', value: formatNumber(holdCount) },
-      { label: '수락 완료', value: formatNumber(acceptedCount) }
-    ];
+    return {
+      totalCount,
+      requestedCount,
+      holdCount,
+      acceptedCount,
+      runningCount
+    };
   }, [couponRequests]);
+
+  const couponRequestStats = useMemo(
+    () => [
+      { label: '전체 제안', value: formatNumber(couponRequestSummary.totalCount) },
+      { label: '응답 대기', value: formatNumber(couponRequestSummary.requestedCount) },
+      { label: '보류', value: formatNumber(couponRequestSummary.holdCount) },
+      { label: '수락 완료', value: formatNumber(couponRequestSummary.acceptedCount) }
+    ],
+    [couponRequestSummary]
+  );
+
+  useEffect(() => {
+    if (typeof onSummaryChange === 'function') {
+      onSummaryChange(couponRequestSummary);
+    }
+  }, [couponRequestSummary, onSummaryChange]);
 
   const selectedCouponRequest = couponRequestDetail?.request || null;
   const couponRequestHistory = Array.isArray(couponRequestDetail?.history) ? couponRequestDetail.history : [];

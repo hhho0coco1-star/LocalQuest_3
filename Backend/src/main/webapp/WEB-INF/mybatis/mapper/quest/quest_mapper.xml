@@ -41,7 +41,7 @@
             GROUP BY QUEST_ID
         ) qr
             ON q.QUEST_ID = qr.QUEST_ID
-        WHERE NVL(q.STATUS, 'ACTIVE') != 'DELETED'
+        WHERE NVL(q.STATUS, 'ACTIVE') = 'ACTIVE'
         ORDER BY q.QUEST_ID DESC
     </select>
 
@@ -56,7 +56,7 @@
             NVL(STATUS, 'ACTIVE') as status,
             CREATED_AT as createdAt
         FROM LQ_QUEST
-        WHERE NVL(STATUS, 'ACTIVE') != 'DELETED'
+        WHERE NVL(STATUS, 'ACTIVE') = 'ACTIVE'
         ORDER BY QUEST_ID DESC
     </select>
 

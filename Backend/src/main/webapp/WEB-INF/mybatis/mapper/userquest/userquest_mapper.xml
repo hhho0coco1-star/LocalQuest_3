@@ -120,7 +120,7 @@
         INNER JOIN LQ_QUEST q
             ON q.QUEST_ID = uq.QUEST_ID
         WHERE uq.USER_ID = #{_parameter}
-          AND q.STATUS != 'DELETED'
+          AND NVL(q.STATUS, 'ACTIVE') = 'ACTIVE'
         ORDER BY
             CASE
                 WHEN uq.STATUS = 'IN_PROGRESS' THEN 1
@@ -180,6 +180,7 @@
         INNER JOIN LQ_QUEST q
             ON uq.QUEST_ID = q.QUEST_ID
         WHERE uq.USER_QUEST_ID = #{userQuestId}
+          AND NVL(q.STATUS, 'ACTIVE') = 'ACTIVE'
     </select>
 
     <select id="findUserQuestDetailLocationsByUserQuestId" parameterType="int" resultType="UserQuestDetailLocationDTO">

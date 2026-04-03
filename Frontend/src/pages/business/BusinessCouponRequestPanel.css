@@ -333,6 +333,35 @@
   cursor: pointer;
 }
 
+.business-coupon-secondary-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.business-coupon-primary-btn {
+  border: 1px solid #f14662;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff5f7d, #f14662);
+  padding: 12px 18px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(241, 70, 98, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.business-coupon-primary-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(241, 70, 98, 0.24);
+}
+
+.business-coupon-primary-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .business-coupon-action-state {
   margin-top: 12px;
   border-radius: 12px;

@@ -13,6 +13,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'LocalQuest';
   const body = payload.body || '새 알림이 도착했습니다.';
   const data = payload.data || {};
+  const notificationType = String(data.type || '').toUpperCase();
+  const shouldKeepVisible = notificationType === 'LUNCH';
 
   event.waitUntil(
     self.registration.showNotification(title, {
@@ -20,6 +22,7 @@ self.addEventListener('push', (event) => {
       icon: '/logo192.png',
       badge: '/logo192.png',
       data,
+      requireInteraction: shouldKeepVisible,
     })
   );
 });
