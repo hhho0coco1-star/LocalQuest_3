@@ -123,6 +123,73 @@
   cursor: not-allowed;
 }
 
+.my-quest-detail-my-review-card {
+  margin-top: 14px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid #e6e9f2;
+  background-color: #ffffff;
+}
+
+.my-quest-detail-my-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.my-quest-detail-my-review-head h3 {
+  margin: 0;
+  color: #101626;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.my-quest-detail-my-review-head span {
+  color: #6b7488;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.my-quest-detail-my-review-body {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.my-quest-detail-my-review-rating {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.my-quest-detail-my-review-rating strong {
+  color: #f3a000;
+  font-size: 19px;
+  letter-spacing: 0.08em;
+}
+
+.my-quest-detail-my-review-rating span {
+  color: #3f4860;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.my-quest-detail-my-review-content {
+  margin: 0;
+  color: #232d42;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.my-quest-detail-my-review-empty {
+  margin: 12px 0 0;
+  color: #6b7488;
+  font-size: 14px;
+}
+
 .my-quest-detail-location-item.is-completed {
   border-color: #dcefdc;
   background-color: #f8fdf9;
@@ -551,6 +618,7 @@
 
 @media (max-width: 768px) {
   .my-quest-detail-progress-head,
+  .my-quest-detail-my-review-head,
   .my-quest-detail-location-head,
   .my-quest-receipt-actions,
   .my-quest-review-actions,

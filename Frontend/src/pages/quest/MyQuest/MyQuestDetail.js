@@ -50,6 +50,11 @@ const formatDateTime = (value) => {
 
 const formatDueDateTime = (value) => (value ? formatDateTime(value) : '제한 없음');
 
+const renderStarText = (rating) => {
+  const normalized = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  return Array.from({ length: 5 }, (_, index) => (index < normalized ? '★' : '☆')).join('');
+};
+
 const getQuestStatusLabel = (status) => {
   if (status === 'IN_PROGRESS') return '진행 중';
   if (status === 'SAVED') return '수락됨';
@@ -850,6 +855,32 @@ function MyQuestDetail() {
                   <button type="button" className="my-quest-detail-review-button" onClick={openReviewModal}>{myReview ? '리뷰 수정' : '리뷰 쓰기'}</button>
                 </div>
               ) : null}
+              {detail.questStatus === 'COMPLETED' ? (
+                <article className="my-quest-detail-my-review-card">
+                  <header className="my-quest-detail-my-review-head">
+                    <h3>내 리뷰</h3>
+                    <span>
+                      {myReview
+                        ? `작성일 ${formatDateTime(myReview.createdAt || myReview.updatedAt)}`
+                        : '아직 작성한 리뷰가 없습니다.'}
+                    </span>
+                  </header>
+
+                  {myReview ? (
+                    <div className="my-quest-detail-my-review-body">
+                      <p className="my-quest-detail-my-review-rating">
+                        <strong>{renderStarText(myReview.rating)}</strong>
+                        <span>{Number(myReview.rating || 0).toFixed(1)}점</span>
+                      </p>
+                      <p className="my-quest-detail-my-review-content">{myReview.content || '-'}</p>
+                    </div>
+                  ) : (
+                    <p className="my-quest-detail-my-review-empty">
+                      리뷰 쓰기 버튼을 눌러 완료한 퀘스트 후기를 남겨보세요.
+                    </p>
+                  )}
+                </article>
+              ) : null}
             </div>
 
             <div className="quest-detail-steps">
@@ -1008,7 +1039,7 @@ function MyQuestDetail() {
               <div className="my-quest-review-actions">
                 {myReview ? <button type="button" className="my-quest-review-delete" onClick={handleReviewDelete} disabled={isSubmittingReview}>삭제</button> : null}
                 <button type="button" className="my-quest-review-cancel" onClick={closeReviewModal} disabled={isSubmittingReview}>취소</button>
-                <button type="submit" className="my-quest-review-submit" disabled={isSubmittingReview}>{isSubmittingReview ? '등록 중...' : myReview ? '후기 수정' : '후기 남기기'}</button>
+                <button type="submit" className="my-quest-review-submit" disabled={isSubmittingReview}>{isSubmittingReview ? '등록 중...' : myReview ? '리뷰 수정' : '리뷰 남기기'}</button>
               </div>
             </form>
           </div>

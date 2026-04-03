@@ -34,7 +34,7 @@
 			</a></li>
 			<li class="admin-nav-item"><a href="${path}/admin?view=shop" data-admin-view="shop"
 				onclick="loadAdminContent('${path}/admin/shop', this); return false;"> <i
-					class="fas fa-store"></i> 상점 관리
+					class="fas fa-store"></i> 쿠폰 관리
 			</a></li>
 			<li class="admin-nav-item"><a href="${path}/admin?view=quests" data-admin-view="quests"
 				onclick="loadAdminContent('${path}/admin/quests', this); return false;"> <i
